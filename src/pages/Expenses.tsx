@@ -1,0 +1,121 @@
+import { useState, useMemo } from "react";
+import { useApp } from "@/context/AppContext";
+import { Expense, ExpenseCategory } from "@/types";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Plus, Trash2, Download } from "lucide-react";
+
+const CATS: ExpenseCategory[] = ["Filament", "Shipping", "Equipment", "Tools", "Project Expense", "Other"];
+
+function newExpense(): Expense {
+  return { id: crypto.randomUUID(), date: new Date().toISOString().split("T")[0], name: "", category: "Other", amount: 0, notes: "" };
+}
+
+export default function Expenses() {
+  const { expenses, addExpense, deleteExpense } = useApp();
+  const [showAdd, setShowAdd] = useState(false);
+  const [draft, setDraft] = useState<Expense>(newExpense());
+  const [catFilter, setCatFilter] = useState("all");
+
+  const filtered = useMemo(() =>
+    catFilter === "all" ? expenses : expenses.filter(e => e.category === catFilter),
+    [expenses, catFilter]
+  );
+
+  const total = filtered.reduce((s, e) => s + (e.amount || 0), 0);
+
+  const handleAdd = () => {
+    if (!draft.name) return;
+    addExpense(draft);
+    setDraft(newExpense());
+    setShowAdd(false);
+  };
+
+  const exportCSV = () => {
+    const header = "Date,Name,Category,Amount,Notes,LinkedProject\n";
+    const rows = expenses.map(e => `"${e.date}","${e.name}","${e.category}",${e.amount},"${e.notes}","${e.linkedProject || ''}"`).join("\n");
+    const blob = new Blob([header + rows], { type: "text/csv" });
+    const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "expenses.csv"; a.click();
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <h1 className="text-2xl font-bold">Expenses</h1>
+        <div className="flex gap-2">
+          <Button size="sm" variant="outline" onClick={exportCSV}><Download className="h-4 w-4 mr-1" />CSV</Button>
+          <Button size="sm" onClick={() => setShowAdd(true)}><Plus className="h-4 w-4 mr-1" />Add Expense</Button>
+        </div>
+      </div>
+
+      <div className="flex items-center gap-4">
+        <Select value={catFilter} onValueChange={setCatFilter}>
+          <SelectTrigger className="w-[170px]"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Categories</SelectItem>
+            {CATS.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <span className="text-sm text-muted-foreground">Total: <strong className="text-foreground">€{total.toFixed(2)}</strong></span>
+      </div>
+
+      <Card>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Date</TableHead>
+                <TableHead>Name</TableHead>
+                <TableHead>Category</TableHead>
+                <TableHead>Project</TableHead>
+                <TableHead className="text-right">Amount</TableHead>
+                <TableHead></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filtered.length === 0 && (
+                <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">No expenses yet.</TableCell></TableRow>
+              )}
+              {filtered.map(e => (
+                <TableRow key={e.id}>
+                  <TableCell className="text-sm">{e.date}</TableCell>
+                  <TableCell className="font-medium">{e.name}</TableCell>
+                  <TableCell><Badge variant="outline" className="text-xs">{e.category}</Badge></TableCell>
+                  <TableCell className="text-sm text-muted-foreground">{e.linkedProject || '—'}</TableCell>
+                  <TableCell className="text-right font-mono">€{(e.amount || 0).toFixed(2)}</TableCell>
+                  <TableCell><Button size="icon" variant="ghost" className="text-destructive h-8 w-8" onClick={() => deleteExpense(e.id)}><Trash2 className="h-4 w-4" /></Button></TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      <Dialog open={showAdd} onOpenChange={setShowAdd}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Add Expense</DialogTitle></DialogHeader>
+          <div className="grid gap-3">
+            <div><Label>Date</Label><Input type="date" value={draft.date} onChange={e => setDraft({ ...draft, date: e.target.value })} /></div>
+            <div><Label>Name</Label><Input value={draft.name} onChange={e => setDraft({ ...draft, name: e.target.value })} /></div>
+            <div><Label>Category</Label>
+              <Select value={draft.category} onValueChange={v => setDraft({ ...draft, category: v as ExpenseCategory })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>{CATS.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div><Label>Amount (€)</Label><Input type="number" step="0.01" value={draft.amount || ""} onChange={e => setDraft({ ...draft, amount: parseFloat(e.target.value) || 0 })} /></div>
+            <div><Label>Notes</Label><Textarea value={draft.notes} onChange={e => setDraft({ ...draft, notes: e.target.value })} /></div>
+          </div>
+          <DialogFooter><Button onClick={handleAdd}>Add Expense</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
