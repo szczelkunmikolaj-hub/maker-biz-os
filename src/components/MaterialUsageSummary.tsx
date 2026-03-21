@@ -1,0 +1,136 @@
+import { useMemo } from "react";
+import { useApp } from "@/context/AppContext";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { Palette } from "lucide-react";
+
+interface MaterialGroup {
+  key: string;
+  material: string;
+  color: string;
+  totalGrams: number;
+  spoolsNeeded: number;
+  projectCount: number;
+}
+
+function normalizeMaterialName(raw: string): string {
+  return raw.trim().toLowerCase().replace(/\s+/g, ' ');
+}
+
+function parseMaterialColor(material: string, color: string): { mat: string; col: string } {
+  const normMat = normalizeMaterialName(material);
+  const normCol = normalizeMaterialName(color);
+
+  // Handle cases like "PLA Black" in material field
+  const knownMaterials = ['pla', 'petg', 'abs', 'tpu', 'nylon', 'asa', 'pc', 'pva', 'hips'];
+  const matParts = normMat.split(' ');
+
+  if (matParts.length > 1) {
+    const baseMat = matParts[0];
+    if (knownMaterials.includes(baseMat)) {
+      const colorFromMat = matParts.slice(1).join(' ');
+      return {
+        mat: baseMat.toUpperCase(),
+        col: normCol || colorFromMat,
+      };
+    }
+  }
+
+  // Also handle "Black PLA" (color first, material second)
+  if (matParts.length > 1) {
+    const lastPart = matParts[matParts.length - 1];
+    if (knownMaterials.includes(lastPart)) {
+      const colorFromMat = matParts.slice(0, -1).join(' ');
+      return {
+        mat: lastPart.toUpperCase(),
+        col: normCol || colorFromMat,
+      };
+    }
+  }
+
+  return {
+    mat: normMat ? normMat.toUpperCase() : 'UNKNOWN',
+    col: normCol || 'unspecified',
+  };
+}
+
+function capitalizeWords(s: string): string {
+  return s.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+}
+
+const SPOOL_SIZE_GRAMS = 1000;
+
+export default function MaterialUsageSummary() {
+  const { projects } = useApp();
+
+  const groups = useMemo(() => {
+    const map = new Map<string, MaterialGroup>();
+    const activeProjects = projects.filter(p => !p.sent);
+
+    activeProjects.forEach(p => {
+      (p.prints || []).forEach(pr => {
+        if ((pr.materialUsed || 0) === 0) return;
+        const remaining = ((pr.quantity || 1) - (pr.completedQuantity || 0));
+        if (remaining <= 0) return;
+
+        const { mat, col } = parseMaterialColor(pr.material || '', pr.color || '');
+        const key = `${mat}|||${col}`;
+        const grams = (pr.materialUsed || 0) * remaining;
+
+        const existing = map.get(key) || {
+          key, material: mat, color: col,
+          totalGrams: 0, spoolsNeeded: 0, projectCount: 0,
+        };
+        existing.totalGrams += grams;
+        existing.spoolsNeeded = Math.ceil(existing.totalGrams / SPOOL_SIZE_GRAMS);
+        existing.projectCount++;
+        map.set(key, existing);
+      });
+    });
+
+    return Array.from(map.values()).sort((a, b) => b.totalGrams - a.totalGrams);
+  }, [projects]);
+
+  if (groups.length === 0) return null;
+
+  const maxGrams = Math.max(...groups.map(g => g.totalGrams));
+
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-base flex items-center gap-2">
+          <Palette className="h-4 w-4" />
+          Material Usage Summary
+        </CardTitle>
+        <p className="text-xs text-muted-foreground">Filament needed for all active &amp; pending projects</p>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {groups.map(g => (
+          <div key={g.key} className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium">
+                  {g.material} {g.color !== 'unspecified' ? capitalizeWords(g.color) : ''}
+                </span>
+                <Badge variant="outline" className="text-[10px]">
+                  {g.projectCount} print{g.projectCount !== 1 ? 's' : ''}
+                </Badge>
+              </div>
+              <div className="text-right">
+                <span className="text-sm font-bold">{g.totalGrams.toFixed(0)}g</span>
+                <span className="text-xs text-muted-foreground ml-1.5">
+                  (~{g.spoolsNeeded} spool{g.spoolsNeeded !== 1 ? 's' : ''})
+                </span>
+              </div>
+            </div>
+            <Progress value={(g.totalGrams / maxGrams) * 100} className="h-1.5" />
+          </div>
+        ))}
+        <p className="text-[11px] text-muted-foreground pt-1">
+          Based on {SPOOL_SIZE_GRAMS / 1000}kg spool size. Only remaining (unprinted) quantities counted.
+        </p>
+      </CardContent>
+    </Card>
+  );
+}
