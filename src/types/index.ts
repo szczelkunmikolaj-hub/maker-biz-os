@@ -57,9 +57,9 @@ export interface Project {
   paidAt?: string;
 }
 
-/** Get the effective date for analytics: paidAt > completedAt > shippingDate > orderDate */
+/** Get the effective date for analytics: shippingDate > completedAt > paidAt > orderDate */
 export function getEffectiveDate(p: Project): string | null {
-  return p.paidAt || p.completedAt || p.shippingDate || p.orderDate || null;
+  return p.shippingDate || p.completedAt || p.paidAt || p.orderDate || null;
 }
 
 export interface Expense {

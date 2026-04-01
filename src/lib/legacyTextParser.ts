@@ -130,7 +130,7 @@ export function parseLegacyText(text: string): ParseResult {
       paid: true,
       sent: true,
       shippingDate: completedAt.slice(0, 10),
-      notes: `Imported from legacy text`,
+      notes: 'Imported from legacy text',
       prints: [],
       kanbanStatus: 'shipped',
       projectExpenses: [],
