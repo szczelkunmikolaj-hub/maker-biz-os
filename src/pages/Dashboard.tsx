@@ -85,14 +85,16 @@ export default function Dashboard() {
     return null;
   }, [range, selectedMonth, selectedYear]);
 
-  function inRange(dateStr: string | null): boolean {
-    if (!dateStr) return false;
-    if (!interval) return true;
-    try { return isWithinInterval(parseISO(dateStr), interval); } catch { return false; }
-  }
+  const inRange = useMemo(() => {
+    return (dateStr: string | null): boolean => {
+      if (!dateStr) return false;
+      if (!interval) return true;
+      try { return isWithinInterval(parseISO(dateStr), interval); } catch { return false; }
+    };
+  }, [interval]);
 
-  const filteredProjects = useMemo(() => projects.filter(p => inRange(getDateStr(p))), [projects, interval]);
-  const filteredExpenses = useMemo(() => expenses.filter(e => inRange(e.date)), [expenses, interval]);
+  const filteredProjects = useMemo(() => projects.filter(p => inRange(getDateStr(p))), [projects, inRange]);
+  const filteredExpenses = useMemo(() => expenses.filter(e => inRange(e.date)), [expenses, inRange]);
 
   // ── Core stats ──
   const stats = useMemo(() => {
