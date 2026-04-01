@@ -22,33 +22,45 @@ function detectSource(line: string): string {
 }
 
 function extractAllPositiveNumbers(line: string): number[] {
-  // Remove source keywords so "50 bizum 50 wallapop" doesn't lose numbers
-  // Match all number patterns (with optional comma/dot decimals)
   const matches = line.match(/\d+(?:[.,]\d+)?/g);
   if (!matches) return [];
   return matches.map(m => parseFloat(m.replace(',', '.'))).filter(n => n > 0);
 }
 
 function extractRevenue(line: string): number {
-  // Sum ALL positive numbers found in the line
   const numbers = extractAllPositiveNumbers(line);
   return numbers.reduce((sum, n) => sum + n, 0);
 }
 
-function extractExpenseAmount(line: string): number {
-  // For expenses, also sum all positive numbers
-  const numbers = extractAllPositiveNumbers(line);
-  return numbers.reduce((sum, n) => sum + n, 0);
-}
-
-function getMonthEndDate(month: number, referenceYear?: number): string {
-  const now = new Date();
-  let year = referenceYear || now.getFullYear();
-  if (month > now.getMonth() && !referenceYear) {
-    year = now.getFullYear() - 1;
-  }
+function getMonthEndDate(month: number, year: number): string {
   const d = endOfMonth(new Date(year, month, 1));
   return d.toISOString();
+}
+
+/** Detect "Month: September 2025" or "September 2025" or just "September" */
+function parseMonthHeader(line: string): { month: number; year: number | null } | null {
+  // "Month: September 2025" format
+  const headerMatch = line.match(/^month:\s*(\w+)\s*(\d{4})?\s*$/i);
+  if (headerMatch) {
+    const m = MONTHS[headerMatch[1].toLowerCase()];
+    if (m !== undefined) return { month: m, year: headerMatch[2] ? parseInt(headerMatch[2]) : null };
+  }
+  // "September 2025" or just "September"
+  const words = line.toLowerCase().replace(/[^a-z0-9\s]/g, '').trim().split(/\s+/);
+  if (words.length <= 2) {
+    const m = MONTHS[words[0]];
+    if (m !== undefined) {
+      const yr = words[1] ? parseInt(words[1]) : null;
+      return { month: m, year: yr && yr > 2000 ? yr : null };
+    }
+  }
+  return null;
+}
+
+function inferYear(month: number, explicitYear: number | null): number {
+  if (explicitYear) return explicitYear;
+  const now = new Date();
+  return month > now.getMonth() ? now.getFullYear() - 1 : now.getFullYear();
 }
 
 export function parseLegacyText(text: string): ParseResult {
@@ -57,86 +69,106 @@ export function parseLegacyText(text: string): ParseResult {
   const expenses: Expense[] = [];
 
   let currentMonth: number | null = null;
+  let currentYear: number | null = null;
   let inExpenses = false;
 
   for (const rawLine of lines) {
     const line = rawLine.trim();
     if (!line) continue;
 
+    // Skip "Total ..." summary lines to avoid double-counting
+    if (/^total\s/i.test(line)) continue;
+
     // Detect month headers
-    const monthLower = line.toLowerCase().replace(/[^a-z]/g, '');
-    if (MONTHS[monthLower] !== undefined) {
-      currentMonth = MONTHS[monthLower];
+    const monthInfo = parseMonthHeader(line);
+    if (monthInfo) {
+      currentMonth = monthInfo.month;
+      currentYear = monthInfo.year;
       inExpenses = false;
       continue;
     }
 
-    // Detect expenses section
-    if (/^expenses?:?\s*$/i.test(line) || /^expenses?$/i.test(line)) {
+    // Detect expenses section header
+    if (/^expenses?:?\s*$/i.test(line)) {
       inExpenses = true;
       continue;
     }
 
-    // A new [x] or [ ] line after expenses section means we're back to items
-    if (inExpenses && (line.startsWith('[x]') || line.startsWith('[X]') || line.startsWith('[ ]'))) {
-      inExpenses = false;
-      // fall through to handle below
-    }
-
     if (currentMonth === null) continue;
 
-    const completedAt = getMonthEndDate(currentMonth);
+    const year = inferYear(currentMonth, currentYear);
+    const completedAt = getMonthEndDate(currentMonth, year);
+    const dateStr = completedAt.slice(0, 10);
 
-    // Handle expenses
-    if (inExpenses) {
-      const amount = extractExpenseAmount(line);
+    // Strip leading "- " for bullet-style lines
+    const stripped = line.replace(/^-\s*/, '');
+
+    // [x] = completed project → REVENUE
+    if (/^\[x\]/i.test(stripped)) {
+      inExpenses = false; // back to projects mode
+      const content = stripped.replace(/^\[x\]\s*/i, '');
+      const revenue = extractRevenue(content);
+      const name = content.split(/[:\-–]/)[0]?.trim() || content.replace(/\d+.*$/, '').trim() || 'Unnamed Project';
+      const source = detectSource(content);
+
+      if (revenue <= 0) continue;
+
+      projects.push({
+        id: crypto.randomUUID(),
+        name,
+        customerName: '',
+        customerSource: source as any,
+        paymentMethod: source === 'Cash' ? 'Cash' : source === 'Bizum' ? 'Bizum' : 'Other' as any,
+        orderDate: dateStr,
+        dueDate: '',
+        totalPrice: revenue,
+        printed: true,
+        paid: true,
+        sent: true,
+        shippingDate: dateStr,
+        notes: 'Imported from legacy text',
+        prints: [],
+        kanbanStatus: 'shipped',
+        projectExpenses: [],
+        completedAt,
+        paidAt: completedAt,
+      });
+      continue;
+    }
+
+    // [ ] = expense (NEW: [ ] is now treated as expense, not ignored)
+    if (/^\[\s?\]/.test(stripped)) {
+      const content = stripped.replace(/^\[\s?\]\s*/, '');
+      const amount = extractRevenue(content);
       if (amount > 0) {
-        const name = line.replace(/(\d+(?:[.,]\d+)?)\s*(?:euros?|€)?/gi, '').replace(/[-–:]/g, '').trim() || 'Expense';
+        const name = content.replace(/(\d+(?:[.,]\d+)?)\s*(?:euros?|€)?/gi, '').replace(/[-–:+]/g, '').trim() || 'Expense';
         expenses.push({
           id: crypto.randomUUID(),
-          date: completedAt.slice(0, 10),
+          date: dateStr,
           name,
           category: 'Other',
           amount,
-          notes: `Imported from legacy text`,
+          notes: 'Imported from legacy text',
         });
       }
       continue;
     }
 
-    // [ ] = not completed → IGNORE
-    if (line.startsWith('[ ]')) continue;
-
-    // Only process completed items [x]
-    if (!line.startsWith('[x]') && !line.startsWith('[X]')) continue;
-
-    const content = line.replace(/^\[x\]\s*/i, '');
-    const revenue = extractRevenue(content);
-    const name = content.split(/[:\-–]/)[0]?.trim() || content.replace(/\d+.*$/, '').trim() || 'Unnamed Project';
-    const source = detectSource(content);
-
-    if (revenue <= 0) continue;
-
-    projects.push({
-      id: crypto.randomUUID(),
-      name,
-      customerName: '',
-      customerSource: source as any,
-      paymentMethod: source === 'Cash' ? 'Cash' : source === 'Bizum' ? 'Bizum' : 'Other' as any,
-      orderDate: completedAt.slice(0, 10),
-      dueDate: '',
-      totalPrice: revenue,
-      printed: true,
-      paid: true,
-      sent: true,
-      shippingDate: completedAt.slice(0, 10),
-      notes: 'Imported from legacy text',
-      prints: [],
-      kanbanStatus: 'shipped',
-      projectExpenses: [],
-      completedAt,
-      paidAt: completedAt,
-    });
+    // Lines inside "Expenses:" section (no checkbox) → also expense
+    if (inExpenses) {
+      const amount = extractRevenue(line);
+      if (amount > 0) {
+        const name = line.replace(/(\d+(?:[.,]\d+)?)\s*(?:euros?|€)?/gi, '').replace(/[-–:+]/g, '').trim() || 'Expense';
+        expenses.push({
+          id: crypto.randomUUID(),
+          date: dateStr,
+          name,
+          category: 'Other',
+          amount,
+          notes: 'Imported from legacy text',
+        });
+      }
+    }
   }
 
   return { projects, expenses };
