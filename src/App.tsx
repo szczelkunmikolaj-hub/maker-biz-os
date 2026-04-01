@@ -15,6 +15,7 @@ import TemplatesPage from "@/pages/TemplatesPage";
 import ImportQueue from "@/pages/ImportQueue";
 import CalendarPage from "@/pages/CalendarPage";
 import FilamentPurchases from "@/pages/FilamentPurchases";
+import DataManagement from "@/pages/DataManagement";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
