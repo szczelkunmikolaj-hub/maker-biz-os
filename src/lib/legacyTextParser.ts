@@ -21,17 +21,27 @@ function detectSource(line: string): string {
   return 'Other';
 }
 
+function extractAllPositiveNumbers(line: string): number[] {
+  // Remove source keywords so "50 bizum 50 wallapop" doesn't lose numbers
+  // Match all number patterns (with optional comma/dot decimals)
+  const matches = line.match(/\d+(?:[.,]\d+)?/g);
+  if (!matches) return [];
+  return matches.map(m => parseFloat(m.replace(',', '.'))).filter(n => n > 0);
+}
+
 function extractRevenue(line: string): number {
-  // Match numbers before "euro" or "euros" or "€" or standalone numbers
-  const euroMatch = line.match(/(\d+(?:[.,]\d+)?)\s*(?:euros?|€)/i);
-  if (euroMatch) return parseFloat(euroMatch[1].replace(',', '.'));
-  // Try standalone number
-  const numMatch = line.match(/(\d+(?:[.,]\d+)?)/);
-  return numMatch ? parseFloat(numMatch[1].replace(',', '.')) : 0;
+  // Sum ALL positive numbers found in the line
+  const numbers = extractAllPositiveNumbers(line);
+  return numbers.reduce((sum, n) => sum + n, 0);
+}
+
+function extractExpenseAmount(line: string): number {
+  // For expenses, also sum all positive numbers
+  const numbers = extractAllPositiveNumbers(line);
+  return numbers.reduce((sum, n) => sum + n, 0);
 }
 
 function getMonthEndDate(month: number, referenceYear?: number): string {
-  // Determine year: if month > current month, use previous year
   const now = new Date();
   let year = referenceYear || now.getFullYear();
   if (month > now.getMonth() && !referenceYear) {
@@ -62,9 +72,15 @@ export function parseLegacyText(text: string): ParseResult {
     }
 
     // Detect expenses section
-    if (/^expenses?/i.test(line)) {
+    if (/^expenses?:?\s*$/i.test(line) || /^expenses?$/i.test(line)) {
       inExpenses = true;
       continue;
+    }
+
+    // A new [x] or [ ] line after expenses section means we're back to items
+    if (inExpenses && (line.startsWith('[x]') || line.startsWith('[X]') || line.startsWith('[ ]'))) {
+      inExpenses = false;
+      // fall through to handle below
     }
 
     if (currentMonth === null) continue;
@@ -73,7 +89,7 @@ export function parseLegacyText(text: string): ParseResult {
 
     // Handle expenses
     if (inExpenses) {
-      const amount = extractRevenue(line);
+      const amount = extractExpenseAmount(line);
       if (amount > 0) {
         const name = line.replace(/(\d+(?:[.,]\d+)?)\s*(?:euros?|€)?/gi, '').replace(/[-–:]/g, '').trim() || 'Expense';
         expenses.push({
@@ -87,6 +103,9 @@ export function parseLegacyText(text: string): ParseResult {
       }
       continue;
     }
+
+    // [ ] = not completed → IGNORE
+    if (line.startsWith('[ ]')) continue;
 
     // Only process completed items [x]
     if (!line.startsWith('[x]') && !line.startsWith('[X]')) continue;
