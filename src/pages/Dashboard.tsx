@@ -283,7 +283,7 @@ export default function Dashboard() {
     // Busiest week
     const weekMap = new Map<string, number>();
     filteredProjects.forEach(p => {
-      const ds = p.orderDate;
+      const ds = getEffectiveDate(p) || p.orderDate;
       if (!ds) return;
       const key = format(parseISO(ds), "yyyy-'W'ww");
       weekMap.set(key, (weekMap.get(key) || 0) + 1);
