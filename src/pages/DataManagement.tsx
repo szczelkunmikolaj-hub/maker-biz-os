@@ -6,8 +6,9 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Download, Upload, AlertTriangle, Merge, Replace, Copy, User } from 'lucide-react';
+import { Download, Upload, AlertTriangle, Merge, Replace, Copy, User, FileText } from 'lucide-react';
 import { normalizeProject } from '@/types';
+import { parseLegacyText } from '@/lib/legacyTextParser';
 import type { Project, Expense, PrintTemplate, FilamentPurchase, AppSettings } from '@/types';
 
 interface ExportData {
