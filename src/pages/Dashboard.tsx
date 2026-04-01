@@ -240,7 +240,7 @@ export default function Dashboard() {
       // Reuse same labels; compute hours per bucket separately
       let hours = 0;
       filteredProjects.forEach(p => {
-        const ds = p.orderDate;
+        const ds = getEffectiveDate(p) || p.orderDate;
         if (!ds) return;
         try {
           const d = parseISO(ds);
