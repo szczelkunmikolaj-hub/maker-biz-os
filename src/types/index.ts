@@ -53,6 +53,13 @@ export interface Project {
   prints: Print[];
   kanbanStatus: KanbanStatus;
   projectExpenses: ProjectExpense[];
+  completedAt?: string;
+  paidAt?: string;
+}
+
+/** Get the effective date for analytics: paidAt > completedAt > shippingDate > orderDate */
+export function getEffectiveDate(p: Project): string | null {
+  return p.paidAt || p.completedAt || p.shippingDate || p.orderDate || null;
 }
 
 export interface Expense {
@@ -117,6 +124,8 @@ export function normalizeProject(p: any): Project {
     projectExpenses: p.projectExpenses || [],
     paymentMethod: p.paymentMethod || 'Other',
     kanbanStatus: p.kanbanStatus || 'new-order',
+    completedAt: p.completedAt || '',
+    paidAt: p.paidAt || '',
   };
 }
 

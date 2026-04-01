@@ -2,6 +2,7 @@ import { useApp } from "@/context/AppContext";
 import {
   getProjectTotalMaterial, getGlobalPrintProgress, getSuggestions,
   getProjectExpensesTotal, getProjectProgress, getProjectTotalPrintTime,
+  getEffectiveDate,
 } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -32,9 +33,6 @@ const COLORS = [
 type TimeRange = "month" | "year" | "all";
 type Grouping = "day" | "week" | "month";
 
-function getDateStr(item: any): string | null {
-  return item.orderDate || item.shippingDate || item.date || null;
-}
 
 function buildMonthOptions(): { value: string; label: string }[] {
   const now = new Date();
@@ -93,7 +91,12 @@ export default function Dashboard() {
     };
   }, [interval]);
 
-  const filteredProjects = useMemo(() => projects.filter(p => inRange(getDateStr(p))), [projects, inRange]);
+  // Filter projects: only those with an effectiveDate in range count for analytics
+  const filteredProjects = useMemo(() => projects.filter(p => {
+    const ed = getEffectiveDate(p);
+    if (!ed) return range === "all"; // include projects without dates only in all-time
+    return inRange(ed);
+  }), [projects, inRange, range]);
   const filteredExpenses = useMemo(() => expenses.filter(e => inRange(e.date)), [expenses, inRange]);
 
   // ── Core stats ──
@@ -175,7 +178,7 @@ export default function Dashboard() {
       // All-time: group by month across all data
       const map = new Map<string, { label: string; revenue: number; profit: number; expenses: number }>();
       filteredProjects.filter(p => p.paid && p.sent).forEach(p => {
-        const ds = p.shippingDate || p.orderDate;
+        const ds = getEffectiveDate(p);
         if (!ds) return;
         const key = format(parseISO(ds), "yyyy-MM");
         const label = format(parseISO(ds), "MMM yy");
@@ -210,7 +213,7 @@ export default function Dashboard() {
     return buckets.map(b => {
       let revenue = 0, profit = 0, expenses = 0;
       filteredProjects.filter(p => p.paid && p.sent).forEach(p => {
-        const ds = p.shippingDate || p.orderDate;
+        const ds = getEffectiveDate(p);
         if (!ds) return;
         try {
           const d = parseISO(ds);
@@ -232,7 +235,7 @@ export default function Dashboard() {
       // Reuse same labels; compute hours per bucket separately
       let hours = 0;
       filteredProjects.forEach(p => {
-        const ds = p.orderDate;
+        const ds = getEffectiveDate(p) || p.orderDate;
         if (!ds) return;
         try {
           const d = parseISO(ds);
@@ -265,7 +268,7 @@ export default function Dashboard() {
     // Best revenue day
     const dayMap = new Map<string, number>();
     filteredProjects.filter(p => p.paid && p.sent).forEach(p => {
-      const ds = p.shippingDate || p.orderDate;
+      const ds = getEffectiveDate(p);
       if (!ds) return;
       const key = format(parseISO(ds), "yyyy-MM-dd");
       dayMap.set(key, (dayMap.get(key) || 0) + (p.totalPrice || 0));
@@ -275,7 +278,7 @@ export default function Dashboard() {
     // Busiest week
     const weekMap = new Map<string, number>();
     filteredProjects.forEach(p => {
-      const ds = p.orderDate;
+      const ds = getEffectiveDate(p) || p.orderDate;
       if (!ds) return;
       const key = format(parseISO(ds), "yyyy-'W'ww");
       weekMap.set(key, (weekMap.get(key) || 0) + 1);
