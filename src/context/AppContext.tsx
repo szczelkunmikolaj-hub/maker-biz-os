@@ -102,6 +102,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     [filamentPurchases]
   );
 
+  const replaceAllData = useCallback((data: { projects: Project[]; expenses: Expense[]; templates: PrintTemplate[]; filamentPurchases: FilamentPurchase[]; settings: AppSettings }) => {
+    setProjects(data.projects);
+    setExpenses(data.expenses);
+    setTemplates(data.templates);
+    setFilamentPurchases(data.filamentPurchases);
+    setSettings(data.settings);
+  }, []);
+
   const allPrintNames = React.useMemo(() => {
     const names = new Set<string>();
     projects.forEach(p => (p.prints || []).forEach(pr => { if (pr.name) names.add(pr.name); }));
