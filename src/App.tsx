@@ -38,6 +38,7 @@ const App = () => (
               <Route path="/templates" element={<TemplatesPage />} />
               <Route path="/quote" element={<QuoteGenerator />} />
               <Route path="/import" element={<ImportQueue />} />
+              <Route path="/data" element={<DataManagement />} />
               <Route path="/settings" element={<SettingsPage />} />
             </Route>
             <Route path="*" element={<NotFound />} />

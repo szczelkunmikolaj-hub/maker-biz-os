@@ -124,7 +124,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       addExpense, updateExpense, deleteExpense, updateSettings,
       addTemplate, deleteTemplate,
       addFilamentPurchase, updateFilamentPurchase, deleteFilamentPurchase,
-      totalFilamentPurchasesCost, allPrintNames,
+      totalFilamentPurchasesCost, allPrintNames, replaceAllData,
     }}>
       {children}
     </AppContext.Provider>

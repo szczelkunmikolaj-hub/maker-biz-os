@@ -18,6 +18,7 @@ const items = [
   { title: "Templates", url: "/templates", icon: BookTemplate },
   { title: "Import Queue", url: "/import", icon: Upload },
   { title: "Quote Generator", url: "/quote", icon: Calculator },
+  { title: "Data", url: "/data", icon: Database },
   { title: "Settings", url: "/settings", icon: Settings },
 ];
 
