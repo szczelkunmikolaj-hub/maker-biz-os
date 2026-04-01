@@ -20,10 +20,11 @@ import { useMemo, useState } from "react";
 import {
   format, parseISO, startOfMonth, endOfMonth, startOfYear, endOfYear,
   isWithinInterval, startOfWeek, endOfWeek, eachMonthOfInterval, eachWeekOfInterval, eachDayOfInterval,
-  subMonths,
+  subMonths, eachYearOfInterval,
 } from "date-fns";
 import ProductionSummary from "@/components/ProductionSummary";
 import MaterialUsageSummary from "@/components/MaterialUsageSummary";
+import ChartGroupingSelect, { type ChartGrouping } from "@/components/ChartGroupingSelect";
 
 const COLORS = [
   "hsl(168,60%,38%)", "hsl(220,60%,50%)", "hsl(38,92%,50%)",
@@ -31,7 +32,6 @@ const COLORS = [
 ];
 
 type TimeRange = "month" | "year" | "all";
-type Grouping = "day" | "week" | "month";
 
 
 function buildMonthOptions(): { value: string; label: string }[] {
