@@ -1,39 +1,64 @@
 import { useApp } from "@/context/AppContext";
-import { getProjectTotalMaterial, getGlobalPrintProgress, getSuggestions, getAdvancedAnalytics, getProjectExpensesTotal, getEstimatedMaterialCost } from "@/types";
+import { getProjectTotalMaterial, getGlobalPrintProgress, getSuggestions, getAdvancedAnalytics, getProjectExpensesTotal, getEstimatedMaterialCost, getProjectProgress } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import { DollarSign, TrendingUp, Package, Clock, Weight, Lightbulb, Printer, Award, BarChart3 } from "lucide-react";
-import { useMemo } from "react";
-import { format, parseISO } from "date-fns";
+import { useMemo, useState } from "react";
+import { format, parseISO, startOfMonth, startOfYear, isAfter, isBefore } from "date-fns";
 import ProductionSummary from "@/components/ProductionSummary";
 import MaterialUsageSummary from "@/components/MaterialUsageSummary";
 
 const COLORS = ["hsl(168,60%,38%)", "hsl(220,60%,50%)", "hsl(38,92%,50%)", "hsl(280,60%,50%)", "hsl(0,72%,51%)"];
 
+type TimeRange = "month" | "year" | "all";
+
+function filterByRange<T extends { orderDate?: string; shippingDate?: string; date?: string }>(items: T[], range: TimeRange): T[] {
+  if (range === "all") return items;
+  const now = new Date();
+  const start = range === "month" ? startOfMonth(now) : startOfYear(now);
+  return items.filter(item => {
+    const dateStr = (item as any).orderDate || (item as any).shippingDate || (item as any).date;
+    if (!dateStr) return false;
+    try { return isAfter(parseISO(dateStr), start); } catch { return false; }
+  });
+}
+
 export default function Dashboard() {
   const { projects, expenses, settings, totalFilamentPurchasesCost } = useApp();
+  const [range, setRange] = useState<TimeRange>("all");
+
+  const filteredProjects = useMemo(() => filterByRange(projects, range), [projects, range]);
+  const filteredExpenses = useMemo(() => filterByRange(expenses, range), [expenses, range]);
 
   const stats = useMemo(() => {
-    const paidSent = projects.filter(p => p.paid && p.sent);
+    const paidSent = filteredProjects.filter(p => p.paid && p.sent);
     const totalRevenue = paidSent.reduce((s, p) => s + (p.totalPrice || 0), 0);
     const projectExpenses = paidSent.reduce((s, p) => s + getProjectExpensesTotal(p), 0);
-    const otherExpenses = expenses.reduce((s, e) => s + (e.amount || 0), 0);
-    const realProfit = totalRevenue - totalFilamentPurchasesCost - otherExpenses - projectExpenses;
-    const estimatedMaterialCost = projects.reduce((s, p) => s + getEstimatedMaterialCost(p, settings.filamentCostPerGram), 0);
-    const totalMaterial = projects.reduce((s, p) => s + getProjectTotalMaterial(p), 0);
-    const realMargin = totalRevenue > 0 ? (realProfit / totalRevenue) * 100 : 0;
-    return { totalRevenue, totalProfit: realProfit, totalOrders: projects.length, totalMaterial, estimatedMaterialCost, realMargin };
-  }, [projects, expenses, settings, totalFilamentPurchasesCost]);
+    const otherExpenses = filteredExpenses.reduce((s, e) => s + (e.amount || 0), 0);
+    const realProfit = totalRevenue - (range === "all" ? totalFilamentPurchasesCost : 0) - otherExpenses - projectExpenses;
+    const totalMaterial = filteredProjects.reduce((s, p) => s + getProjectTotalMaterial(p), 0);
+    return { totalRevenue, totalProfit: realProfit, totalOrders: filteredProjects.length, totalMaterial };
+  }, [filteredProjects, filteredExpenses, settings, totalFilamentPurchasesCost, range]);
 
-  const globalProgress = useMemo(() => getGlobalPrintProgress(projects), [projects]);
+  const globalProgress = useMemo(() => getGlobalPrintProgress(filteredProjects), [filteredProjects]);
   const suggestions = useMemo(() => getSuggestions(projects), [projects]);
-  const advanced = useMemo(() => getAdvancedAnalytics(projects, expenses, settings.filamentCostPerGram), [projects, expenses, settings]);
+  const advanced = useMemo(() => getAdvancedAnalytics(filteredProjects, filteredExpenses, settings.filamentCostPerGram), [filteredProjects, filteredExpenses, settings]);
+
+  // Auto-complete projects where all parts are done
+  const projectsWithProgress = useMemo(() => {
+    return filteredProjects.map(p => {
+      const prog = getProjectProgress(p);
+      const autoComplete = prog.totalPieces > 0 && prog.percent === 100;
+      return { ...p, _progress: prog, _autoComplete: autoComplete };
+    });
+  }, [filteredProjects]);
 
   const monthlyData = useMemo(() => {
     const map = new Map<string, { month: string; orders: number; revenue: number; profit: number }>();
-    projects.filter(p => p.paid && p.sent).forEach(p => {
+    filteredProjects.filter(p => p.paid && p.sent).forEach(p => {
       const dateStr = p.shippingDate || p.orderDate;
       if (!dateStr) return;
       const key = format(parseISO(dateStr), "yyyy-MM");
@@ -45,18 +70,18 @@ export default function Dashboard() {
       map.set(key, existing);
     });
     return Array.from(map.entries()).sort(([a], [b]) => a.localeCompare(b)).map(([, v]) => v);
-  }, [projects]);
+  }, [filteredProjects]);
 
   const sourceData = useMemo(() => {
     const map = new Map<string, { orders: number; revenue: number }>();
-    projects.forEach(p => {
+    filteredProjects.forEach(p => {
       const existing = map.get(p.customerSource) || { orders: 0, revenue: 0 };
       existing.orders++;
       if (p.paid && p.sent) existing.revenue += p.totalPrice || 0;
       map.set(p.customerSource, existing);
     });
     return Array.from(map.entries()).map(([name, v]) => ({ name, value: v.orders, revenue: v.revenue }));
-  }, [projects]);
+  }, [filteredProjects]);
 
   const kpis = [
     { label: "Revenue", value: `€${stats.totalRevenue.toFixed(2)}`, icon: DollarSign, accent: true },
@@ -71,7 +96,19 @@ export default function Dashboard() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Dashboard</h1>
-        <p className="text-sm text-muted-foreground">{new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+        <div className="flex items-center gap-3">
+          <Select value={range} onValueChange={(v: TimeRange) => setRange(v)}>
+            <SelectTrigger className="w-[140px] h-9 text-sm">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="month">This Month</SelectItem>
+              <SelectItem value="year">This Year</SelectItem>
+              <SelectItem value="all">All Time</SelectItem>
+            </SelectContent>
+          </Select>
+          <p className="text-sm text-muted-foreground hidden md:block">{new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+        </div>
       </div>
 
       {/* KPI Grid */}
