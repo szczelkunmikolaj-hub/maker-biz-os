@@ -58,17 +58,11 @@ export default function Dashboard() {
   const [range, setRange] = useState<TimeRange>("all");
   const [selectedMonth, setSelectedMonth] = useState(() => format(new Date(), "yyyy-MM"));
   const [selectedYear, setSelectedYear] = useState(() => String(new Date().getFullYear()));
-  const [grouping, setGrouping] = useState<Grouping>("month");
 
-  const monthOptions = useMemo(buildMonthOptions, []);
-  const yearOptions = useMemo(buildYearOptions, []);
-
-  // Auto-adjust grouping based on range
-  const effectiveGrouping = useMemo(() => {
-    if (range === "month") return grouping === "month" ? "day" : grouping;
-    if (range === "year") return grouping === "day" ? "week" : grouping;
-    return grouping;
-  }, [range, grouping]);
+  // Per-chart grouping states
+  const [revenueGrouping, setRevenueGrouping] = useState<ChartGrouping>("month");
+  const [profitGrouping, setProfitGrouping] = useState<ChartGrouping>("month");
+  const [hoursGrouping, setHoursGrouping] = useState<ChartGrouping>("month");
 
   // Build date interval
   const interval = useMemo(() => {
