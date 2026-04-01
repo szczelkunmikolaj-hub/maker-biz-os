@@ -183,7 +183,7 @@ export default function Dashboard() {
       // All-time: group by month across all data
       const map = new Map<string, { label: string; revenue: number; profit: number; expenses: number }>();
       filteredProjects.filter(p => p.paid && p.sent).forEach(p => {
-        const ds = p.shippingDate || p.orderDate;
+        const ds = getEffectiveDate(p);
         if (!ds) return;
         const key = format(parseISO(ds), "yyyy-MM");
         const label = format(parseISO(ds), "MMM yy");
