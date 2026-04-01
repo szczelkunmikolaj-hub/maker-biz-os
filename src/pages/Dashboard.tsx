@@ -218,7 +218,7 @@ export default function Dashboard() {
     return buckets.map(b => {
       let revenue = 0, profit = 0, expenses = 0;
       filteredProjects.filter(p => p.paid && p.sent).forEach(p => {
-        const ds = p.shippingDate || p.orderDate;
+        const ds = getEffectiveDate(p);
         if (!ds) return;
         try {
           const d = parseISO(ds);
