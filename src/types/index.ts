@@ -124,6 +124,8 @@ export function normalizeProject(p: any): Project {
     projectExpenses: p.projectExpenses || [],
     paymentMethod: p.paymentMethod || 'Other',
     kanbanStatus: p.kanbanStatus || 'new-order',
+    completedAt: p.completedAt || '',
+    paidAt: p.paidAt || '',
   };
 }
 
