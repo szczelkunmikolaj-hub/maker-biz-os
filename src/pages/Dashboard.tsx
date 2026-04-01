@@ -19,7 +19,7 @@ import { useMemo, useState } from "react";
 import {
   format, parseISO, startOfMonth, endOfMonth, startOfYear, endOfYear,
   isWithinInterval, startOfWeek, endOfWeek, eachMonthOfInterval, eachWeekOfInterval, eachDayOfInterval,
-  subMonths, subYears,
+  subMonths,
 } from "date-fns";
 import ProductionSummary from "@/components/ProductionSummary";
 import MaterialUsageSummary from "@/components/MaterialUsageSummary";
