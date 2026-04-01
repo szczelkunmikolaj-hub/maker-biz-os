@@ -228,7 +228,7 @@ export default function Dashboard() {
 
   // ── Chart: Hours over time ──
   const hoursOverTime = useMemo(() => {
-    return revenueOverTime.map((bucket, i) => {
+    return revenueOverTime.map((bucket) => {
       // Reuse same labels; compute hours per bucket separately
       let hours = 0;
       filteredProjects.forEach(p => {
