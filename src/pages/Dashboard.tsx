@@ -16,7 +16,7 @@ import {
   DollarSign, TrendingUp, Package, Clock, Weight, Lightbulb,
   Printer, Award, BarChart3, AlertTriangle, Activity,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useCallback } from "react";
 import {
   format, parseISO, startOfMonth, endOfMonth, startOfYear, endOfYear,
   isWithinInterval, startOfWeek, endOfWeek, eachMonthOfInterval, eachWeekOfInterval, eachDayOfInterval,
@@ -24,6 +24,7 @@ import {
 } from "date-fns";
 import ProductionSummary from "@/components/ProductionSummary";
 import MaterialUsageSummary from "@/components/MaterialUsageSummary";
+import ChartGroupingSelect, { type ChartGrouping } from "@/components/ChartGroupingSelect";
 
 const COLORS = [
   "hsl(168,60%,38%)", "hsl(220,60%,50%)", "hsl(38,92%,50%)",
@@ -31,8 +32,6 @@ const COLORS = [
 ];
 
 type TimeRange = "month" | "year" | "all";
-type Grouping = "day" | "week" | "month";
-
 
 function buildMonthOptions(): { value: string; label: string }[] {
   const now = new Date();
@@ -53,22 +52,54 @@ function buildYearOptions(): { value: string; label: string }[] {
   return opts;
 }
 
+// Helper: build time buckets for a given grouping and interval
+function buildBuckets(grouping: ChartGrouping, interval: { start: Date; end: Date } | null) {
+  if (!interval) return null; // all-time uses map-based grouping
+  if (grouping === "day") {
+    return eachDayOfInterval(interval).map(d => ({
+      start: d, end: d, label: format(d, "MMM d"), key: format(d, "yyyy-MM-dd"),
+    }));
+  }
+  if (grouping === "week") {
+    return eachWeekOfInterval(interval, { weekStartsOn: 1 }).map(d => ({
+      start: startOfWeek(d, { weekStartsOn: 1 }),
+      end: endOfWeek(d, { weekStartsOn: 1 }),
+      label: `W${format(d, "w")}`,
+      key: `W${format(d, "w")}`,
+    }));
+  }
+  if (grouping === "year") {
+    // single year bucket per interval year
+    const years: { start: Date; end: Date; label: string; key: string }[] = [];
+    for (let y = interval.start.getFullYear(); y <= interval.end.getFullYear(); y++) {
+      years.push({
+        start: startOfYear(new Date(y, 0, 1)),
+        end: endOfYear(new Date(y, 0, 1)),
+        label: String(y),
+        key: String(y),
+      });
+    }
+    return years;
+  }
+  // monthly
+  return eachMonthOfInterval(interval).map(d => ({
+    start: startOfMonth(d), end: endOfMonth(d), label: format(d, "MMM"), key: format(d, "yyyy-MM"),
+  }));
+}
+
 export default function Dashboard() {
   const { projects, expenses, totalFilamentPurchasesCost } = useApp();
   const [range, setRange] = useState<TimeRange>("all");
   const [selectedMonth, setSelectedMonth] = useState(() => format(new Date(), "yyyy-MM"));
   const [selectedYear, setSelectedYear] = useState(() => String(new Date().getFullYear()));
-  const [grouping, setGrouping] = useState<Grouping>("month");
+
+  // Per-chart independent grouping
+  const [revenueGrouping, setRevenueGrouping] = useState<ChartGrouping>("month");
+  const [profitGrouping, setProfitGrouping] = useState<ChartGrouping>("month");
+  const [hoursGrouping, setHoursGrouping] = useState<ChartGrouping>("month");
 
   const monthOptions = useMemo(buildMonthOptions, []);
   const yearOptions = useMemo(buildYearOptions, []);
-
-  // Auto-adjust grouping based on range
-  const effectiveGrouping = useMemo(() => {
-    if (range === "month") return grouping === "month" ? "day" : grouping;
-    if (range === "year") return grouping === "day" ? "week" : grouping;
-    return grouping;
-  }, [range, grouping]);
 
   // Build date interval
   const interval = useMemo(() => {
@@ -83,18 +114,15 @@ export default function Dashboard() {
     return null;
   }, [range, selectedMonth, selectedYear]);
 
-  const inRange = useMemo(() => {
-    return (dateStr: string | null): boolean => {
-      if (!dateStr) return false;
-      if (!interval) return true;
-      try { return isWithinInterval(parseISO(dateStr), interval); } catch { return false; }
-    };
+  const inRange = useCallback((dateStr: string | null): boolean => {
+    if (!dateStr) return false;
+    if (!interval) return true;
+    try { return isWithinInterval(parseISO(dateStr), interval); } catch { return false; }
   }, [interval]);
 
-  // Filter projects: only those with an effectiveDate in range count for analytics
   const filteredProjects = useMemo(() => projects.filter(p => {
     const ed = getEffectiveDate(p);
-    if (!ed) return range === "all"; // include projects without dates only in all-time
+    if (!ed) return range === "all";
     return inRange(ed);
   }), [projects, inRange, range]);
   const filteredExpenses = useMemo(() => expenses.filter(e => inRange(e.date)), [expenses, inRange]);
@@ -108,14 +136,10 @@ export default function Dashboard() {
     const filCost = range === "all" ? totalFilamentPurchasesCost : 0;
     const totalMaterial = filteredProjects.reduce((s, p) => s + getProjectTotalMaterial(p), 0);
 
-    const completedProjects = filteredProjects.filter(p => {
-      const prog = getProjectProgress(p);
-      return prog.percent === 100;
-    });
+    const completedProjects = filteredProjects.filter(p => getProjectProgress(p).percent === 100);
     const overdueProjects = filteredProjects.filter(p => {
       if (!p.dueDate) return false;
-      const prog = getProjectProgress(p);
-      return prog.percent < 100 && parseISO(p.dueDate) < new Date();
+      return getProjectProgress(p).percent < 100 && parseISO(p.dueDate) < new Date();
     });
 
     const allPrints = filteredProjects.flatMap(p => p.prints || []);
@@ -130,7 +154,6 @@ export default function Dashboard() {
     const avgTimePerProject = filteredProjects.length > 0
       ? filteredProjects.reduce((s, p) => s + getProjectTotalPrintTime(p), 0) / filteredProjects.length : 0;
 
-    // Material breakdown
     const materialMap = new Map<string, number>();
     filteredProjects.forEach(p => (p.prints || []).forEach(pr => {
       const mat = pr.material || "Unknown";
@@ -141,7 +164,6 @@ export default function Dashboard() {
       .sort((a, b) => b.value - a.value);
     const mostUsedMaterial = materialBreakdown[0]?.name || "—";
 
-    // On-time vs late
     const onTime = paidSent.filter(p => {
       if (!p.dueDate || !p.shippingDate) return true;
       return parseISO(p.shippingDate) <= parseISO(p.dueDate);
@@ -149,123 +171,101 @@ export default function Dashboard() {
     const late = paidSent.length - onTime;
 
     return {
-      totalRevenue,
-      totalExpenses: projectExp + otherExp + filCost,
+      totalRevenue, totalExpenses: projectExp + otherExp + filCost,
       netProfit: totalRevenue - projectExp - otherExp - filCost,
-      totalOrders: filteredProjects.length,
-      totalMaterial,
+      totalOrders: filteredProjects.length, totalMaterial,
       completedProjects: completedProjects.length,
       activeProjects: filteredProjects.length - completedProjects.length,
       overdueProjects: overdueProjects.length,
-      totalPrintsCompleted: completedPrints.length,
-      totalHoursPrinted,
-      avgPrintTime,
-      completionRate,
-      avgProfitPerProject,
-      avgTimePerProject,
-      materialBreakdown,
-      mostUsedMaterial,
-      onTime, late,
+      totalPrintsCompleted: completedPrints.length, totalHoursPrinted, avgPrintTime,
+      completionRate, avgProfitPerProject, avgTimePerProject,
+      materialBreakdown, mostUsedMaterial, onTime, late,
     };
   }, [filteredProjects, filteredExpenses, totalFilamentPurchasesCost, range]);
 
   const globalProgress = useMemo(() => getGlobalPrintProgress(filteredProjects), [filteredProjects]);
   const suggestions = useMemo(() => getSuggestions(projects), [projects]);
 
-  // ── Chart: Revenue over time ──
-  const revenueOverTime = useMemo(() => {
-    if (!interval) {
-      // All-time: group by month across all data
-      const map = new Map<string, { label: string; revenue: number; profit: number; expenses: number }>();
-      filteredProjects.filter(p => p.paid && p.sent).forEach(p => {
+  // ── Generic time-series builder ──
+  const buildTimeSeries = useCallback((
+    grouping: ChartGrouping,
+    mapper: (projectsInBucket: typeof filteredProjects, expensesInBucket: typeof filteredExpenses) => Record<string, number>,
+  ) => {
+    const buckets = buildBuckets(grouping, interval);
+
+    if (!buckets) {
+      // All-time: group by month
+      const map = new Map<string, Record<string, any>>();
+      const paidSent = filteredProjects.filter(p => p.paid && p.sent);
+      paidSent.forEach(p => {
         const ds = getEffectiveDate(p);
         if (!ds) return;
         const key = format(parseISO(ds), "yyyy-MM");
         const label = format(parseISO(ds), "MMM yy");
-        const e = map.get(key) || { label, revenue: 0, profit: 0, expenses: 0 };
-        const exp = getProjectExpensesTotal(p);
-        e.revenue += p.totalPrice || 0;
-        e.profit += (p.totalPrice || 0) - exp;
-        e.expenses += exp;
-        map.set(key, e);
+        if (!map.has(key)) map.set(key, { label });
+        const entry = map.get(key)!;
+        const vals = mapper([p], []);
+        Object.entries(vals).forEach(([k, v]) => { entry[k] = ((entry[k] as number) || 0) + v; });
+      });
+      filteredExpenses.forEach(e => {
+        const key = format(parseISO(e.date), "yyyy-MM");
+        const label = format(parseISO(e.date), "MMM yy");
+        if (!map.has(key)) map.set(key, { label });
+        const entry = map.get(key)!;
+        const vals = mapper([], [e]);
+        Object.entries(vals).forEach(([k, v]) => { entry[k] = ((entry[k] as number) || 0) + v; });
       });
       return Array.from(map.entries()).sort(([a], [b]) => a.localeCompare(b)).map(([, v]) => v);
     }
 
-    // Build time buckets
-    let buckets: { start: Date; end: Date; label: string }[] = [];
-    if (effectiveGrouping === "day") {
-      buckets = eachDayOfInterval(interval).map(d => ({
-        start: d, end: d, label: format(d, "MMM d"),
-      }));
-    } else if (effectiveGrouping === "week") {
-      buckets = eachWeekOfInterval(interval, { weekStartsOn: 1 }).map(d => ({
-        start: startOfWeek(d, { weekStartsOn: 1 }),
-        end: endOfWeek(d, { weekStartsOn: 1 }),
-        label: `W${format(d, "w")}`,
-      }));
-    } else {
-      buckets = eachMonthOfInterval(interval).map(d => ({
-        start: startOfMonth(d), end: endOfMonth(d), label: format(d, "MMM"),
-      }));
-    }
-
     return buckets.map(b => {
-      let revenue = 0, profit = 0, expenses = 0;
-      filteredProjects.filter(p => p.paid && p.sent).forEach(p => {
+      const bProjects = filteredProjects.filter(p => {
         const ds = getEffectiveDate(p);
-        if (!ds) return;
-        try {
-          const d = parseISO(ds);
-          if (d >= b.start && d <= b.end) {
-            const exp = getProjectExpensesTotal(p);
-            revenue += p.totalPrice || 0;
-            profit += (p.totalPrice || 0) - exp;
-            expenses += exp;
-          }
-        } catch {}
+        if (!ds) return false;
+        try { const d = parseISO(ds); return d >= b.start && d <= b.end; } catch { return false; }
       });
-      return { label: b.label, revenue: +revenue.toFixed(2), profit: +profit.toFixed(2), expenses: +expenses.toFixed(2) };
+      const bExpenses = filteredExpenses.filter(e => {
+        try { const d = parseISO(e.date); return d >= b.start && d <= b.end; } catch { return false; }
+      });
+      const vals = mapper(bProjects, bExpenses);
+      return { label: b.label, ...vals };
     });
-  }, [filteredProjects, interval, effectiveGrouping]);
+  }, [interval, filteredProjects, filteredExpenses]);
+
+  // ── Chart: Revenue over time ──
+  const revenueOverTime = useMemo(() => buildTimeSeries(revenueGrouping, (ps) => {
+    const paidSent = ps.filter(p => p.paid && p.sent);
+    const revenue = paidSent.reduce((s, p) => s + (p.totalPrice || 0), 0);
+    return { revenue: +revenue.toFixed(2) };
+  }), [buildTimeSeries, revenueGrouping]);
+
+  // ── Chart: Profit vs Expenses ──
+  const profitExpensesData = useMemo(() => buildTimeSeries(profitGrouping, (ps, es) => {
+    const paidSent = ps.filter(p => p.paid && p.sent);
+    const revenue = paidSent.reduce((s, p) => s + (p.totalPrice || 0), 0);
+    const pExp = paidSent.reduce((s, p) => s + getProjectExpensesTotal(p), 0);
+    const eExp = es.reduce((s, e) => s + (e.amount || 0), 0);
+    const totalExp = pExp + eExp;
+    return { profit: +(revenue - totalExp).toFixed(2), expenses: +totalExp.toFixed(2) };
+  }), [buildTimeSeries, profitGrouping]);
 
   // ── Chart: Hours over time ──
-  const hoursOverTime = useMemo(() => {
-    return revenueOverTime.map((bucket) => {
-      // Reuse same labels; compute hours per bucket separately
-      let hours = 0;
-      filteredProjects.forEach(p => {
-        const ds = getEffectiveDate(p) || p.orderDate;
-        if (!ds) return;
-        try {
-          const d = parseISO(ds);
-          // Simple approach: if project falls in same bucket period
-          const key = bucket.label;
-          const projectMonth = interval
-            ? (effectiveGrouping === "month" ? format(d, "MMM") : effectiveGrouping === "week" ? `W${format(d, "w")}` : format(d, "MMM d"))
-            : format(d, "MMM yy");
-          if (projectMonth === key) {
-            hours += getProjectTotalPrintTime(p);
-          }
-        } catch {}
-      });
-      return { label: bucket.label, hours: +hours.toFixed(1) };
-    });
-  }, [revenueOverTime, filteredProjects, interval, effectiveGrouping]);
+  const hoursOverTime = useMemo(() => buildTimeSeries(hoursGrouping, (ps) => {
+    const hours = ps.reduce((s, p) => s + getProjectTotalPrintTime(p), 0);
+    return { hours: +hours.toFixed(1) };
+  }), [buildTimeSeries, hoursGrouping]);
 
   // ── Chart: Project status distribution ──
   const statusDistribution = useMemo(() => {
-    const data = [
+    return [
       { name: "Completed", value: stats.completedProjects, color: "hsl(168,60%,38%)" },
       { name: "Active", value: stats.activeProjects, color: "hsl(220,60%,50%)" },
       { name: "Overdue", value: stats.overdueProjects, color: "hsl(0,72%,51%)" },
     ].filter(d => d.value > 0);
-    return data;
   }, [stats]);
 
   // ── Smart insight cards ──
   const insights = useMemo(() => {
-    // Best revenue day
     const dayMap = new Map<string, number>();
     filteredProjects.filter(p => p.paid && p.sent).forEach(p => {
       const ds = getEffectiveDate(p);
@@ -275,7 +275,6 @@ export default function Dashboard() {
     });
     const bestDay = Array.from(dayMap.entries()).sort((a, b) => b[1] - a[1])[0];
 
-    // Busiest week
     const weekMap = new Map<string, number>();
     filteredProjects.forEach(p => {
       const ds = getEffectiveDate(p) || p.orderDate;
@@ -305,16 +304,16 @@ export default function Dashboard() {
     { label: "Material Used", value: `${stats.totalMaterial.toFixed(0)}g`, icon: Weight, color: "text-primary" },
   ];
 
+  const tooltipStyle = { borderRadius: 8, fontSize: 12, border: "1px solid hsl(var(--border))" };
+
   return (
     <div className="space-y-6">
-      {/* Header with filters */}
+      {/* Header with global filters */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
         <div className="flex flex-wrap items-center gap-2">
           <Select value={range} onValueChange={(v: TimeRange) => setRange(v)}>
-            <SelectTrigger className="w-[120px] h-9 text-sm">
-              <SelectValue />
-            </SelectTrigger>
+            <SelectTrigger className="w-[120px] h-9 text-sm"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="month">Monthly</SelectItem>
               <SelectItem value="year">Yearly</SelectItem>
@@ -324,39 +323,18 @@ export default function Dashboard() {
 
           {range === "month" && (
             <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-              <SelectTrigger className="w-[170px] h-9 text-sm">
-                <SelectValue />
-              </SelectTrigger>
+              <SelectTrigger className="w-[170px] h-9 text-sm"><SelectValue /></SelectTrigger>
               <SelectContent>
-                {monthOptions.map(o => (
-                  <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
-                ))}
+                {monthOptions.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
               </SelectContent>
             </Select>
           )}
 
           {range === "year" && (
             <Select value={selectedYear} onValueChange={setSelectedYear}>
-              <SelectTrigger className="w-[100px] h-9 text-sm">
-                <SelectValue />
-              </SelectTrigger>
+              <SelectTrigger className="w-[100px] h-9 text-sm"><SelectValue /></SelectTrigger>
               <SelectContent>
-                {yearOptions.map(o => (
-                  <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-
-          {range !== "all" && (
-            <Select value={effectiveGrouping} onValueChange={(v: Grouping) => setGrouping(v)}>
-              <SelectTrigger className="w-[110px] h-9 text-sm">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {range === "month" && <SelectItem value="day">By Day</SelectItem>}
-                <SelectItem value="week">By Week</SelectItem>
-                <SelectItem value="month">By Month</SelectItem>
+                {yearOptions.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
               </SelectContent>
             </Select>
           )}
@@ -459,7 +437,12 @@ export default function Dashboard() {
       {/* Charts Row 1: Revenue + Profit vs Expenses */}
       <div className="grid md:grid-cols-2 gap-6">
         <Card className="border-border/60">
-          <CardHeader className="pb-2"><CardTitle className="text-sm">Revenue Over Time</CardTitle></CardHeader>
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm">Revenue Over Time</CardTitle>
+              <ChartGroupingSelect value={revenueGrouping} onChange={setRevenueGrouping} />
+            </div>
+          </CardHeader>
           <CardContent>
             {revenueOverTime.length === 0 ? (
               <p className="text-sm text-muted-foreground py-8 text-center">No completed orders yet.</p>
@@ -469,7 +452,7 @@ export default function Dashboard() {
                   <CartesianGrid strokeDasharray="3 3" className="stroke-border/50" />
                   <XAxis dataKey="label" className="text-xs" tick={{ fontSize: 11 }} />
                   <YAxis className="text-xs" tick={{ fontSize: 11 }} />
-                  <Tooltip contentStyle={{ borderRadius: 8, fontSize: 12, border: "1px solid hsl(var(--border))" }} />
+                  <Tooltip contentStyle={tooltipStyle} />
                   <Line type="monotone" dataKey="revenue" stroke="hsl(220,60%,50%)" strokeWidth={2} dot={{ r: 3 }} name="Revenue (€)" />
                 </LineChart>
               </ResponsiveContainer>
@@ -478,17 +461,22 @@ export default function Dashboard() {
         </Card>
 
         <Card className="border-border/60">
-          <CardHeader className="pb-2"><CardTitle className="text-sm">Profit vs Expenses</CardTitle></CardHeader>
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm">Profit vs Expenses</CardTitle>
+              <ChartGroupingSelect value={profitGrouping} onChange={setProfitGrouping} />
+            </div>
+          </CardHeader>
           <CardContent>
-            {revenueOverTime.length === 0 ? (
+            {profitExpensesData.length === 0 ? (
               <p className="text-sm text-muted-foreground py-8 text-center">No data yet.</p>
             ) : (
               <ResponsiveContainer width="100%" height={250}>
-                <BarChart data={revenueOverTime}>
+                <BarChart data={profitExpensesData}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-border/50" />
                   <XAxis dataKey="label" className="text-xs" tick={{ fontSize: 11 }} />
                   <YAxis className="text-xs" tick={{ fontSize: 11 }} />
-                  <Tooltip contentStyle={{ borderRadius: 8, fontSize: 12, border: "1px solid hsl(var(--border))" }} />
+                  <Tooltip contentStyle={tooltipStyle} />
                   <Legend wrapperStyle={{ fontSize: 12 }} />
                   <Bar dataKey="profit" fill="hsl(168,60%,38%)" radius={[4, 4, 0, 0]} name="Profit" />
                   <Bar dataKey="expenses" fill="hsl(0,72%,51%)" radius={[4, 4, 0, 0]} name="Expenses" />
@@ -502,9 +490,14 @@ export default function Dashboard() {
       {/* Charts Row 2: Hours + Material Breakdown */}
       <div className="grid md:grid-cols-2 gap-6">
         <Card className="border-border/60">
-          <CardHeader className="pb-2"><CardTitle className="text-sm">Hours Printed Over Time</CardTitle></CardHeader>
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm">Hours Printed Over Time</CardTitle>
+              <ChartGroupingSelect value={hoursGrouping} onChange={setHoursGrouping} />
+            </div>
+          </CardHeader>
           <CardContent>
-            {hoursOverTime.every(h => h.hours === 0) ? (
+            {hoursOverTime.every(h => (h as any).hours === 0) ? (
               <p className="text-sm text-muted-foreground py-8 text-center">No print data yet.</p>
             ) : (
               <ResponsiveContainer width="100%" height={250}>
@@ -512,7 +505,7 @@ export default function Dashboard() {
                   <CartesianGrid strokeDasharray="3 3" className="stroke-border/50" />
                   <XAxis dataKey="label" className="text-xs" tick={{ fontSize: 11 }} />
                   <YAxis className="text-xs" tick={{ fontSize: 11 }} />
-                  <Tooltip contentStyle={{ borderRadius: 8, fontSize: 12, border: "1px solid hsl(var(--border))" }} />
+                  <Tooltip contentStyle={tooltipStyle} />
                   <Line type="monotone" dataKey="hours" stroke="hsl(38,92%,50%)" strokeWidth={2} dot={{ r: 3 }} name="Hours" />
                 </LineChart>
               </ResponsiveContainer>
@@ -532,7 +525,7 @@ export default function Dashboard() {
                     label={({ name, value }) => `${name}: ${value}g`} labelLine={{ strokeWidth: 1 }}>
                     {stats.materialBreakdown.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
                   </Pie>
-                  <Tooltip contentStyle={{ borderRadius: 8, fontSize: 12, border: "1px solid hsl(var(--border))" }} />
+                  <Tooltip contentStyle={tooltipStyle} />
                 </PieChart>
               </ResponsiveContainer>
             )}
@@ -554,7 +547,7 @@ export default function Dashboard() {
                     label={({ name, value }) => `${name}: ${value}`} labelLine={{ strokeWidth: 1 }}>
                     {statusDistribution.map((d, i) => <Cell key={i} fill={d.color} />)}
                   </Pie>
-                  <Tooltip contentStyle={{ borderRadius: 8, fontSize: 12, border: "1px solid hsl(var(--border))" }} />
+                  <Tooltip contentStyle={tooltipStyle} />
                   <Legend wrapperStyle={{ fontSize: 12 }} />
                 </PieChart>
               </ResponsiveContainer>
@@ -584,7 +577,7 @@ export default function Dashboard() {
                     <CartesianGrid strokeDasharray="3 3" className="stroke-border/50" />
                     <XAxis type="number" className="text-xs" tick={{ fontSize: 11 }} />
                     <YAxis type="category" dataKey="name" className="text-xs" width={80} tick={{ fontSize: 11 }} />
-                    <Tooltip contentStyle={{ borderRadius: 8, fontSize: 12, border: "1px solid hsl(var(--border))" }} />
+                    <Tooltip contentStyle={tooltipStyle} />
                     <Bar dataKey="revenue" fill="hsl(168,60%,38%)" radius={[0, 4, 4, 0]} name="Revenue (€)" />
                   </BarChart>
                 </ResponsiveContainer>
