@@ -56,7 +56,7 @@ function buildYearOptions(): { value: string; label: string }[] {
 }
 
 export default function Dashboard() {
-  const { projects, expenses, settings, totalFilamentPurchasesCost } = useApp();
+  const { projects, expenses, totalFilamentPurchasesCost } = useApp();
   const [range, setRange] = useState<TimeRange>("all");
   const [selectedMonth, setSelectedMonth] = useState(() => format(new Date(), "yyyy-MM"));
   const [selectedYear, setSelectedYear] = useState(() => String(new Date().getFullYear()));
