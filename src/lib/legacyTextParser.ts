@@ -148,21 +148,8 @@ export function parseLegacyText(text: string): ParseResult {
       continue;
     }
 
-    // [ ] = expense (NEW: [ ] is now treated as expense, not ignored)
+    // [ ] = incomplete item → IGNORE (not treated as expense)
     if (/^\[\s?\]/.test(stripped)) {
-      const content = stripped.replace(/^\[\s?\]\s*/, '');
-      const amount = extractRevenue(content);
-      if (amount > 0) {
-        const name = content.replace(/(\d+(?:[.,]\d+)?)\s*(?:euros?|€)?/gi, '').replace(/[-–:+]/g, '').trim() || 'Expense';
-        expenses.push({
-          id: crypto.randomUUID(),
-          date: dateStr,
-          name,
-          category: 'Other',
-          amount,
-          notes: 'Imported from legacy text',
-        });
-      }
       continue;
     }
 
