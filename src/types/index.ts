@@ -174,8 +174,21 @@ export const getProjectProfitMargin = (p: Project, costPerGram: number) => {
 };
 
 export const getProjectProgress = (p: Project) => {
-  const totalPieces = (p.prints || []).reduce((s, pr) => s + (pr.quantity || 1), 0);
-  const completedPieces = (p.prints || []).reduce((s, pr) => s + (pr.completedQuantity || 0), 0);
+  const prints = p.prints || [];
+  const totalPieces = prints.reduce((s, pr) => s + (pr.quantity || 1), 0);
+  const completedPieces = prints.reduce((s, pr) => s + (pr.completedQuantity || 0), 0);
+
+  // If project is marked as printed/paid/sent, treat as 100%
+  if (p.printed || p.paid || p.sent) {
+    return { totalPieces, completedPieces: totalPieces, percent: 100 };
+  }
+
+  // Check if all individual prints are completed
+  const allCompleted = totalPieces > 0 && prints.every(pr => (pr.completedQuantity || 0) >= (pr.quantity || 1));
+  if (allCompleted) {
+    return { totalPieces, completedPieces: totalPieces, percent: 100 };
+  }
+
   return { totalPieces, completedPieces, percent: totalPieces > 0 ? Math.round((completedPieces / totalPieces) * 100) : 0 };
 };
 
