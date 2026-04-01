@@ -96,7 +96,12 @@ export default function Dashboard() {
     };
   }, [interval]);
 
-  const filteredProjects = useMemo(() => projects.filter(p => inRange(getDateStr(p))), [projects, inRange]);
+  // Filter projects: only those with an effectiveDate in range count for analytics
+  const filteredProjects = useMemo(() => projects.filter(p => {
+    const ed = getEffectiveDate(p);
+    if (!ed) return range === "all"; // include projects without dates only in all-time
+    return inRange(ed);
+  }), [projects, inRange, range]);
   const filteredExpenses = useMemo(() => expenses.filter(e => inRange(e.date)), [expenses, inRange]);
 
   // ── Core stats ──
