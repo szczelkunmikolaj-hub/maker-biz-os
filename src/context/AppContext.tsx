@@ -24,6 +24,7 @@ interface AppContextType {
   deleteFilamentPurchase: (id: string) => void;
   totalFilamentPurchasesCost: number;
   allPrintNames: string[];
+  replaceAllData: (data: { projects: Project[]; expenses: Expense[]; templates: PrintTemplate[]; filamentPurchases: FilamentPurchase[]; settings: AppSettings }) => void;
 }
 
 const AppContext = createContext<AppContextType | null>(null);
