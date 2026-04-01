@@ -195,7 +195,7 @@ export default function Dashboard() {
 
     if (!buckets) {
       // All-time: group by month
-      const map = new Map<string, { label: string } & Record<string, number>>();
+      const map = new Map<string, Record<string, any>>();
       const paidSent = filteredProjects.filter(p => p.paid && p.sent);
       paidSent.forEach(p => {
         const ds = getEffectiveDate(p);
@@ -205,16 +205,15 @@ export default function Dashboard() {
         if (!map.has(key)) map.set(key, { label });
         const entry = map.get(key)!;
         const vals = mapper([p], []);
-        Object.entries(vals).forEach(([k, v]) => { entry[k] = (entry[k] as number || 0) + v; });
+        Object.entries(vals).forEach(([k, v]) => { entry[k] = ((entry[k] as number) || 0) + v; });
       });
-      // Add expenses
       filteredExpenses.forEach(e => {
         const key = format(parseISO(e.date), "yyyy-MM");
         const label = format(parseISO(e.date), "MMM yy");
         if (!map.has(key)) map.set(key, { label });
         const entry = map.get(key)!;
         const vals = mapper([], [e]);
-        Object.entries(vals).forEach(([k, v]) => { entry[k] = (entry[k] as number || 0) + v; });
+        Object.entries(vals).forEach(([k, v]) => { entry[k] = ((entry[k] as number) || 0) + v; });
       });
       return Array.from(map.entries()).sort(([a], [b]) => a.localeCompare(b)).map(([, v]) => v);
     }
