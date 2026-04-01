@@ -33,6 +33,8 @@ export default function DataManagement() {
   const [jsonText, setJsonText] = useState('');
   const [parsed, setParsed] = useState<ExportData | null>(null);
   const [parseError, setParseError] = useState('');
+  const [legacyText, setLegacyText] = useState('');
+  const [legacyResult, setLegacyResult] = useState<{ projects: Project[]; expenses: Expense[] } | null>(null);
   const userId = getUserId();
 
   // ── Export ──
