@@ -15,6 +15,7 @@ import TemplatesPage from "@/pages/TemplatesPage";
 import ImportQueue from "@/pages/ImportQueue";
 import CalendarPage from "@/pages/CalendarPage";
 import FilamentPurchases from "@/pages/FilamentPurchases";
+import DataManagement from "@/pages/DataManagement";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -37,6 +38,7 @@ const App = () => (
               <Route path="/templates" element={<TemplatesPage />} />
               <Route path="/quote" element={<QuoteGenerator />} />
               <Route path="/import" element={<ImportQueue />} />
+              <Route path="/data" element={<DataManagement />} />
               <Route path="/settings" element={<SettingsPage />} />
             </Route>
             <Route path="*" element={<NotFound />} />

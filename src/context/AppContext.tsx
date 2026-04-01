@@ -24,6 +24,7 @@ interface AppContextType {
   deleteFilamentPurchase: (id: string) => void;
   totalFilamentPurchasesCost: number;
   allPrintNames: string[];
+  replaceAllData: (data: { projects: Project[]; expenses: Expense[]; templates: PrintTemplate[]; filamentPurchases: FilamentPurchase[]; settings: AppSettings }) => void;
 }
 
 const AppContext = createContext<AppContextType | null>(null);
@@ -101,6 +102,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     [filamentPurchases]
   );
 
+  const replaceAllData = useCallback((data: { projects: Project[]; expenses: Expense[]; templates: PrintTemplate[]; filamentPurchases: FilamentPurchase[]; settings: AppSettings }) => {
+    setProjects(data.projects);
+    setExpenses(data.expenses);
+    setTemplates(data.templates);
+    setFilamentPurchases(data.filamentPurchases);
+    setSettings(data.settings);
+  }, []);
+
   const allPrintNames = React.useMemo(() => {
     const names = new Set<string>();
     projects.forEach(p => (p.prints || []).forEach(pr => { if (pr.name) names.add(pr.name); }));
@@ -115,7 +124,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       addExpense, updateExpense, deleteExpense, updateSettings,
       addTemplate, deleteTemplate,
       addFilamentPurchase, updateFilamentPurchase, deleteFilamentPurchase,
-      totalFilamentPurchasesCost, allPrintNames,
+      totalFilamentPurchasesCost, allPrintNames, replaceAllData,
     }}>
       {children}
     </AppContext.Provider>

@@ -1,5 +1,5 @@
 import {
-  LayoutDashboard, FolderKanban, Columns3, Receipt, Calculator, Settings, BookTemplate, Upload, Calendar, Package,
+  LayoutDashboard, FolderKanban, Columns3, Receipt, Calculator, Settings, BookTemplate, Upload, Calendar, Package, Database,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -18,6 +18,7 @@ const items = [
   { title: "Templates", url: "/templates", icon: BookTemplate },
   { title: "Import Queue", url: "/import", icon: Upload },
   { title: "Quote Generator", url: "/quote", icon: Calculator },
+  { title: "Data", url: "/data", icon: Database },
   { title: "Settings", url: "/settings", icon: Settings },
 ];
 
