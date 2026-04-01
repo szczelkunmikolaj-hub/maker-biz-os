@@ -13,7 +13,7 @@ import {
 } from "recharts";
 import {
   DollarSign, TrendingUp, Package, Clock, Weight, Lightbulb,
-  Printer, Award, BarChart3, CheckCircle, AlertTriangle, Activity,
+  Printer, Award, BarChart3, AlertTriangle, Activity,
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import {
