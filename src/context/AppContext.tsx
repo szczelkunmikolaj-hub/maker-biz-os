@@ -1,3 +1,4 @@
+// AppContext — central state provider
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { Project, Expense, AppSettings, KanbanStatus, PrintTemplate, FilamentPurchase, normalizeProject } from '@/types';
 import { deriveKanbanStatus, applyKanbanStatus } from '@/types/sync';
