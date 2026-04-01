@@ -62,6 +62,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const updateProject = useCallback((p: Project) => {
     const normalized = normalizeProject(p);
     normalized.kanbanStatus = deriveKanbanStatus(normalized);
+    // Auto-set completedAt when all prints done or project marked printed
+    if (!normalized.completedAt && (normalized.printed || normalized.sent)) {
+      normalized.completedAt = new Date().toISOString();
+    }
+    // Auto-set paidAt when marked paid
+    if (!normalized.paidAt && normalized.paid) {
+      normalized.paidAt = new Date().toISOString();
+    }
     setProjects(prev => prev.map(x => x.id === normalized.id ? normalized : x));
   }, []);
   const deleteProject = useCallback((id: string) => setProjects(prev => prev.filter(x => x.id !== id)), []);

@@ -33,11 +33,6 @@ const COLORS = [
 type TimeRange = "month" | "year" | "all";
 type Grouping = "day" | "week" | "month";
 
-function getDateStr(item: any): string | null {
-  // For projects, use effectiveDate; for expenses, use date
-  if (item.prints !== undefined) return getEffectiveDate(item);
-  return item.orderDate || item.shippingDate || item.date || null;
-}
 
 function buildMonthOptions(): { value: string; label: string }[] {
   const now = new Date();
