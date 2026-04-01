@@ -273,7 +273,7 @@ export default function Dashboard() {
     // Best revenue day
     const dayMap = new Map<string, number>();
     filteredProjects.filter(p => p.paid && p.sent).forEach(p => {
-      const ds = p.shippingDate || p.orderDate;
+      const ds = getEffectiveDate(p);
       if (!ds) return;
       const key = format(parseISO(ds), "yyyy-MM-dd");
       dayMap.set(key, (dayMap.get(key) || 0) + (p.totalPrice || 0));
