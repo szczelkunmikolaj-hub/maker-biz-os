@@ -2,6 +2,7 @@ import { useApp } from "@/context/AppContext";
 import {
   getProjectTotalMaterial, getGlobalPrintProgress, getSuggestions,
   getProjectExpensesTotal, getProjectProgress, getProjectTotalPrintTime,
+  getEffectiveDate,
 } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
