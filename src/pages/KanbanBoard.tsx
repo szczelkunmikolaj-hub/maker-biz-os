@@ -22,14 +22,15 @@ const COLUMNS: { status: KanbanStatus; label: string; dotColor: string; bgClass:
 
 export default function KanbanBoard() {
   const { projects, moveProject, updateProject } = useApp();
-  const { filterProjects, mode } = useMonth();
+  const { filterProjectsForWorkflow, mode } = useMonth();
   const [dragging, setDragging] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [showAll, setShowAll] = usePersistedState<boolean>("kanban_show_all", true);
 
   const visibleProjects = useMemo(() => {
-    return (showAll || mode === 'all') ? projects : filterProjects(projects);
-  }, [projects, showAll, mode, filterProjects]);
+    // Kanban is workflow — always show all active projects
+    return (showAll || mode === 'all') ? projects : filterProjectsForWorkflow(projects);
+  }, [projects, showAll, mode, filterProjectsForWorkflow]);
 
   const selectedProject = projects.find(p => p.id === selectedId);
 

@@ -5,25 +5,24 @@ import { Project, Expense, getEffectiveDate } from '@/types';
 
 export type GlobalTimeMode = 'month' | 'all';
 
+function isProjectActive(p: Project): boolean {
+  return !p.printed || !p.paid || !p.sent || p.kanbanStatus !== 'shipped';
+}
+
 interface MonthContextType {
   mode: GlobalTimeMode;
   setMode: (m: GlobalTimeMode) => void;
-  /** "2026-04" format */
   selectedMonth: string;
   setSelectedMonth: (m: string) => void;
-  /** Navigate to previous month */
   prevMonth: () => void;
-  /** Navigate to next month */
   nextMonth: () => void;
-  /** Label like "April 2026" or "All Time" */
   label: string;
-  /** Check if a date string falls within the selected period */
   isInPeriod: (dateStr: string | null) => boolean;
-  /** Filter projects by effective date within period */
+  /** Analytics filter: strictly by effective date */
   filterProjects: (projects: Project[]) => Project[];
-  /** Filter expenses by date within period */
+  /** Workflow filter: active always shown, completed filtered by month */
+  filterProjectsForWorkflow: (projects: Project[]) => Project[];
   filterExpenses: (expenses: Expense[]) => Expense[];
-  /** The date interval, or null for all-time */
   interval: { start: Date; end: Date } | null;
 }
 
@@ -69,6 +68,16 @@ export function MonthProvider({ children }: { children: React.ReactNode }) {
     });
   }, [interval, isInPeriod]);
 
+  /** Workflow: active projects always visible; completed ones filtered by month */
+  const filterProjectsForWorkflow = useCallback((projects: Project[]): Project[] => {
+    if (!interval) return projects;
+    return projects.filter(p => {
+      if (isProjectActive(p)) return true;
+      const ed = getEffectiveDate(p);
+      return ed ? isInPeriod(ed) : true;
+    });
+  }, [interval, isInPeriod]);
+
   const filterExpenses = useCallback((expenses: Expense[]): Expense[] => {
     if (!interval) return expenses;
     return expenses.filter(e => isInPeriod(e.date));
@@ -78,7 +87,7 @@ export function MonthProvider({ children }: { children: React.ReactNode }) {
     <MonthContext.Provider value={{
       mode, setMode, selectedMonth, setSelectedMonth,
       prevMonth, nextMonth, label, isInPeriod,
-      filterProjects, filterExpenses, interval,
+      filterProjects, filterProjectsForWorkflow, filterExpenses, interval,
     }}>
       {children}
     </MonthContext.Provider>

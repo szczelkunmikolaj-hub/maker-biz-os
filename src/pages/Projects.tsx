@@ -34,7 +34,7 @@ function newProject(): Project {
 
 export default function Projects() {
   const { projects, addProject, updateProject } = useApp();
-  const { filterProjects, mode } = useMonth();
+  const { filterProjectsForWorkflow, mode } = useMonth();
   const [search, setSearch] = useState("");
   const [filter, setFilter] = usePersistedState<string>("projects_filter", "all");
   const [sortBy, setSortBy] = usePersistedState<SortKey>("projects_sort", "date");
@@ -44,7 +44,7 @@ export default function Projects() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const filtered = useMemo(() => {
-    let list = (showAll || mode === 'all') ? [...projects] : filterProjects(projects);
+    let list = (showAll || mode === 'all') ? [...projects] : filterProjectsForWorkflow(projects);
     if (search) {
       const q = search.toLowerCase();
       list = list.filter(p => p.name.toLowerCase().includes(q) || p.customerName.toLowerCase().includes(q));
@@ -68,7 +68,7 @@ export default function Projects() {
       }
     });
     return list;
-  }, [projects, search, filter, sortBy, showAll, mode, filterProjects]);
+  }, [projects, search, filter, sortBy, showAll, mode, filterProjectsForWorkflow]);
 
   const selectedProject = projects.find(p => p.id === selectedId);
 
