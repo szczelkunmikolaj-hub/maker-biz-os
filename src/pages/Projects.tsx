@@ -33,8 +33,8 @@ function newProject(): Project {
 export default function Projects() {
   const { projects, addProject, updateProject, settings } = useApp();
   const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState<string>("all");
-  const [sortBy, setSortBy] = useState<SortKey>("date");
+  const [filter, setFilter] = usePersistedState<string>("projects_filter", "all");
+  const [sortBy, setSortBy] = usePersistedState<SortKey>("projects_sort", "date");
   const [showAdd, setShowAdd] = useState(false);
   const [draft, setDraft] = useState<Project>(newProject());
   const [selectedId, setSelectedId] = useState<string | null>(null);
