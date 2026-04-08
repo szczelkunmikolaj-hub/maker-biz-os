@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useApp } from "@/context/AppContext";
 import { Project, Print, ProjectExpense, getProjectTotalPrintTime, getProjectTotalMaterial, getProjectProgress, getProjectExpensesTotal, getProjectPiecesTotal, getProjectTotalPieces, getEstimatedMaterialCost, PaymentMethod } from "@/types";
 import { Button } from "@/components/ui/button";
@@ -10,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { ArrowLeft, Plus, Trash2, Copy, BookTemplate } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Copy, BookTemplate, Calendar, Kanban, Receipt } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 function newPrint(): Print {
@@ -27,6 +28,7 @@ interface Props { project: Project; onBack: () => void; }
 
 export default function ProjectDetail({ project, onBack }: Props) {
   const { updateProject, deleteProject, duplicateProject, settings, templates, addExpense, allPrintNames } = useApp();
+  const navigate = useNavigate();
   const [showTemplates, setShowTemplates] = useState(false);
 
   // Use project from props directly (always fresh from context) instead of local state copy
@@ -90,12 +92,23 @@ export default function ProjectDetail({ project, onBack }: Props) {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 flex-wrap">
         <Button variant="ghost" size="icon" onClick={onBack}><ArrowLeft className="h-4 w-4" /></Button>
         <h1 className="text-2xl font-bold flex-1">{p.name || "Untitled Project"}</h1>
-        <Button size="sm" variant="outline" onClick={() => { duplicateProject(p.id); onBack(); }}>
-          <Copy className="h-4 w-4 mr-1" />Duplicate
-        </Button>
+        <div className="flex gap-1.5 flex-wrap">
+          <Button size="sm" variant="outline" className="text-xs gap-1" onClick={() => navigate('/kanban')}>
+            <Kanban className="h-3.5 w-3.5" />Kanban
+          </Button>
+          <Button size="sm" variant="outline" className="text-xs gap-1" onClick={() => navigate('/calendar')}>
+            <Calendar className="h-3.5 w-3.5" />Calendar
+          </Button>
+          <Button size="sm" variant="outline" className="text-xs gap-1" onClick={() => navigate('/expenses')}>
+            <Receipt className="h-3.5 w-3.5" />Expenses
+          </Button>
+          <Button size="sm" variant="outline" onClick={() => { duplicateProject(p.id); onBack(); }}>
+            <Copy className="h-4 w-4 mr-1" />Duplicate
+          </Button>
+        </div>
       </div>
 
       {/* Progress */}
