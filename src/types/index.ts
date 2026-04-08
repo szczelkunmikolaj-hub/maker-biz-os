@@ -127,6 +127,7 @@ export function normalizeProject(p: any): Project {
     kanbanStatus: p.kanbanStatus || 'new-order',
     completedAt: p.completedAt || '',
     paidAt: p.paidAt || '',
+    isRecurringCustomer: p.isRecurringCustomer || false,
   };
 }
 
