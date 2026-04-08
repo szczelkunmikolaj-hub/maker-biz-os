@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { ArrowLeft, Plus, Trash2, Copy, BookTemplate, Calendar, Kanban, Receipt } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Copy, BookTemplate, Calendar, Kanban, Receipt, RefreshCw } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 function newPrint(): Print {
@@ -186,13 +186,17 @@ export default function ProjectDetail({ project, onBack }: Props) {
           </div>
           <div><Label>Shipping Date</Label><Input type="date" value={p.shippingDate} onChange={e => set({ shippingDate: e.target.value })} /></div>
           <div className="md:col-span-2"><Label>Notes</Label><Textarea value={p.notes} onChange={e => set({ notes: e.target.value })} /></div>
-          <div className="flex gap-6 md:col-span-2">
+          <div className="flex gap-6 md:col-span-2 flex-wrap">
             {(["printed", "paid", "sent"] as const).map(field => (
               <label key={field} className="flex items-center gap-2 cursor-pointer">
                 <Checkbox checked={p[field]} onCheckedChange={v => set({ [field]: !!v })} />
                 <span className="text-sm capitalize">{field}</span>
               </label>
             ))}
+            <label className="flex items-center gap-2 cursor-pointer">
+              <Checkbox checked={p.isRecurringCustomer || false} onCheckedChange={v => set({ isRecurringCustomer: !!v })} />
+              <span className="text-sm flex items-center gap-1"><RefreshCw className="h-3 w-3" />Recurring Customer</span>
+            </label>
           </div>
         </CardContent>
       </Card>

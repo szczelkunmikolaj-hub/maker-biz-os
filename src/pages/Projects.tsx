@@ -3,7 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { usePersistedState } from "@/hooks/usePersistedState";
 import { useApp } from "@/context/AppContext";
 import { useMonth } from "@/context/MonthContext";
-import { Project, CustomerSource, PaymentMethod, getProjectProgress, getProjectTotalPieces, getProjectPiecesTotal, getProjectExpensesTotal } from "@/types";
+import { Project, CustomerSource, PaymentMethod, getProjectProgress, getProjectTotalPieces, getProjectPiecesTotal, getProjectExpensesTotal, getProjectTotalPrintTime } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -14,9 +14,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
-import { Plus, Search, Download, ArrowUpDown, RefreshCw } from "lucide-react";
+import { Plus, Search, Download, ArrowUpDown, RefreshCw, Printer, Package, Clock, Calendar, CreditCard } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import ProjectDetail from "@/components/ProjectDetail";
+import { parseISO, isBefore } from "date-fns";
 
 const SOURCES: CustomerSource[] = ["Wallapop", "Instagram", "Website", "Other"];
 const PAYMENT_METHODS: PaymentMethod[] = ["Cash", "PayPal", "Bank Transfer", "Bizum", "Other"];
@@ -176,7 +177,7 @@ export default function Projects() {
           {mode === 'month' && !showAll ? "No projects for this month. Toggle 'Show All' or switch to All Time." : "No projects yet. Click \"New Project\" to get started."}
         </CardContent></Card>
       ) : (
-        <div className="grid gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
           {filtered.map(p => {
             const prog = getProjectProgress(p);
             const totalPieces = getProjectTotalPieces(p);
@@ -184,51 +185,112 @@ export default function Projects() {
             const effectivePrice = piecesTotal > 0 ? piecesTotal : (p.totalPrice || 0);
             const projExpenses = getProjectExpensesTotal(p);
             const margin = effectivePrice > 0 ? ((effectivePrice - projExpenses) / effectivePrice) * 100 : 0;
-            const marginColor = margin >= 60 ? "text-green-600" : margin >= 30 ? "text-yellow-600" : "text-red-600";
+            const totalTime = getProjectTotalPrintTime(p);
+
+            // Status color logic
+            const isCompleted = p.printed && p.paid && p.sent;
+            const isLate = !isCompleted && p.dueDate && isBefore(parseISO(p.dueDate), new Date());
+            const isPrinting = !isCompleted && (p.prints || []).some(pr => pr.status === 'printing');
+            const statusColor = isCompleted
+              ? 'border-t-emerald-500'
+              : isLate
+              ? 'border-t-red-500'
+              : isPrinting
+              ? 'border-t-blue-500'
+              : 'border-t-muted-foreground/30';
+            const statusLabel = isCompleted ? 'Completed' : isLate ? 'Overdue' : isPrinting ? 'Printing' : 'Pending';
+            const statusBadgeClass = isCompleted
+              ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30'
+              : isLate
+              ? 'bg-red-500/15 text-red-700 dark:text-red-400 border-red-500/30'
+              : isPrinting
+              ? 'bg-blue-500/15 text-blue-700 dark:text-blue-400 border-blue-500/30'
+              : 'bg-muted text-muted-foreground border-border';
+
             return (
-              <Card key={p.id} className="hover:border-primary/50 transition-colors">
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between flex-wrap gap-2">
-                    <div className="flex-1 min-w-0 cursor-pointer hover:opacity-80 transition-opacity" onClick={() => handleSelectProject(p.id)}>
-                      <div className="flex items-center gap-2">
-                        <p className="font-semibold">{p.name}</p>
-                        {p.isRecurringCustomer && (
-                          <Badge variant="secondary" className="text-[10px] px-1.5 py-0 gap-0.5">
-                            <RefreshCw className="h-2.5 w-2.5" />Recurring
-                          </Badge>
-                        )}
-                      </div>
-                      <p className="text-sm text-muted-foreground">{p.customerName} · {p.customerSource} · {p.orderDate}</p>
-                      <div className="flex items-center gap-3 mt-1.5">
-                        {totalPieces > 0 && <span className="text-xs text-muted-foreground">{totalPieces} piece{totalPieces !== 1 ? 's' : ''}</span>}
-                        {prog.totalPieces > 0 && (
-                          <div className="flex items-center gap-1.5">
-                            <Progress value={prog.percent} className="h-1.5 w-20" />
-                            <span className="text-xs text-muted-foreground">{prog.percent}%</span>
-                          </div>
-                        )}
+              <Card
+                key={p.id}
+                className={`border-t-[3px] ${statusColor} cursor-pointer hover:shadow-lg hover:scale-[1.02] transition-all duration-200 group`}
+                onClick={() => handleSelectProject(p.id)}
+              >
+                <CardContent className="p-4 space-y-3">
+                  {/* Header */}
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <p className="font-semibold text-sm truncate group-hover:text-primary transition-colors">{p.name}</p>
+                      <p className="text-xs text-muted-foreground truncate">{p.customerName}</p>
+                    </div>
+                    <Badge variant="outline" className={`text-[10px] shrink-0 ${statusBadgeClass}`}>
+                      {statusLabel}
+                    </Badge>
+                  </div>
+
+                  {/* Price */}
+                  <div className="flex items-baseline justify-between">
+                    <span className="text-lg font-bold text-primary">€{effectivePrice.toFixed(2)}</span>
+                    {effectivePrice > 0 && (
+                      <span className={`text-xs font-medium ${margin >= 60 ? 'text-emerald-600' : margin >= 30 ? 'text-yellow-600' : 'text-red-600'}`}>
+                        {margin.toFixed(0)}% margin
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Progress bar */}
+                  {prog.totalPieces > 0 && (
+                    <div className="space-y-1">
+                      <Progress value={prog.percent} className="h-1.5" />
+                      <div className="flex justify-between text-[10px] text-muted-foreground">
+                        <span>{prog.completedPieces}/{prog.totalPieces} pieces</span>
+                        <span>{prog.percent}%</span>
                       </div>
                     </div>
-                    <div className="flex items-center gap-4">
-                      <div className="text-right cursor-pointer hover:opacity-80 transition-opacity" onClick={() => handleSelectProject(p.id)}>
-                        <span className="font-bold text-primary">€{effectivePrice.toFixed(2)}</span>
-                        {effectivePrice > 0 && <p className={`text-xs font-medium ${marginColor}`}>{margin.toFixed(0)}% margin</p>}
-                      </div>
-                      <div className="flex flex-col gap-1.5" onClick={e => e.stopPropagation()}>
-                        <label className="flex items-center gap-1.5 cursor-pointer">
-                          <Checkbox checked={p.printed} onCheckedChange={() => toggleStatus(p.id, 'printed')} />
-                          <span className="text-xs">Printed</span>
-                        </label>
-                        <label className="flex items-center gap-1.5 cursor-pointer">
-                          <Checkbox checked={p.paid} onCheckedChange={() => toggleStatus(p.id, 'paid')} />
-                          <span className="text-xs">Paid</span>
-                        </label>
-                        <label className="flex items-center gap-1.5 cursor-pointer">
-                          <Checkbox checked={p.sent} onCheckedChange={() => toggleStatus(p.id, 'sent')} />
-                          <span className="text-xs">Shipped</span>
-                        </label>
-                      </div>
-                    </div>
+                  )}
+
+                  {/* Meta info */}
+                  <div className="flex flex-wrap gap-x-3 gap-y-1 text-[10px] text-muted-foreground">
+                    {totalPieces > 0 && (
+                      <span className="flex items-center gap-0.5"><Package className="h-3 w-3" />{totalPieces} pcs</span>
+                    )}
+                    {totalTime > 0 && (
+                      <span className="flex items-center gap-0.5"><Clock className="h-3 w-3" />{totalTime.toFixed(0)}h</span>
+                    )}
+                    {p.dueDate && (
+                      <span className={`flex items-center gap-0.5 ${isLate ? 'text-red-600 font-medium' : ''}`}>
+                        <Calendar className="h-3 w-3" />{p.dueDate}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Badges row */}
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    {p.isRecurringCustomer && (
+                      <Badge variant="secondary" className="text-[9px] px-1.5 py-0 gap-0.5">
+                        <RefreshCw className="h-2.5 w-2.5" />Recurring
+                      </Badge>
+                    )}
+                    <Badge variant="outline" className="text-[9px] px-1.5 py-0">{p.customerSource}</Badge>
+                  </div>
+
+                  {/* Quick actions */}
+                  <div className="flex gap-1.5 pt-2 border-t border-border/50" onClick={e => e.stopPropagation()}>
+                    <button
+                      className={`flex items-center gap-1 text-[10px] px-2 py-1 rounded-md border transition-colors ${p.printed ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30' : 'bg-muted/50 text-muted-foreground border-border hover:bg-muted'}`}
+                      onClick={() => toggleStatus(p.id, 'printed')}
+                    >
+                      <Printer className="h-3 w-3" />{p.printed ? '✓' : ''} Printed
+                    </button>
+                    <button
+                      className={`flex items-center gap-1 text-[10px] px-2 py-1 rounded-md border transition-colors ${p.paid ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30' : 'bg-muted/50 text-muted-foreground border-border hover:bg-muted'}`}
+                      onClick={() => toggleStatus(p.id, 'paid')}
+                    >
+                      <CreditCard className="h-3 w-3" />{p.paid ? '✓' : ''} Paid
+                    </button>
+                    <button
+                      className={`flex items-center gap-1 text-[10px] px-2 py-1 rounded-md border transition-colors ${p.sent ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30' : 'bg-muted/50 text-muted-foreground border-border hover:bg-muted'}`}
+                      onClick={() => toggleStatus(p.id, 'sent')}
+                    >
+                      <Package className="h-3 w-3" />{p.sent ? '✓' : ''} Shipped
+                    </button>
                   </div>
                 </CardContent>
               </Card>
