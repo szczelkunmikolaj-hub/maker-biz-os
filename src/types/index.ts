@@ -55,6 +55,7 @@ export interface Project {
   projectExpenses: ProjectExpense[];
   completedAt?: string;
   paidAt?: string;
+  isRecurringCustomer?: boolean;
 }
 
 /** Get the effective date for analytics: shippingDate > completedAt > paidAt > orderDate */
@@ -126,6 +127,7 @@ export function normalizeProject(p: any): Project {
     kanbanStatus: p.kanbanStatus || 'new-order',
     completedAt: p.completedAt || '',
     paidAt: p.paidAt || '',
+    isRecurringCustomer: p.isRecurringCustomer || false,
   };
 }
 
