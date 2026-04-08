@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { usePersistedState } from "@/hooks/usePersistedState";
 import { useApp } from "@/context/AppContext";
 import { useMonth } from "@/context/MonthContext";
@@ -6,10 +7,10 @@ import { Project, getProjectTotalPrintTime } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, Printer, Package, Truck, CircleDot } from "lucide-react";
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths, parseISO, isValid, isAfter, differenceInDays } from "date-fns";
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, Printer, Package, Truck, CircleDot, CheckCircle2, AlertTriangle, ExternalLink } from "lucide-react";
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths, parseISO, isValid, isAfter, isBefore, differenceInDays } from "date-fns";
 
-type EventType = 'order-created' | 'printing-scheduled' | 'printing-in-progress' | 'ready' | 'shipping-deadline';
+type EventType = 'order-created' | 'printing-scheduled' | 'printing-in-progress' | 'completed' | 'shipping-deadline' | 'late';
 
 interface CalendarEvent {
   id: string;
@@ -27,13 +28,23 @@ const EVENT_CONFIG: Record<EventType, { label: string; color: string; bgClass: s
   'order-created':        { label: 'Order Created',       color: 'hsl(220, 60%, 50%)',  bgClass: 'bg-blue-500/15 border-blue-500/30',      textClass: 'text-blue-700 dark:text-blue-400',    icon: Package },
   'printing-scheduled':   { label: 'Printing Scheduled',  color: 'hsl(25, 90%, 50%)',   bgClass: 'bg-orange-500/15 border-orange-500/30',  textClass: 'text-orange-700 dark:text-orange-400', icon: Printer },
   'printing-in-progress': { label: 'Printing',            color: 'hsl(45, 90%, 50%)',   bgClass: 'bg-yellow-500/15 border-yellow-500/30',  textClass: 'text-yellow-700 dark:text-yellow-400', icon: Clock },
-  'ready':                { label: 'Ready / Completed',   color: 'hsl(142, 60%, 40%)',  bgClass: 'bg-emerald-500/15 border-emerald-500/30', textClass: 'text-emerald-700 dark:text-emerald-400', icon: CircleDot },
-  'shipping-deadline':    { label: 'Shipping Deadline',   color: 'hsl(0, 72%, 51%)',    bgClass: 'bg-red-500/15 border-red-500/30',        textClass: 'text-red-700 dark:text-red-400',       icon: Truck },
+  'completed':            { label: 'Completed',           color: 'hsl(142, 60%, 40%)',  bgClass: 'bg-emerald-500/15 border-emerald-500/30', textClass: 'text-emerald-700 dark:text-emerald-400', icon: CheckCircle2 },
+  'late':                 { label: 'Overdue',             color: 'hsl(0, 72%, 51%)',    bgClass: 'bg-red-500/15 border-red-500/30',        textClass: 'text-red-700 dark:text-red-400',       icon: AlertTriangle },
+  'shipping-deadline':    { label: 'Shipping Deadline',   color: 'hsl(280, 60%, 50%)',  bgClass: 'bg-purple-500/15 border-purple-500/30',  textClass: 'text-purple-700 dark:text-purple-400', icon: Truck },
 };
 
-function getProjectEventType(p: Project): EventType {
-  if (p.sent) return 'ready';
-  if (p.printed) return 'ready';
+function isProjectCompleted(p: Project): boolean {
+  return !!(p.printed || p.sent || p.paid);
+}
+
+function getDueDateEventType(p: Project): EventType {
+  if (isProjectCompleted(p)) return 'completed';
+  if (p.dueDate) {
+    const due = parseISO(p.dueDate);
+    if (isValid(due) && isBefore(due, new Date()) && !isSameDay(due, new Date())) {
+      return 'late';
+    }
+  }
   const hasPrinting = (p.prints || []).some(pr => pr.status === 'printing');
   if (hasPrinting) return 'printing-in-progress';
   const hasAnyStarted = (p.prints || []).some(pr => pr.status === 'completed' || pr.completedQuantity > 0);
@@ -50,8 +61,8 @@ function isNewProject(orderDate: string): boolean {
 export default function CalendarPage() {
   const { projects } = useApp();
   const { mode, selectedMonth: globalMonth } = useMonth();
+  const navigate = useNavigate();
 
-  // Default calendar view to the global selected month
   const initialDate = useMemo(() => {
     if (mode === 'month') {
       return parseISO(`${globalMonth}-01`);
@@ -63,6 +74,10 @@ export default function CalendarPage() {
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [typeFilter, setTypeFilter] = usePersistedState<EventType | 'all'>('calendar_type_filter', 'all');
 
+  const openProject = (projectId: string) => {
+    navigate(`/projects?id=${projectId}`);
+  };
+
   const events = useMemo(() => {
     const result: CalendarEvent[] = [];
     projects.forEach(p => {
@@ -70,19 +85,32 @@ export default function CalendarPage() {
       const printCount = (p.prints || []).length;
       const isNew = isNewProject(p.orderDate);
 
+      // Order created event
       if (p.orderDate) {
         const d = parseISO(p.orderDate);
         if (isValid(d)) {
           result.push({ id: `${p.id}-order`, projectId: p.id, projectName: p.name, customerName: p.customerName, date: d, type: 'order-created', estimatedHours: totalHours, printCount, isNew });
         }
       }
+
+      // Due date event — type depends on project status
       if (p.dueDate) {
         const d = parseISO(p.dueDate);
         if (isValid(d)) {
-          result.push({ id: `${p.id}-due`, projectId: p.id, projectName: p.name, customerName: p.customerName, date: d, type: getProjectEventType(p), estimatedHours: totalHours, printCount, isNew });
+          result.push({ id: `${p.id}-due`, projectId: p.id, projectName: p.name, customerName: p.customerName, date: d, type: getDueDateEventType(p), estimatedHours: totalHours, printCount, isNew });
         }
       }
-      if (p.shippingDate) {
+
+      // Completed event on shippingDate (green marker)
+      if (isProjectCompleted(p) && p.shippingDate) {
+        const d = parseISO(p.shippingDate);
+        if (isValid(d)) {
+          result.push({ id: `${p.id}-completed`, projectId: p.id, projectName: p.name, customerName: p.customerName, date: d, type: 'completed', estimatedHours: totalHours, printCount, isNew: false });
+        }
+      }
+
+      // Shipping deadline
+      if (p.shippingDate && !isProjectCompleted(p)) {
         const d = parseISO(p.shippingDate);
         if (isValid(d)) {
           result.push({ id: `${p.id}-ship`, projectId: p.id, projectName: p.name, customerName: p.customerName, date: d, type: 'shipping-deadline', estimatedHours: totalHours, printCount, isNew });
@@ -185,9 +213,9 @@ export default function CalendarPage() {
                     {dayEvents.slice(0, 3).map(event => {
                       const cfg = EVENT_CONFIG[event.type];
                       return (
-                        <div key={event.id} className={`rounded px-1 py-0.5 truncate cursor-pointer text-[9px] leading-tight border transition-all hover:scale-[1.02] ${cfg.bgClass} ${cfg.textClass} ${event.isNew ? 'ring-1 ring-primary shadow-sm' : ''}`}
-                          onClick={() => setSelectedEvent(selectedEvent?.id === event.id ? null : event)}
-                          title={`${event.projectName} — ${cfg.label}`}>
+                        <div key={event.id} className={`rounded px-1 py-0.5 truncate cursor-pointer text-[9px] leading-tight border transition-all hover:scale-[1.02] hover:shadow-sm ${cfg.bgClass} ${cfg.textClass} ${event.isNew ? 'ring-1 ring-primary shadow-sm' : ''}`}
+                          onClick={() => openProject(event.projectId)}
+                          title={`${event.projectName} — ${cfg.label} (click to open)`}>
                           <span className="font-semibold">{event.projectName}</span>
                           {event.estimatedHours > 0 && <span className="ml-0.5 opacity-70">{event.estimatedHours.toFixed(0)}h</span>}
                         </div>
@@ -222,7 +250,12 @@ export default function CalendarPage() {
               <div><span className="text-muted-foreground text-xs">Est. Print Time</span><p className="font-medium">{selectedEvent.estimatedHours.toFixed(1)}h</p></div>
               <div><span className="text-muted-foreground text-xs">Pieces</span><p className="font-medium">{selectedEvent.printCount}</p></div>
             </div>
-            <Button size="sm" variant="ghost" className="mt-2 text-xs" onClick={() => setSelectedEvent(null)}>Dismiss</Button>
+            <div className="flex gap-2 mt-2">
+              <Button size="sm" variant="default" className="text-xs gap-1" onClick={() => openProject(selectedEvent.projectId)}>
+                <ExternalLink className="h-3 w-3" />Open Project
+              </Button>
+              <Button size="sm" variant="ghost" className="text-xs" onClick={() => setSelectedEvent(null)}>Dismiss</Button>
+            </div>
           </CardContent>
         </Card>
       )}
@@ -239,7 +272,9 @@ export default function CalendarPage() {
                 const Icon = cfg.icon;
                 const daysAway = differenceInDays(event.date, today);
                 return (
-                  <div key={event.id} className={`flex items-center justify-between p-3 rounded-lg border transition-colors hover:bg-accent/20 ${event.isNew ? 'ring-1 ring-primary/30' : ''}`}>
+                  <div key={event.id}
+                    className={`flex items-center justify-between p-3 rounded-lg border transition-colors cursor-pointer hover:bg-accent/20 hover:border-primary/40 ${event.isNew ? 'ring-1 ring-primary/30' : ''}`}
+                    onClick={() => openProject(event.projectId)}>
                     <div className="flex items-center gap-3">
                       <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${cfg.bgClass}`}>
                         <Icon className="h-4 w-4" style={{ color: cfg.color }} />

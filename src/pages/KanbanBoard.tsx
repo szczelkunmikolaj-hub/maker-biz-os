@@ -1,16 +1,15 @@
 import { useApp } from "@/context/AppContext";
 import { useMonth } from "@/context/MonthContext";
-import { KanbanStatus, getProjectTotalPrintTime, getProjectTotalMaterial, getProjectProgress, getEffectiveDate } from "@/types";
+import { KanbanStatus, getProjectTotalPrintTime, getProjectTotalMaterial, getProjectProgress } from "@/types";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
-import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { Clock, Weight, Layers, ArrowRight } from "lucide-react";
 import { usePersistedState } from "@/hooks/usePersistedState";
-import ProjectDetail from "@/components/ProjectDetail";
 
 const COLUMNS: { status: KanbanStatus; label: string; dotColor: string; bgClass: string }[] = [
   { status: "new-order", label: "New Order", dotColor: "bg-blue-500", bgClass: "bg-blue-500/5 border-blue-500/20" },
@@ -23,16 +22,13 @@ const COLUMNS: { status: KanbanStatus; label: string; dotColor: string; bgClass:
 export default function KanbanBoard() {
   const { projects, moveProject, updateProject } = useApp();
   const { filterProjectsForWorkflow, mode } = useMonth();
+  const navigate = useNavigate();
   const [dragging, setDragging] = useState<string | null>(null);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [showAll, setShowAll] = usePersistedState<boolean>("kanban_show_all", true);
 
   const visibleProjects = useMemo(() => {
-    // Kanban is workflow — always show all active projects
     return (showAll || mode === 'all') ? projects : filterProjectsForWorkflow(projects);
   }, [projects, showAll, mode, filterProjectsForWorkflow]);
-
-  const selectedProject = projects.find(p => p.id === selectedId);
 
   const handleDragStart = (id: string) => setDragging(id);
   const handleDrop = (status: KanbanStatus) => {
@@ -44,9 +40,7 @@ export default function KanbanBoard() {
     if (proj) updateProject({ ...proj, [field]: !proj[field] });
   };
 
-  if (selectedProject) {
-    return <ProjectDetail project={selectedProject} onBack={() => setSelectedId(null)} />;
-  }
+  const openProject = (id: string) => navigate(`/projects?id=${id}`);
 
   return (
     <div className="space-y-4">
@@ -90,7 +84,7 @@ export default function KanbanBoard() {
                     className="cursor-grab active:cursor-grabbing hover:border-primary/50 hover:shadow-md transition-all group"
                   >
                     <CardContent className="p-3 space-y-2">
-                      <div className="cursor-pointer" onClick={() => setSelectedId(p.id)}>
+                      <div className="cursor-pointer" onClick={() => openProject(p.id)}>
                         <div className="flex items-start justify-between">
                           <div className="min-w-0 flex-1">
                             <p className="font-semibold text-sm truncate group-hover:text-primary transition-colors">{p.name}</p>
