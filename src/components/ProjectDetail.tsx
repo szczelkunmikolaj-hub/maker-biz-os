@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { ArrowLeft, Plus, Trash2, Copy, BookTemplate, Calendar, Kanban, Receipt } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Copy, BookTemplate, Calendar, Kanban, Receipt, RefreshCw } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 function newPrint(): Print {
