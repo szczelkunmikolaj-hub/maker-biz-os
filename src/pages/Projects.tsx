@@ -13,7 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
-import { Plus, Search, Download, ArrowUpDown } from "lucide-react";
+import { Plus, Search, Download, ArrowUpDown, RefreshCw } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import ProjectDetail from "@/components/ProjectDetail";
 
@@ -53,6 +53,8 @@ export default function Projects() {
     if (filter === "unpaid") list = list.filter(p => !p.paid);
     if (filter === "sent") list = list.filter(p => p.sent);
     if (filter === "not-sent") list = list.filter(p => !p.sent);
+    if (filter === "recurring") list = list.filter(p => p.isRecurringCustomer);
+    if (filter === "new-customer") list = list.filter(p => !p.isRecurringCustomer);
 
     list.sort((a, b) => {
       switch (sortBy) {
@@ -74,7 +76,10 @@ export default function Projects() {
 
   const handleAdd = () => {
     if (!draft.name) return;
-    addProject(draft);
+    // Auto-detect recurring customer
+    const isRecurring = draft.customerName.trim() !== '' &&
+      projects.some(p => p.customerName.toLowerCase().trim() === draft.customerName.toLowerCase().trim());
+    addProject({ ...draft, isRecurringCustomer: isRecurring || draft.isRecurringCustomer });
     setDraft(newProject());
     setShowAdd(false);
   };
@@ -123,6 +128,8 @@ export default function Projects() {
             <SelectItem value="unpaid">Unpaid</SelectItem>
             <SelectItem value="sent">Shipped</SelectItem>
             <SelectItem value="not-sent">Not Shipped</SelectItem>
+            <SelectItem value="recurring">Recurring</SelectItem>
+            <SelectItem value="new-customer">New Customer</SelectItem>
           </SelectContent>
         </Select>
         <Select value={sortBy} onValueChange={v => setSortBy(v as SortKey)}>
@@ -164,7 +171,14 @@ export default function Projects() {
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between flex-wrap gap-2">
                     <div className="flex-1 min-w-0 cursor-pointer" onClick={() => setSelectedId(p.id)}>
-                      <p className="font-semibold">{p.name}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="font-semibold">{p.name}</p>
+                        {p.isRecurringCustomer && (
+                          <Badge variant="secondary" className="text-[10px] px-1.5 py-0 gap-0.5">
+                            <RefreshCw className="h-2.5 w-2.5" />Recurring
+                          </Badge>
+                        )}
+                      </div>
                       <p className="text-sm text-muted-foreground">{p.customerName} · {p.customerSource} · {p.orderDate}</p>
                       <div className="flex items-center gap-3 mt-1.5">
                         {totalPieces > 0 && <span className="text-xs text-muted-foreground">{totalPieces} piece{totalPieces !== 1 ? 's' : ''}</span>}
@@ -223,6 +237,10 @@ export default function Projects() {
               </Select>
             </div>
             <div><Label>Order Date</Label><Input type="date" value={draft.orderDate} onChange={e => setDraft({ ...draft, orderDate: e.target.value })} /></div>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <Checkbox checked={draft.isRecurringCustomer || false} onCheckedChange={(v) => setDraft({ ...draft, isRecurringCustomer: !!v })} />
+              <span className="text-sm">Recurring Customer</span>
+            </label>
             <div><Label>Notes</Label><Textarea value={draft.notes} onChange={e => setDraft({ ...draft, notes: e.target.value })} /></div>
           </div>
           <DialogFooter><Button onClick={handleAdd}>Add Project</Button></DialogFooter>
