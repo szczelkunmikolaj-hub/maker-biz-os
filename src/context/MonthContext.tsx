@@ -87,7 +87,7 @@ export function MonthProvider({ children }: { children: React.ReactNode }) {
     <MonthContext.Provider value={{
       mode, setMode, selectedMonth, setSelectedMonth,
       prevMonth, nextMonth, label, isInPeriod,
-      filterProjects, filterExpenses, interval,
+      filterProjects, filterProjectsForWorkflow, filterExpenses, interval,
     }}>
       {children}
     </MonthContext.Provider>
