@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { usePersistedState } from "@/hooks/usePersistedState";
 import { useApp } from "@/context/AppContext";
 import { useMonth } from "@/context/MonthContext";
@@ -12,7 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2, Download } from "lucide-react";
+import { Plus, Trash2, Download, ExternalLink } from "lucide-react";
 
 const CATS: ExpenseCategory[] = ["Filament", "Shipping", "Equipment", "Tools", "Project Expense", "Other"];
 
@@ -21,7 +22,8 @@ function newExpense(): Expense {
 }
 
 export default function Expenses() {
-  const { expenses, addExpense, deleteExpense } = useApp();
+  const { expenses, addExpense, deleteExpense, projects } = useApp();
+  const navigate = useNavigate();
   const { filterExpenses, mode } = useMonth();
   const [showAdd, setShowAdd] = useState(false);
   const [draft, setDraft] = useState<Expense>(newExpense());
@@ -93,7 +95,20 @@ export default function Expenses() {
                   <TableCell className="text-sm">{e.date}</TableCell>
                   <TableCell className="font-medium">{e.name}</TableCell>
                   <TableCell><Badge variant="outline" className="text-xs">{e.category}</Badge></TableCell>
-                  <TableCell className="text-sm text-muted-foreground">{e.linkedProject || '—'}</TableCell>
+                  <TableCell className="text-sm text-muted-foreground">
+                    {e.linkedProject ? (
+                      <button
+                        className="text-primary hover:underline cursor-pointer inline-flex items-center gap-1 text-xs"
+                        onClick={() => {
+                          const proj = projects.find(p => p.name === e.linkedProject);
+                          if (proj) navigate(`/projects?id=${proj.id}`);
+                        }}
+                      >
+                        {e.linkedProject}
+                        <ExternalLink className="h-3 w-3" />
+                      </button>
+                    ) : '—'}
+                  </TableCell>
                   <TableCell className="text-right font-mono">€{(e.amount || 0).toFixed(2)}</TableCell>
                   <TableCell><Button size="icon" variant="ghost" className="text-destructive h-8 w-8" onClick={() => deleteExpense(e.id)}><Trash2 className="h-4 w-4" /></Button></TableCell>
                 </TableRow>
