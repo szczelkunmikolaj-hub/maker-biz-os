@@ -1,4 +1,6 @@
-import { useState, useMemo } from "react";
+import { useMemo } from "react";
+import { usePersistedState } from "@/hooks/usePersistedState";
+import { useState } from "react";
 import { useApp } from "@/context/AppContext";
 import { Expense, ExpenseCategory } from "@/types";
 import { Button } from "@/components/ui/button";
@@ -22,7 +24,7 @@ export default function Expenses() {
   const { expenses, addExpense, deleteExpense } = useApp();
   const [showAdd, setShowAdd] = useState(false);
   const [draft, setDraft] = useState<Expense>(newExpense());
-  const [catFilter, setCatFilter] = useState("all");
+  const [catFilter, setCatFilter] = usePersistedState("expenses_cat_filter", "all");
 
   const filtered = useMemo(() =>
     catFilter === "all" ? expenses : expenses.filter(e => e.category === catFilter),

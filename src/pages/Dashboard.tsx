@@ -16,7 +16,7 @@ import {
   DollarSign, TrendingUp, Package, Clock, Weight, Lightbulb,
   Printer, Award, BarChart3, AlertTriangle, Activity,
 } from "lucide-react";
-import { useMemo, useState, useCallback } from "react";
+import { useMemo, useCallback } from "react";
 import {
   format, parseISO, startOfMonth, endOfMonth, startOfYear, endOfYear,
   isWithinInterval, startOfWeek, endOfWeek, eachMonthOfInterval, eachWeekOfInterval, eachDayOfInterval,
@@ -25,6 +25,7 @@ import {
 import ProductionSummary from "@/components/ProductionSummary";
 import MaterialUsageSummary from "@/components/MaterialUsageSummary";
 import ChartGroupingSelect, { type ChartGrouping } from "@/components/ChartGroupingSelect";
+import { usePersistedState } from "@/hooks/usePersistedState";
 
 const COLORS = [
   "hsl(168,60%,38%)", "hsl(220,60%,50%)", "hsl(38,92%,50%)",
@@ -89,14 +90,14 @@ function buildBuckets(grouping: ChartGrouping, interval: { start: Date; end: Dat
 
 export default function Dashboard() {
   const { projects, expenses, totalFilamentPurchasesCost } = useApp();
-  const [range, setRange] = useState<TimeRange>("all");
-  const [selectedMonth, setSelectedMonth] = useState(() => format(new Date(), "yyyy-MM"));
-  const [selectedYear, setSelectedYear] = useState(() => String(new Date().getFullYear()));
+  const [range, setRange] = usePersistedState<TimeRange>("dash_range", "all");
+  const [selectedMonth, setSelectedMonth] = usePersistedState("dash_month", format(new Date(), "yyyy-MM"));
+  const [selectedYear, setSelectedYear] = usePersistedState("dash_year", String(new Date().getFullYear()));
 
-  // Per-chart independent grouping
-  const [revenueGrouping, setRevenueGrouping] = useState<ChartGrouping>("month");
-  const [profitGrouping, setProfitGrouping] = useState<ChartGrouping>("month");
-  const [hoursGrouping, setHoursGrouping] = useState<ChartGrouping>("month");
+  // Per-chart independent grouping — persisted
+  const [revenueGrouping, setRevenueGrouping] = usePersistedState<ChartGrouping>("dash_chart_revenue", "month");
+  const [profitGrouping, setProfitGrouping] = usePersistedState<ChartGrouping>("dash_chart_profit", "month");
+  const [hoursGrouping, setHoursGrouping] = usePersistedState<ChartGrouping>("dash_chart_hours", "month");
 
   const monthOptions = useMemo(buildMonthOptions, []);
   const yearOptions = useMemo(buildYearOptions, []);
