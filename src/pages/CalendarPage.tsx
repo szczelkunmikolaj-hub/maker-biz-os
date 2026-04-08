@@ -1,4 +1,6 @@
-import { useState, useMemo } from "react";
+import { useMemo } from "react";
+import { usePersistedState } from "@/hooks/usePersistedState";
+import { useState } from "react";
 import { useApp } from "@/context/AppContext";
 import { Project, getProjectTotalPrintTime } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -49,7 +51,7 @@ export default function CalendarPage() {
   const { projects } = useApp();
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
-  const [typeFilter, setTypeFilter] = useState<EventType | 'all'>('all');
+  const [typeFilter, setTypeFilter] = usePersistedState<EventType | 'all'>('calendar_type_filter', 'all');
 
   // Auto-generate calendar events from all project dates
   const events = useMemo(() => {
