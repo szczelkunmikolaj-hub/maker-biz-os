@@ -1,4 +1,5 @@
 import { useApp } from "@/context/AppContext";
+import { useMonth } from "@/context/MonthContext";
 import {
   getProjectTotalMaterial, getGlobalPrintProgress, getSuggestions,
   getProjectExpensesTotal, getProjectProgress, getProjectTotalPrintTime,
@@ -7,7 +8,6 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, LineChart, Line, Legend,
@@ -18,9 +18,8 @@ import {
 } from "lucide-react";
 import { useMemo, useCallback } from "react";
 import {
-  format, parseISO, startOfMonth, endOfMonth, startOfYear, endOfYear,
-  isWithinInterval, startOfWeek, endOfWeek, eachMonthOfInterval, eachWeekOfInterval, eachDayOfInterval,
-  subMonths,
+  format, parseISO, startOfWeek, endOfWeek, eachMonthOfInterval, eachWeekOfInterval, eachDayOfInterval,
+  startOfMonth, endOfMonth, startOfYear, endOfYear,
 } from "date-fns";
 import ProductionSummary from "@/components/ProductionSummary";
 import MaterialUsageSummary from "@/components/MaterialUsageSummary";
@@ -32,30 +31,9 @@ const COLORS = [
   "hsl(280,60%,50%)", "hsl(0,72%,51%)", "hsl(120,40%,45%)",
 ];
 
-type TimeRange = "month" | "year" | "all";
-
-function buildMonthOptions(): { value: string; label: string }[] {
-  const now = new Date();
-  const opts: { value: string; label: string }[] = [];
-  for (let i = 0; i < 24; i++) {
-    const d = subMonths(now, i);
-    opts.push({ value: format(d, "yyyy-MM"), label: format(d, "MMMM yyyy") });
-  }
-  return opts;
-}
-
-function buildYearOptions(): { value: string; label: string }[] {
-  const currentYear = new Date().getFullYear();
-  const opts: { value: string; label: string }[] = [];
-  for (let y = currentYear; y >= currentYear - 5; y--) {
-    opts.push({ value: String(y), label: String(y) });
-  }
-  return opts;
-}
-
 // Helper: build time buckets for a given grouping and interval
 function buildBuckets(grouping: ChartGrouping, interval: { start: Date; end: Date } | null) {
-  if (!interval) return null; // all-time uses map-based grouping
+  if (!interval) return null;
   if (grouping === "day") {
     return eachDayOfInterval(interval).map(d => ({
       start: d, end: d, label: format(d, "MMM d"), key: format(d, "yyyy-MM-dd"),
@@ -70,7 +48,6 @@ function buildBuckets(grouping: ChartGrouping, interval: { start: Date; end: Dat
     }));
   }
   if (grouping === "year") {
-    // single year bucket per interval year
     const years: { start: Date; end: Date; label: string; key: string }[] = [];
     for (let y = interval.start.getFullYear(); y <= interval.end.getFullYear(); y++) {
       years.push({
@@ -82,7 +59,6 @@ function buildBuckets(grouping: ChartGrouping, interval: { start: Date; end: Dat
     }
     return years;
   }
-  // monthly
   return eachMonthOfInterval(interval).map(d => ({
     start: startOfMonth(d), end: endOfMonth(d), label: format(d, "MMM"), key: format(d, "yyyy-MM"),
   }));
@@ -90,43 +66,15 @@ function buildBuckets(grouping: ChartGrouping, interval: { start: Date; end: Dat
 
 export default function Dashboard() {
   const { projects, expenses, totalFilamentPurchasesCost } = useApp();
-  const [range, setRange] = usePersistedState<TimeRange>("dash_range", "all");
-  const [selectedMonth, setSelectedMonth] = usePersistedState("dash_month", format(new Date(), "yyyy-MM"));
-  const [selectedYear, setSelectedYear] = usePersistedState("dash_year", String(new Date().getFullYear()));
+  const { filterProjects, filterExpenses, interval, mode } = useMonth();
 
   // Per-chart independent grouping — persisted
   const [revenueGrouping, setRevenueGrouping] = usePersistedState<ChartGrouping>("dash_chart_revenue", "month");
   const [profitGrouping, setProfitGrouping] = usePersistedState<ChartGrouping>("dash_chart_profit", "month");
   const [hoursGrouping, setHoursGrouping] = usePersistedState<ChartGrouping>("dash_chart_hours", "month");
 
-  const monthOptions = useMemo(buildMonthOptions, []);
-  const yearOptions = useMemo(buildYearOptions, []);
-
-  // Build date interval
-  const interval = useMemo(() => {
-    if (range === "month") {
-      const d = parseISO(`${selectedMonth}-01`);
-      return { start: startOfMonth(d), end: endOfMonth(d) };
-    }
-    if (range === "year") {
-      const d = new Date(Number(selectedYear), 0, 1);
-      return { start: startOfYear(d), end: endOfYear(d) };
-    }
-    return null;
-  }, [range, selectedMonth, selectedYear]);
-
-  const inRange = useCallback((dateStr: string | null): boolean => {
-    if (!dateStr) return false;
-    if (!interval) return true;
-    try { return isWithinInterval(parseISO(dateStr), interval); } catch { return false; }
-  }, [interval]);
-
-  const filteredProjects = useMemo(() => projects.filter(p => {
-    const ed = getEffectiveDate(p);
-    if (!ed) return range === "all";
-    return inRange(ed);
-  }), [projects, inRange, range]);
-  const filteredExpenses = useMemo(() => expenses.filter(e => inRange(e.date)), [expenses, inRange]);
+  const filteredProjects = useMemo(() => filterProjects(projects), [projects, filterProjects]);
+  const filteredExpenses = useMemo(() => filterExpenses(expenses), [expenses, filterExpenses]);
 
   // ── Core stats ──
   const stats = useMemo(() => {
@@ -134,7 +82,7 @@ export default function Dashboard() {
     const totalRevenue = paidSent.reduce((s, p) => s + (p.totalPrice || 0), 0);
     const projectExp = paidSent.reduce((s, p) => s + getProjectExpensesTotal(p), 0);
     const otherExp = filteredExpenses.reduce((s, e) => s + (e.amount || 0), 0);
-    const filCost = range === "all" ? totalFilamentPurchasesCost : 0;
+    const filCost = mode === "all" ? totalFilamentPurchasesCost : 0;
     const totalMaterial = filteredProjects.reduce((s, p) => s + getProjectTotalMaterial(p), 0);
 
     const completedProjects = filteredProjects.filter(p => getProjectProgress(p).percent === 100);
@@ -182,7 +130,7 @@ export default function Dashboard() {
       completionRate, avgProfitPerProject, avgTimePerProject,
       materialBreakdown, mostUsedMaterial, onTime, late,
     };
-  }, [filteredProjects, filteredExpenses, totalFilamentPurchasesCost, range]);
+  }, [filteredProjects, filteredExpenses, totalFilamentPurchasesCost, mode]);
 
   const globalProgress = useMemo(() => getGlobalPrintProgress(filteredProjects), [filteredProjects]);
   const suggestions = useMemo(() => getSuggestions(projects), [projects]);
@@ -233,14 +181,12 @@ export default function Dashboard() {
     });
   }, [interval, filteredProjects, filteredExpenses]);
 
-  // ── Chart: Revenue over time ──
+  // ── Chart data ──
   const revenueOverTime = useMemo(() => buildTimeSeries(revenueGrouping, (ps) => {
-    const paidSent = ps.filter(p => p.paid && p.sent);
-    const revenue = paidSent.reduce((s, p) => s + (p.totalPrice || 0), 0);
+    const revenue = ps.filter(p => p.paid && p.sent).reduce((s, p) => s + (p.totalPrice || 0), 0);
     return { revenue: +revenue.toFixed(2) };
   }), [buildTimeSeries, revenueGrouping]);
 
-  // ── Chart: Profit vs Expenses ──
   const profitExpensesData = useMemo(() => buildTimeSeries(profitGrouping, (ps, es) => {
     const paidSent = ps.filter(p => p.paid && p.sent);
     const revenue = paidSent.reduce((s, p) => s + (p.totalPrice || 0), 0);
@@ -250,13 +196,11 @@ export default function Dashboard() {
     return { profit: +(revenue - totalExp).toFixed(2), expenses: +totalExp.toFixed(2) };
   }), [buildTimeSeries, profitGrouping]);
 
-  // ── Chart: Hours over time ──
   const hoursOverTime = useMemo(() => buildTimeSeries(hoursGrouping, (ps) => {
     const hours = ps.reduce((s, p) => s + getProjectTotalPrintTime(p), 0);
     return { hours: +hours.toFixed(1) };
   }), [buildTimeSeries, hoursGrouping]);
 
-  // ── Chart: Project status distribution ──
   const statusDistribution = useMemo(() => {
     return [
       { name: "Completed", value: stats.completedProjects, color: "hsl(168,60%,38%)" },
@@ -265,7 +209,6 @@ export default function Dashboard() {
     ].filter(d => d.value > 0);
   }, [stats]);
 
-  // ── Smart insight cards ──
   const insights = useMemo(() => {
     const dayMap = new Map<string, number>();
     filteredProjects.filter(p => p.paid && p.sent).forEach(p => {
@@ -307,44 +250,23 @@ export default function Dashboard() {
 
   const tooltipStyle = { borderRadius: 8, fontSize: 12, border: "1px solid hsl(var(--border))" };
 
+  const noData = filteredProjects.length === 0 && filteredExpenses.length === 0;
+
   return (
     <div className="space-y-6">
-      {/* Header with global filters */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+      {/* Header */}
+      <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
-        <div className="flex flex-wrap items-center gap-2">
-          <Select value={range} onValueChange={(v: TimeRange) => setRange(v)}>
-            <SelectTrigger className="w-[120px] h-9 text-sm"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="month">Monthly</SelectItem>
-              <SelectItem value="year">Yearly</SelectItem>
-              <SelectItem value="all">All Time</SelectItem>
-            </SelectContent>
-          </Select>
-
-          {range === "month" && (
-            <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-              <SelectTrigger className="w-[170px] h-9 text-sm"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {monthOptions.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          )}
-
-          {range === "year" && (
-            <Select value={selectedYear} onValueChange={setSelectedYear}>
-              <SelectTrigger className="w-[100px] h-9 text-sm"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {yearOptions.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          )}
-
-          <p className="text-xs text-muted-foreground hidden lg:block">
-            {new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
-          </p>
-        </div>
+        <p className="text-xs text-muted-foreground hidden lg:block">
+          {new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
+        </p>
       </div>
+
+      {noData && (
+        <Card><CardContent className="p-8 text-center text-muted-foreground">
+          No data for this period. Try switching to "All Time" or selecting a different month.
+        </CardContent></Card>
+      )}
 
       {/* KPI Grid */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
@@ -435,7 +357,7 @@ export default function Dashboard() {
         </CardContent>
       </Card>
 
-      {/* Charts Row 1: Revenue + Profit vs Expenses */}
+      {/* Charts Row 1 */}
       <div className="grid md:grid-cols-2 gap-6">
         <Card className="border-border/60">
           <CardHeader className="pb-2">
@@ -488,7 +410,7 @@ export default function Dashboard() {
         </Card>
       </div>
 
-      {/* Charts Row 2: Hours + Material Breakdown */}
+      {/* Charts Row 2 */}
       <div className="grid md:grid-cols-2 gap-6">
         <Card className="border-border/60">
           <CardHeader className="pb-2">
@@ -534,7 +456,7 @@ export default function Dashboard() {
         </Card>
       </div>
 
-      {/* Charts Row 3: Status Distribution + Orders by Source */}
+      {/* Charts Row 3 */}
       <div className="grid md:grid-cols-2 gap-6">
         <Card className="border-border/60">
           <CardHeader className="pb-2"><CardTitle className="text-sm">Project Status Distribution</CardTitle></CardHeader>
