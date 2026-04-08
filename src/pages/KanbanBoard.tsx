@@ -84,7 +84,7 @@ export default function KanbanBoard() {
                     className="cursor-grab active:cursor-grabbing hover:border-primary/50 hover:shadow-md transition-all group"
                   >
                     <CardContent className="p-3 space-y-2">
-                      <div className="cursor-pointer" onClick={() => setSelectedId(p.id)}>
+                      <div className="cursor-pointer" onClick={() => openProject(p.id)}>
                         <div className="flex items-start justify-between">
                           <div className="min-w-0 flex-1">
                             <p className="font-semibold text-sm truncate group-hover:text-primary transition-colors">{p.name}</p>
