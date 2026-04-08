@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom";
 import { useApp } from "@/context/AppContext";
 import { useMonth } from "@/context/MonthContext";
 import {
@@ -14,7 +15,7 @@ import {
 } from "recharts";
 import {
   DollarSign, TrendingUp, Package, Clock, Weight, Lightbulb,
-  Printer, Award, BarChart3, AlertTriangle, Activity,
+  Printer, Award, BarChart3, AlertTriangle, Activity, ExternalLink,
 } from "lucide-react";
 import { useMemo, useCallback } from "react";
 import {
@@ -67,6 +68,7 @@ function buildBuckets(grouping: ChartGrouping, interval: { start: Date; end: Dat
 export default function Dashboard() {
   const { projects, expenses, totalFilamentPurchasesCost } = useApp();
   const { filterProjects, filterExpenses, interval, mode } = useMonth();
+  const navigate = useNavigate();
 
   // Per-chart independent grouping — persisted
   const [revenueGrouping, setRevenueGrouping] = usePersistedState<ChartGrouping>("dash_chart_revenue", "month");
