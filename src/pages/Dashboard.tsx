@@ -512,6 +512,36 @@ export default function Dashboard() {
         </Card>
       </div>
 
+      {/* Recent Projects */}
+      {filteredProjects.length > 0 && (
+        <Card className="border-border/60">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <Package className="h-4 w-4 text-primary" />
+              Recent Projects
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {filteredProjects.slice(0, 5).map(p => (
+              <div
+                key={p.id}
+                className="flex items-center justify-between p-2.5 rounded-lg border cursor-pointer hover:bg-accent/20 hover:border-primary/40 transition-colors"
+                onClick={() => navigate(`/projects?id=${p.id}`)}
+              >
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium truncate">{p.name}</p>
+                  <p className="text-xs text-muted-foreground">{p.customerName}</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-bold text-primary">€{(p.totalPrice || 0).toFixed(2)}</span>
+                  <ExternalLink className="h-3.5 w-3.5 text-muted-foreground" />
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
       {/* Suggestions */}
       {suggestions.length > 0 && (
         <Card className="border-border/60">
