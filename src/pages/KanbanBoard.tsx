@@ -1,13 +1,15 @@
 import { useApp } from "@/context/AppContext";
-import { KanbanStatus, getProjectTotalPrintTime, getProjectTotalMaterial, getProjectProgress } from "@/types";
+import { useMonth } from "@/context/MonthContext";
+import { KanbanStatus, getProjectTotalPrintTime, getProjectTotalMaterial, getProjectProgress, getEffectiveDate } from "@/types";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { useState } from "react";
+import { Switch } from "@/components/ui/switch";
+import { useState, useMemo } from "react";
 import { Clock, Weight, Layers, ArrowRight } from "lucide-react";
+import { usePersistedState } from "@/hooks/usePersistedState";
 import ProjectDetail from "@/components/ProjectDetail";
 
 const COLUMNS: { status: KanbanStatus; label: string; dotColor: string; bgClass: string }[] = [
@@ -20,8 +22,14 @@ const COLUMNS: { status: KanbanStatus; label: string; dotColor: string; bgClass:
 
 export default function KanbanBoard() {
   const { projects, moveProject, updateProject } = useApp();
+  const { filterProjects, mode } = useMonth();
   const [dragging, setDragging] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [showAll, setShowAll] = usePersistedState<boolean>("kanban_show_all", true);
+
+  const visibleProjects = useMemo(() => {
+    return (showAll || mode === 'all') ? projects : filterProjects(projects);
+  }, [projects, showAll, mode, filterProjects]);
 
   const selectedProject = projects.find(p => p.id === selectedId);
 
@@ -41,10 +49,18 @@ export default function KanbanBoard() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-bold">Kanban Board</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold">Kanban Board</h1>
+        {mode === 'month' && (
+          <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer select-none">
+            <Switch checked={showAll} onCheckedChange={setShowAll} className="h-5 w-9 [&>span]:h-4 [&>span]:w-4 data-[state=checked]:[&>span]:translate-x-4" />
+            Show All Projects
+          </label>
+        )}
+      </div>
       <div className="grid grid-cols-1 md:grid-cols-5 gap-4 min-h-[65vh]">
         {COLUMNS.map(col => {
-          const items = projects.filter(p => p.kanbanStatus === col.status);
+          const items = visibleProjects.filter(p => p.kanbanStatus === col.status);
           return (
             <div
               key={col.status}
@@ -73,10 +89,7 @@ export default function KanbanBoard() {
                     className="cursor-grab active:cursor-grabbing hover:border-primary/50 hover:shadow-md transition-all group"
                   >
                     <CardContent className="p-3 space-y-2">
-                      <div
-                        className="cursor-pointer"
-                        onClick={() => setSelectedId(p.id)}
-                      >
+                      <div className="cursor-pointer" onClick={() => setSelectedId(p.id)}>
                         <div className="flex items-start justify-between">
                           <div className="min-w-0 flex-1">
                             <p className="font-semibold text-sm truncate group-hover:text-primary transition-colors">{p.name}</p>
@@ -84,10 +97,7 @@ export default function KanbanBoard() {
                           </div>
                           <ArrowRight className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0 mt-1" />
                         </div>
-
                         <p className="text-sm font-bold text-primary mt-1">€{p.totalPrice.toFixed(2)}</p>
-
-                        {/* Quick stats */}
                         <div className="flex items-center gap-3 text-[10px] text-muted-foreground mt-1">
                           {(p.prints || []).length > 0 && (
                             <span className="flex items-center gap-0.5"><Layers className="h-3 w-3" />{(p.prints || []).length}</span>
@@ -99,21 +109,16 @@ export default function KanbanBoard() {
                             <span className="flex items-center gap-0.5"><Weight className="h-3 w-3" />{totalMaterial.toFixed(0)}g</span>
                           )}
                         </div>
-
-                        {/* Progress bar */}
                         {progress.totalPieces > 0 && (
                           <div className="flex items-center gap-1.5 mt-1.5">
                             <Progress value={progress.percent} className="h-1 flex-1" />
                             <span className="text-[10px] text-muted-foreground">{progress.percent}%</span>
                           </div>
                         )}
-
-                        {/* Due date */}
                         {p.dueDate && (
                           <p className="text-[10px] text-muted-foreground mt-1">Due: {p.dueDate}</p>
                         )}
                       </div>
-
                       <div className="flex gap-3 pt-1.5 border-t" onClick={e => e.stopPropagation()}>
                         {(["printed", "paid", "sent"] as const).map(field => (
                           <label key={field} className="flex items-center gap-1 cursor-pointer">

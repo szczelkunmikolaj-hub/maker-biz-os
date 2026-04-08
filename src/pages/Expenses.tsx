@@ -1,7 +1,7 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { usePersistedState } from "@/hooks/usePersistedState";
-import { useState } from "react";
 import { useApp } from "@/context/AppContext";
+import { useMonth } from "@/context/MonthContext";
 import { Expense, ExpenseCategory } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,14 +22,15 @@ function newExpense(): Expense {
 
 export default function Expenses() {
   const { expenses, addExpense, deleteExpense } = useApp();
+  const { filterExpenses, mode } = useMonth();
   const [showAdd, setShowAdd] = useState(false);
   const [draft, setDraft] = useState<Expense>(newExpense());
   const [catFilter, setCatFilter] = usePersistedState("expenses_cat_filter", "all");
 
-  const filtered = useMemo(() =>
-    catFilter === "all" ? expenses : expenses.filter(e => e.category === catFilter),
-    [expenses, catFilter]
-  );
+  const filtered = useMemo(() => {
+    const monthFiltered = mode === 'all' ? expenses : filterExpenses(expenses);
+    return catFilter === "all" ? monthFiltered : monthFiltered.filter(e => e.category === catFilter);
+  }, [expenses, catFilter, mode, filterExpenses]);
 
   const total = filtered.reduce((s, e) => s + (e.amount || 0), 0);
 
@@ -83,7 +84,9 @@ export default function Expenses() {
             </TableHeader>
             <TableBody>
               {filtered.length === 0 && (
-                <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">No expenses yet.</TableCell></TableRow>
+                <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                  {mode === 'month' ? "No expenses for this month." : "No expenses yet."}
+                </TableCell></TableRow>
               )}
               {filtered.map(e => (
                 <TableRow key={e.id}>
