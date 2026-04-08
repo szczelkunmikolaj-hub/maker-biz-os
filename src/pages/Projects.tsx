@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { usePersistedState } from "@/hooks/usePersistedState";
 import { useApp } from "@/context/AppContext";
+import { useMonth } from "@/context/MonthContext";
 import { Project, CustomerSource, PaymentMethod, getProjectProgress, getProjectTotalPieces, getProjectPiecesTotal, getProjectExpensesTotal } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
 import { Plus, Search, Download, ArrowUpDown } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import ProjectDetail from "@/components/ProjectDetail";
@@ -31,16 +33,18 @@ function newProject(): Project {
 }
 
 export default function Projects() {
-  const { projects, addProject, updateProject, settings } = useApp();
+  const { projects, addProject, updateProject } = useApp();
+  const { filterProjects, mode } = useMonth();
   const [search, setSearch] = useState("");
   const [filter, setFilter] = usePersistedState<string>("projects_filter", "all");
   const [sortBy, setSortBy] = usePersistedState<SortKey>("projects_sort", "date");
+  const [showAll, setShowAll] = usePersistedState<boolean>("projects_show_all", false);
   const [showAdd, setShowAdd] = useState(false);
   const [draft, setDraft] = useState<Project>(newProject());
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const filtered = useMemo(() => {
-    let list = [...projects];
+    let list = (showAll || mode === 'all') ? [...projects] : filterProjects(projects);
     if (search) {
       const q = search.toLowerCase();
       list = list.filter(p => p.name.toLowerCase().includes(q) || p.customerName.toLowerCase().includes(q));
@@ -50,7 +54,6 @@ export default function Projects() {
     if (filter === "sent") list = list.filter(p => p.sent);
     if (filter === "not-sent") list = list.filter(p => !p.sent);
 
-    // Sort
     list.sort((a, b) => {
       switch (sortBy) {
         case "date": return (b.orderDate || "").localeCompare(a.orderDate || "");
@@ -65,7 +68,7 @@ export default function Projects() {
       }
     });
     return list;
-  }, [projects, search, filter, sortBy]);
+  }, [projects, search, filter, sortBy, showAll, mode, filterProjects]);
 
   const selectedProject = projects.find(p => p.id === selectedId);
 
@@ -83,9 +86,9 @@ export default function Projects() {
 
   const exportCSV = () => {
     const header = "Name,Customer,Source,PaymentMethod,Date,Price,Paid,Sent\n";
-    const rows = projects.map(p => {
-      return `"${p.name}","${p.customerName}","${p.customerSource}","${p.paymentMethod || ''}","${p.orderDate}",${p.totalPrice},${p.paid},${p.sent}`;
-    }).join("\n");
+    const rows = projects.map(p =>
+      `"${p.name}","${p.customerName}","${p.customerSource}","${p.paymentMethod || ''}","${p.orderDate}",${p.totalPrice},${p.paid},${p.sent}`
+    ).join("\n");
     const blob = new Blob([header + rows], { type: "text/csv" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
@@ -107,7 +110,7 @@ export default function Projects() {
         </div>
       </div>
 
-      <div className="flex gap-2 flex-wrap">
+      <div className="flex gap-2 flex-wrap items-center">
         <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input placeholder="Search projects..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
@@ -134,10 +137,18 @@ export default function Projects() {
             <SelectItem value="shipped">Shipped</SelectItem>
           </SelectContent>
         </Select>
+        {mode === 'month' && (
+          <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer select-none">
+            <Switch checked={showAll} onCheckedChange={setShowAll} className="h-5 w-9 [&>span]:h-4 [&>span]:w-4 data-[state=checked]:[&>span]:translate-x-4" />
+            Show All
+          </label>
+        )}
       </div>
 
       {filtered.length === 0 ? (
-        <Card><CardContent className="p-8 text-center text-muted-foreground">No projects yet. Click "New Project" to get started.</CardContent></Card>
+        <Card><CardContent className="p-8 text-center text-muted-foreground">
+          {mode === 'month' && !showAll ? "No projects for this month. Toggle 'Show All' or switch to All Time." : "No projects yet. Click \"New Project\" to get started."}
+        </CardContent></Card>
       ) : (
         <div className="grid gap-3">
           {filtered.map(p => {
@@ -170,7 +181,6 @@ export default function Projects() {
                         <span className="font-bold text-primary">€{effectivePrice.toFixed(2)}</span>
                         {effectivePrice > 0 && <p className={`text-xs font-medium ${marginColor}`}>{margin.toFixed(0)}% margin</p>}
                       </div>
-                      {/* Quick status toggles */}
                       <div className="flex flex-col gap-1.5" onClick={e => e.stopPropagation()}>
                         <label className="flex items-center gap-1.5 cursor-pointer">
                           <Checkbox checked={p.printed} onCheckedChange={() => toggleStatus(p.id, 'printed')} />

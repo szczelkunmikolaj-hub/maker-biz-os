@@ -1,13 +1,13 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { usePersistedState } from "@/hooks/usePersistedState";
-import { useState } from "react";
 import { useApp } from "@/context/AppContext";
+import { useMonth } from "@/context/MonthContext";
 import { Project, getProjectTotalPrintTime } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, Printer, Package, Truck, CircleDot } from "lucide-react";
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths, parseISO, isValid, isAfter, isBefore, differenceInDays } from "date-fns";
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths, parseISO, isValid, isAfter, differenceInDays } from "date-fns";
 
 type EventType = 'order-created' | 'printing-scheduled' | 'printing-in-progress' | 'ready' | 'shipping-deadline';
 
@@ -20,7 +20,7 @@ interface CalendarEvent {
   type: EventType;
   estimatedHours: number;
   printCount: number;
-  isNew: boolean; // created within last 2 days
+  isNew: boolean;
 }
 
 const EVENT_CONFIG: Record<EventType, { label: string; color: string; bgClass: string; textClass: string; icon: React.ElementType }> = {
@@ -49,75 +49,46 @@ function isNewProject(orderDate: string): boolean {
 
 export default function CalendarPage() {
   const { projects } = useApp();
-  const [currentMonth, setCurrentMonth] = useState(new Date());
+  const { mode, selectedMonth: globalMonth } = useMonth();
+
+  // Default calendar view to the global selected month
+  const initialDate = useMemo(() => {
+    if (mode === 'month') {
+      return parseISO(`${globalMonth}-01`);
+    }
+    return new Date();
+  }, [mode, globalMonth]);
+
+  const [currentMonth, setCurrentMonth] = useState(initialDate);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [typeFilter, setTypeFilter] = usePersistedState<EventType | 'all'>('calendar_type_filter', 'all');
 
-  // Auto-generate calendar events from all project dates
   const events = useMemo(() => {
     const result: CalendarEvent[] = [];
-    const now = new Date();
-
     projects.forEach(p => {
       const totalHours = getProjectTotalPrintTime(p);
       const printCount = (p.prints || []).length;
       const isNew = isNewProject(p.orderDate);
 
-      // Order date event
       if (p.orderDate) {
         const d = parseISO(p.orderDate);
         if (isValid(d)) {
-          result.push({
-            id: `${p.id}-order`,
-            projectId: p.id,
-            projectName: p.name,
-            customerName: p.customerName,
-            date: d,
-            type: 'order-created',
-            estimatedHours: totalHours,
-            printCount,
-            isNew,
-          });
+          result.push({ id: `${p.id}-order`, projectId: p.id, projectName: p.name, customerName: p.customerName, date: d, type: 'order-created', estimatedHours: totalHours, printCount, isNew });
         }
       }
-
-      // Due date event (printing status)
       if (p.dueDate) {
         const d = parseISO(p.dueDate);
         if (isValid(d)) {
-          result.push({
-            id: `${p.id}-due`,
-            projectId: p.id,
-            projectName: p.name,
-            customerName: p.customerName,
-            date: d,
-            type: getProjectEventType(p),
-            estimatedHours: totalHours,
-            printCount,
-            isNew,
-          });
+          result.push({ id: `${p.id}-due`, projectId: p.id, projectName: p.name, customerName: p.customerName, date: d, type: getProjectEventType(p), estimatedHours: totalHours, printCount, isNew });
         }
       }
-
-      // Shipping date event
       if (p.shippingDate) {
         const d = parseISO(p.shippingDate);
         if (isValid(d)) {
-          result.push({
-            id: `${p.id}-ship`,
-            projectId: p.id,
-            projectName: p.name,
-            customerName: p.customerName,
-            date: d,
-            type: 'shipping-deadline',
-            estimatedHours: totalHours,
-            printCount,
-            isNew,
-          });
+          result.push({ id: `${p.id}-ship`, projectId: p.id, projectName: p.name, customerName: p.customerName, date: d, type: 'shipping-deadline', estimatedHours: totalHours, printCount, isNew });
         }
       }
     });
-
     return result;
   }, [projects]);
 
@@ -164,24 +135,10 @@ export default function CalendarPage() {
         </div>
       </div>
 
-      {/* Legend / Filter */}
       <div className="flex flex-wrap gap-2">
-        <Button
-          size="sm"
-          variant={typeFilter === 'all' ? 'default' : 'outline'}
-          onClick={() => setTypeFilter('all')}
-          className="h-7 text-xs"
-        >
-          All
-        </Button>
+        <Button size="sm" variant={typeFilter === 'all' ? 'default' : 'outline'} onClick={() => setTypeFilter('all')} className="h-7 text-xs">All</Button>
         {(Object.entries(EVENT_CONFIG) as [EventType, typeof EVENT_CONFIG[EventType]][]).map(([type, cfg]) => (
-          <Button
-            key={type}
-            size="sm"
-            variant={typeFilter === type ? 'default' : 'outline'}
-            onClick={() => setTypeFilter(typeFilter === type ? 'all' : type)}
-            className="h-7 text-xs gap-1.5"
-          >
+          <Button key={type} size="sm" variant={typeFilter === type ? 'default' : 'outline'} onClick={() => setTypeFilter(typeFilter === type ? 'all' : type)} className="h-7 text-xs gap-1.5">
             <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: cfg.color }} />
             {cfg.label}
           </Button>
@@ -201,27 +158,20 @@ export default function CalendarPage() {
           </div>
         </CardHeader>
         <CardContent className="p-3">
-          {/* Day headers */}
           <div className="grid grid-cols-7 gap-1 mb-1">
             {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map(d => (
               <div key={d} className="text-xs font-semibold text-muted-foreground text-center py-2">{d}</div>
             ))}
           </div>
-
-          {/* Calendar grid */}
           <div className="grid grid-cols-7 gap-1">
             {allDays.map((day, i) => {
               const isCurrentMonth = isSameMonth(day, currentMonth);
               const isToday = isSameDay(day, today);
               const dayEvents = filteredEvents.filter(e => isSameDay(e.date, day));
-
               return (
-                <div
-                  key={i}
-                  className={`min-h-[90px] p-1.5 rounded-md text-xs transition-all ${
-                    isCurrentMonth ? "bg-card hover:bg-accent/20" : "bg-muted/20 opacity-50"
-                  } ${isToday ? "ring-2 ring-primary ring-offset-1 ring-offset-background" : "border border-border/50"}`}
-                >
+                <div key={i} className={`min-h-[90px] p-1.5 rounded-md text-xs transition-all ${
+                  isCurrentMonth ? "bg-card hover:bg-accent/20" : "bg-muted/20 opacity-50"
+                } ${isToday ? "ring-2 ring-primary ring-offset-1 ring-offset-background" : "border border-border/50"}`}>
                   <div className={`font-semibold mb-1 text-[11px] ${
                     isToday ? "text-primary" : isCurrentMonth ? "text-foreground" : "text-muted-foreground"
                   }`}>
@@ -235,24 +185,15 @@ export default function CalendarPage() {
                     {dayEvents.slice(0, 3).map(event => {
                       const cfg = EVENT_CONFIG[event.type];
                       return (
-                        <div
-                          key={event.id}
-                          className={`rounded px-1 py-0.5 truncate cursor-pointer text-[9px] leading-tight border transition-all hover:scale-[1.02] ${cfg.bgClass} ${cfg.textClass} ${
-                            event.isNew ? 'ring-1 ring-primary shadow-sm' : ''
-                          }`}
+                        <div key={event.id} className={`rounded px-1 py-0.5 truncate cursor-pointer text-[9px] leading-tight border transition-all hover:scale-[1.02] ${cfg.bgClass} ${cfg.textClass} ${event.isNew ? 'ring-1 ring-primary shadow-sm' : ''}`}
                           onClick={() => setSelectedEvent(selectedEvent?.id === event.id ? null : event)}
-                          title={`${event.projectName} — ${cfg.label}`}
-                        >
+                          title={`${event.projectName} — ${cfg.label}`}>
                           <span className="font-semibold">{event.projectName}</span>
-                          {event.estimatedHours > 0 && (
-                            <span className="ml-0.5 opacity-70">{event.estimatedHours.toFixed(0)}h</span>
-                          )}
+                          {event.estimatedHours > 0 && <span className="ml-0.5 opacity-70">{event.estimatedHours.toFixed(0)}h</span>}
                         </div>
                       );
                     })}
-                    {dayEvents.length > 3 && (
-                      <div className="text-[9px] text-muted-foreground text-center">+{dayEvents.length - 3} more</div>
-                    )}
+                    {dayEvents.length > 3 && <div className="text-[9px] text-muted-foreground text-center">+{dayEvents.length - 3} more</div>}
                   </div>
                 </div>
               );
@@ -261,7 +202,6 @@ export default function CalendarPage() {
         </CardContent>
       </Card>
 
-      {/* Selected event detail */}
       {selectedEvent && (
         <Card className={`border-l-4 ${EVENT_CONFIG[selectedEvent.type].bgClass}`} style={{ borderLeftColor: EVENT_CONFIG[selectedEvent.type].color }}>
           <CardContent className="p-4">
@@ -269,9 +209,7 @@ export default function CalendarPage() {
               <div>
                 <div className="flex items-center gap-2 mb-1">
                   <h3 className="font-semibold text-base">{selectedEvent.projectName}</h3>
-                  {selectedEvent.isNew && (
-                    <Badge className="bg-primary/15 text-primary border-primary/30 text-[10px]">NEW</Badge>
-                  )}
+                  {selectedEvent.isNew && <Badge className="bg-primary/15 text-primary border-primary/30 text-[10px]">NEW</Badge>}
                 </div>
                 <p className="text-sm text-muted-foreground">{selectedEvent.customerName}</p>
               </div>
@@ -280,34 +218,20 @@ export default function CalendarPage() {
               </Badge>
             </div>
             <div className="grid grid-cols-3 gap-4 mt-3 text-sm">
-              <div>
-                <span className="text-muted-foreground text-xs">Date</span>
-                <p className="font-medium">{format(selectedEvent.date, "MMM d, yyyy")}</p>
-              </div>
-              <div>
-                <span className="text-muted-foreground text-xs">Est. Print Time</span>
-                <p className="font-medium">{selectedEvent.estimatedHours.toFixed(1)}h</p>
-              </div>
-              <div>
-                <span className="text-muted-foreground text-xs">Pieces</span>
-                <p className="font-medium">{selectedEvent.printCount}</p>
-              </div>
+              <div><span className="text-muted-foreground text-xs">Date</span><p className="font-medium">{format(selectedEvent.date, "MMM d, yyyy")}</p></div>
+              <div><span className="text-muted-foreground text-xs">Est. Print Time</span><p className="font-medium">{selectedEvent.estimatedHours.toFixed(1)}h</p></div>
+              <div><span className="text-muted-foreground text-xs">Pieces</span><p className="font-medium">{selectedEvent.printCount}</p></div>
             </div>
             <Button size="sm" variant="ghost" className="mt-2 text-xs" onClick={() => setSelectedEvent(null)}>Dismiss</Button>
           </CardContent>
         </Card>
       )}
 
-      {/* Upcoming events list */}
       <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base">Upcoming Events</CardTitle>
-        </CardHeader>
+        <CardHeader className="pb-2"><CardTitle className="text-base">Upcoming Events</CardTitle></CardHeader>
         <CardContent>
           {upcomingEvents.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-6">
-              No upcoming events. Set dates on your projects to see them here.
-            </p>
+            <p className="text-sm text-muted-foreground text-center py-6">No upcoming events.</p>
           ) : (
             <div className="space-y-2">
               {upcomingEvents.map(event => {
@@ -315,12 +239,7 @@ export default function CalendarPage() {
                 const Icon = cfg.icon;
                 const daysAway = differenceInDays(event.date, today);
                 return (
-                  <div
-                    key={event.id}
-                    className={`flex items-center justify-between p-3 rounded-lg border transition-colors hover:bg-accent/20 ${
-                      event.isNew ? 'ring-1 ring-primary/30' : ''
-                    }`}
-                  >
+                  <div key={event.id} className={`flex items-center justify-between p-3 rounded-lg border transition-colors hover:bg-accent/20 ${event.isNew ? 'ring-1 ring-primary/30' : ''}`}>
                     <div className="flex items-center gap-3">
                       <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${cfg.bgClass}`}>
                         <Icon className="h-4 w-4" style={{ color: cfg.color }} />

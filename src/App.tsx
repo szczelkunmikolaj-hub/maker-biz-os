@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AppProvider } from "@/context/AppContext";
+import { MonthProvider } from "@/context/MonthContext";
 import { Layout } from "@/components/Layout";
 import Dashboard from "@/pages/Dashboard";
 import Projects from "@/pages/Projects";
@@ -24,26 +25,28 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <AppProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            <Route element={<Layout />}>
-              <Route path="/" element={<Dashboard />} />
-              <Route path="/projects" element={<Projects />} />
-              <Route path="/kanban" element={<KanbanBoard />} />
-              <Route path="/calendar" element={<CalendarPage />} />
-              <Route path="/expenses" element={<Expenses />} />
-              <Route path="/filament" element={<FilamentPurchases />} />
-              <Route path="/templates" element={<TemplatesPage />} />
-              <Route path="/quote" element={<QuoteGenerator />} />
-              <Route path="/import" element={<ImportQueue />} />
-              <Route path="/data" element={<DataManagement />} />
-              <Route path="/settings" element={<SettingsPage />} />
-            </Route>
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
+        <MonthProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Routes>
+              <Route element={<Layout />}>
+                <Route path="/" element={<Dashboard />} />
+                <Route path="/projects" element={<Projects />} />
+                <Route path="/kanban" element={<KanbanBoard />} />
+                <Route path="/calendar" element={<CalendarPage />} />
+                <Route path="/expenses" element={<Expenses />} />
+                <Route path="/filament" element={<FilamentPurchases />} />
+                <Route path="/templates" element={<TemplatesPage />} />
+                <Route path="/quote" element={<QuoteGenerator />} />
+                <Route path="/import" element={<ImportQueue />} />
+                <Route path="/data" element={<DataManagement />} />
+                <Route path="/settings" element={<SettingsPage />} />
+              </Route>
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </MonthProvider>
       </AppProvider>
     </TooltipProvider>
   </QueryClientProvider>
