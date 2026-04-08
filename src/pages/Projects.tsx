@@ -1,4 +1,5 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { usePersistedState } from "@/hooks/usePersistedState";
 import { useApp } from "@/context/AppContext";
 import { useMonth } from "@/context/MonthContext";
@@ -41,7 +42,25 @@ export default function Projects() {
   const [showAll, setShowAll] = usePersistedState<boolean>("projects_show_all", false);
   const [showAdd, setShowAdd] = useState(false);
   const [draft, setDraft] = useState<Project>(newProject());
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [selectedId, setSelectedId] = useState<string | null>(searchParams.get('id'));
+
+  // Sync URL param to selectedId
+  useEffect(() => {
+    const urlId = searchParams.get('id');
+    if (urlId && projects.find(p => p.id === urlId)) {
+      setSelectedId(urlId);
+    }
+  }, [searchParams, projects]);
+
+  const handleSelectProject = (id: string | null) => {
+    setSelectedId(id);
+    if (id) {
+      setSearchParams({ id });
+    } else {
+      setSearchParams({});
+    }
+  };
 
   const filtered = useMemo(() => {
     let list = (showAll || mode === 'all') ? [...projects] : filterProjectsForWorkflow(projects);
@@ -102,7 +121,7 @@ export default function Projects() {
   };
 
   if (selectedProject) {
-    return <ProjectDetail project={selectedProject} onBack={() => setSelectedId(null)} />;
+    return <ProjectDetail project={selectedProject} onBack={() => handleSelectProject(null)} />;
   }
 
   return (
@@ -170,7 +189,7 @@ export default function Projects() {
               <Card key={p.id} className="hover:border-primary/50 transition-colors">
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between flex-wrap gap-2">
-                    <div className="flex-1 min-w-0 cursor-pointer" onClick={() => setSelectedId(p.id)}>
+                    <div className="flex-1 min-w-0 cursor-pointer hover:opacity-80 transition-opacity" onClick={() => handleSelectProject(p.id)}>
                       <div className="flex items-center gap-2">
                         <p className="font-semibold">{p.name}</p>
                         {p.isRecurringCustomer && (
@@ -191,7 +210,7 @@ export default function Projects() {
                       </div>
                     </div>
                     <div className="flex items-center gap-4">
-                      <div className="text-right cursor-pointer" onClick={() => setSelectedId(p.id)}>
+                      <div className="text-right cursor-pointer hover:opacity-80 transition-opacity" onClick={() => handleSelectProject(p.id)}>
                         <span className="font-bold text-primary">€{effectivePrice.toFixed(2)}</span>
                         {effectivePrice > 0 && <p className={`text-xs font-medium ${marginColor}`}>{margin.toFixed(0)}% margin</p>}
                       </div>
