@@ -5,6 +5,7 @@ import { useMonth } from "@/context/MonthContext";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, CalendarDays } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
+import { NotificationBell } from "@/components/NotificationBell";
 
 const PAGE_TITLES: Record<string, string> = {
   "/": "Dashboard",
@@ -59,6 +60,10 @@ export function Layout() {
                   </Button>
                 </div>
               )}
+
+              <div className="ml-1 pl-2 border-l">
+                <NotificationBell />
+              </div>
             </div>
           </header>
           <main className="flex-1 overflow-auto p-4 md:p-6 animate-fade-in">
