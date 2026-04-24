@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AppProvider } from "@/context/AppContext";
 import { MonthProvider } from "@/context/MonthContext";
+import { NotificationProvider } from "@/context/NotificationContext";
 import { Layout } from "@/components/Layout";
 import Dashboard from "@/pages/Dashboard";
 import Projects from "@/pages/Projects";
@@ -26,6 +27,7 @@ const App = () => (
     <TooltipProvider>
       <AppProvider>
         <MonthProvider>
+          <NotificationProvider>
           <Toaster />
           <Sonner />
           <BrowserRouter>
@@ -46,6 +48,7 @@ const App = () => (
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
+          </NotificationProvider>
         </MonthProvider>
       </AppProvider>
     </TooltipProvider>
