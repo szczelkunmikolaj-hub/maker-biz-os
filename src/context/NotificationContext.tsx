@@ -29,38 +29,7 @@ interface NotificationContextType {
 
 const NotificationContext = createContext<NotificationContextType | null>(null);
 
-const SEED_NOTIFICATIONS: AppNotification[] = [
-  {
-    id: 'seed-1',
-    type: 'quote_request',
-    title: 'New Quote Request',
-    customerName: 'John Smith',
-    customerEmail: 'john@example.com',
-    files: ['bracket.stl'],
-    urgent: true,
-    timestamp: new Date(Date.now() - 1000 * 60 * 15).toISOString(),
-    read: false,
-  },
-  {
-    id: 'seed-2',
-    type: 'upload_request',
-    title: 'New Upload Request',
-    customerName: 'Maria Garcia',
-    files: ['part-a.stl', 'part-b.stl'],
-    urgent: false,
-    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
-    read: false,
-  },
-  {
-    id: 'seed-3',
-    type: 'message',
-    title: 'Customer Message',
-    customerName: 'Alex Lee',
-    message: 'Could you confirm shipping times for my order?',
-    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 26).toISOString(),
-    read: true,
-  },
-];
+const SEED_NOTIFICATIONS: AppNotification[] = [];
 
 export function NotificationProvider({ children }: { children: React.ReactNode }) {
   const [notifications, setNotifications] = usePersistedState<AppNotification[]>(

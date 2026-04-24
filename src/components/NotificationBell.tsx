@@ -84,8 +84,8 @@ export function NotificationBell() {
         {notifications.length === 0 ? (
           <div className="p-8 text-center text-sm text-muted-foreground">
             <Bell className="h-8 w-8 mx-auto mb-2 opacity-30" />
-            <p>No notifications yet</p>
-            <p className="text-xs mt-1">New customer requests will appear here</p>
+            <p className="font-medium text-foreground">No new requests</p>
+            <p className="text-xs mt-1">New quote requests from Dimension 3D will appear here.</p>
           </div>
         ) : (
           <ScrollArea className="max-h-[420px]">
