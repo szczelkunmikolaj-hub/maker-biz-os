@@ -33,7 +33,7 @@ const SEED_NOTIFICATIONS: AppNotification[] = [];
 
 export function NotificationProvider({ children }: { children: React.ReactNode }) {
   const [notifications, setNotifications] = usePersistedState<AppNotification[]>(
-    'pt_notifications',
+    'pt_notifications_v2',
     SEED_NOTIFICATIONS,
   );
 
