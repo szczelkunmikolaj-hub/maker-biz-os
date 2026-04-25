@@ -331,13 +331,6 @@ export function combineGcodeImports(imports: ParsedImport[], projectName: string
   };
 }
 
-/** Normalize material names: "pla", "PLA", "Pla" → "PLA" */
-export function normalizeMaterial(s: string): string {
-  if (!s) return "";
-  const trimmed = s.trim();
-  // Common abbreviations should be uppercase
-  if (/^(pla|abs|petg|tpu|asa|pc|pa|pva|hips|pet)/i.test(trimmed)) {
-    return trimmed.toUpperCase().split(/\s+/)[0] + trimmed.slice(trimmed.indexOf(" "));
-  }
-  return trimmed;
-}
+/** Normalize material names: "pla", "PLA", "Pla" → "PLA". Re-exports the smart helper. */
+export { normalizeMaterial } from "./normalize";
+
