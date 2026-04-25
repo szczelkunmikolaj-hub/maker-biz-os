@@ -158,6 +158,44 @@ function parseSliceInfoXml(xml: string): { plates: Partial<ParsedPlate>[] } {
   return { plates };
 }
 
+function u8ToDataUrl(bytes: Uint8Array, mime = "image/png"): string {
+  let bin = "";
+  const chunk = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunk) {
+    bin += String.fromCharCode(...bytes.subarray(i, i + chunk));
+  }
+  return `data:${mime};base64,${btoa(bin)}`;
+}
+
+function extractThumbnails(entries: Record<string, Uint8Array>): {
+  perPlate: Record<number, string>;
+  cover?: string;
+} {
+  const perPlate: Record<number, string> = {};
+  let cover: string | undefined;
+  for (const key of Object.keys(entries)) {
+    const lower = key.toLowerCase();
+    if (!/\.(png|jpg|jpeg)$/i.test(lower)) continue;
+    // Match Bambu's plate_<N>.png (no _small / _pick variants)
+    const m = lower.match(/plate_(\d+)\.png$/);
+    if (m) {
+      const idx = parseInt(m[1], 10);
+      perPlate[idx] = u8ToDataUrl(entries[key]);
+      if (!cover) cover = perPlate[idx];
+      continue;
+    }
+    // Generic top-level thumbnail fallback
+    if (!cover && (lower.endsWith("/thumbnail.png") || lower === "thumbnail.png")) {
+      cover = u8ToDataUrl(entries[key]);
+    }
+  }
+  if (!cover) {
+    const indices = Object.keys(perPlate).map(Number).sort((a, b) => a - b);
+    if (indices.length) cover = perPlate[indices[0]];
+  }
+  return { perPlate, cover };
+}
+
 export async function parse3mf(file: File): Promise<ParsedImport> {
   const buffer = new Uint8Array(await file.arrayBuffer());
   let entries: Record<string, Uint8Array>;
@@ -172,20 +210,27 @@ export async function parse3mf(file: File): Promise<ParsedImport> {
     k.toLowerCase().endsWith("slice_info.config")
   );
 
+  const { perPlate: thumbsByIndex, cover } = extractThumbnails(entries);
+
   let plates: ParsedPlate[] = [];
 
   if (sliceInfoKey) {
     const xml = strFromU8(entries[sliceInfoKey]);
     const { plates: parsed } = parseSliceInfoXml(xml);
-    plates = parsed.map((p, i) => ({
-      index: p.index ?? i + 1,
-      name: p.name ?? `Plate ${i + 1}`,
-      printTimeHours: p.printTimeHours ?? 0,
-      filamentGrams: p.filamentGrams ?? 0,
-      filamentType: p.filamentType ?? "",
-      filamentColor: p.filamentColor ?? "",
-      modelNames: p.modelNames ?? [],
-    }));
+    plates = parsed.map((p, i) => {
+      const idx = p.index ?? i + 1;
+      return {
+        index: idx,
+        name: p.name ?? `Plate ${idx}`,
+        printTimeHours: p.printTimeHours ?? 0,
+        filamentGrams: p.filamentGrams ?? 0,
+        filamentType: p.filamentType ?? "",
+        filamentColor: p.filamentColor ?? "",
+        filamentPalette: p.filamentPalette,
+        modelNames: p.modelNames ?? [],
+        thumbnail: thumbsByIndex[idx],
+      };
+    });
   }
 
   // Fallback: scan any embedded plate_<N>.gcode for headers
@@ -202,6 +247,7 @@ export async function parse3mf(file: File): Promise<ParsedImport> {
         filamentType: meta.material,
         filamentColor: meta.color,
         modelNames: [],
+        thumbnail: thumbsByIndex[i + 1],
       };
     });
   }
@@ -225,6 +271,7 @@ export async function parse3mf(file: File): Promise<ParsedImport> {
         filamentType: "",
         filamentColor: "",
         modelNames: names,
+        thumbnail: cover,
       },
     ];
   }
@@ -240,6 +287,7 @@ export async function parse3mf(file: File): Promise<ParsedImport> {
     plates,
     totalTimeHours: Math.round(totalTimeHours * 100) / 100,
     totalFilamentGrams: Math.round(totalFilamentGrams * 10) / 10,
+    coverThumbnail: cover,
   };
 }
 
