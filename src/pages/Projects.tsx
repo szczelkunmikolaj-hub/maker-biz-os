@@ -226,30 +226,17 @@ export default function Projects() {
             const margin = effectivePrice > 0 ? ((effectivePrice - projExpenses) / effectivePrice) * 100 : 0;
             const totalTime = getProjectTotalPrintTime(p);
 
-            // Status color logic
-            const isCompleted = p.printed && p.paid && p.sent;
-            const isLate = !isCompleted && p.dueDate && isBefore(parseISO(p.dueDate), new Date());
-            const isPrinting = !isCompleted && (p.prints || []).some(pr => pr.status === 'printing');
-            const statusColor = isCompleted
-              ? 'border-t-emerald-500'
-              : isLate
-              ? 'border-t-red-500'
-              : isPrinting
-              ? 'border-t-blue-500'
-              : 'border-t-muted-foreground/30';
-            const statusLabel = isCompleted ? 'Completed' : isLate ? 'Overdue' : isPrinting ? 'Printing' : 'Pending';
-            const statusBadgeClass = isCompleted
-              ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30'
-              : isLate
-              ? 'bg-red-500/15 text-red-700 dark:text-red-400 border-red-500/30'
-              : isPrinting
-              ? 'bg-blue-500/15 text-blue-700 dark:text-blue-400 border-blue-500/30'
-              : 'bg-muted text-muted-foreground border-border';
+            const status = deriveProjectStatus(p);
+            const meta = getStatusMeta(status);
+            const isLate = status === "overdue";
+            const isRecurring = !!p.isRecurringCustomer;
 
             return (
               <Card
                 key={p.id}
-                className={`border-t-[3px] ${statusColor} cursor-pointer hover:shadow-lg hover:scale-[1.02] transition-all duration-200 group`}
+                className={`border-t-[3px] ${meta.borderTop} cursor-pointer hover:shadow-lg hover:scale-[1.02] transition-all duration-200 group ${
+                  isRecurring ? "ring-1 ring-recurring-from/30 hover:ring-recurring-from/60" : ""
+                }`}
                 onClick={() => handleSelectProject(p.id)}
               >
                 <CardContent className="p-4 space-y-3">
@@ -259,9 +246,7 @@ export default function Projects() {
                       <p className="font-semibold text-sm truncate group-hover:text-primary transition-colors">{p.name}</p>
                       <p className="text-xs text-muted-foreground truncate">{p.customerName}</p>
                     </div>
-                    <Badge variant="outline" className={`text-[10px] shrink-0 ${statusBadgeClass}`}>
-                      {statusLabel}
-                    </Badge>
+                    <StatusPill status={status} className="shrink-0" />
                   </div>
 
                   {/* Price */}
