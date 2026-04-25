@@ -420,22 +420,39 @@ export function PlateImporter({ project, compact = false, onImported }: Props) {
                 </div>
               </div>
 
-              <div className="space-y-1.5 max-h-56 overflow-y-auto">
+              <div className="space-y-1.5 max-h-72 overflow-y-auto">
                 {parsed.plates.map((p) => (
-                  <div key={p.index} className="flex items-center justify-between rounded-lg border p-2.5 text-xs">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <Layers className="h-3.5 w-3.5 text-primary shrink-0" />
-                      <span className="font-medium">{p.name}</span>
-                      {p.modelNames.length > 0 && (
-                        <span className="text-muted-foreground truncate">
-                          · {p.modelNames.length} model{p.modelNames.length > 1 ? "s" : ""}
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      {p.filamentType && <Badge variant="secondary" className="text-[10px]">{p.filamentType}</Badge>}
-                      <span className="text-muted-foreground">{p.printTimeHours}h</span>
-                      <span className="text-muted-foreground">{p.filamentGrams}g</span>
+                  <div key={p.index} className="flex items-center gap-2.5 rounded-lg border p-2 text-xs">
+                    {p.thumbnail ? (
+                      <img
+                        src={p.thumbnail}
+                        alt={p.name}
+                        className="h-12 w-12 rounded-md object-cover border bg-muted shrink-0"
+                      />
+                    ) : (
+                      <div className="h-12 w-12 rounded-md border bg-muted/50 flex items-center justify-center shrink-0">
+                        <Layers className="h-5 w-5 text-muted-foreground/60" />
+                      </div>
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium truncate">{p.name}</span>
+                        {p.modelNames.length > 0 && (
+                          <span className="text-muted-foreground text-[10px] truncate">
+                            · {p.modelNames.length} model{p.modelNames.length > 1 ? "s" : ""}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                        {p.filamentType && (
+                          <Badge variant="secondary" className="text-[10px] py-0 px-1.5">
+                            {p.filamentType}
+                          </Badge>
+                        )}
+                        <ColorPills color={p.filamentColor} palette={p.filamentPalette} material={p.filamentType} size="xs" />
+                        <span className="text-muted-foreground">{p.printTimeHours}h</span>
+                        <span className="text-muted-foreground">{p.filamentGrams}g</span>
+                      </div>
                     </div>
                   </div>
                 ))}
