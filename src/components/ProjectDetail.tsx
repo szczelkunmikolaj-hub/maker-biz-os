@@ -11,8 +11,17 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { ArrowLeft, Plus, Trash2, Copy, BookTemplate, Calendar, Kanban, Receipt, RefreshCw } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Copy, BookTemplate, Calendar, Kanban, Receipt, RefreshCw, ArrowUp, ArrowDown, Box, X, MoveRight } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { PlateImporter } from "@/components/PlateImporter";
+import { RecurringBadge } from "@/components/RecurringBadge";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import type { PrintModel } from "@/types";
 
 function newPrint(): Print {
   return { id: crypto.randomUUID(), name: "", estimatedPrintTime: 0, materialUsed: 0, printer: "", status: "not-printed", quantity: 1, completedQuantity: 0, color: "", material: "", pricePerPiece: 0 };
@@ -49,6 +58,45 @@ export default function ProjectDetail({ project, onBack }: Props) {
     save({ ...p, prints: p.prints.map(pr => pr.id === id ? { ...pr, ...partial } : pr) });
   };
   const removePrint = (id: string) => save({ ...p, prints: p.prints.filter(pr => pr.id !== id) });
+  const movePrint = (id: string, dir: -1 | 1) => {
+    const idx = p.prints.findIndex(pr => pr.id === id);
+    if (idx < 0) return;
+    const next = idx + dir;
+    if (next < 0 || next >= p.prints.length) return;
+    const arr = [...p.prints];
+    [arr[idx], arr[next]] = [arr[next], arr[idx]];
+    save({ ...p, prints: arr });
+  };
+  const addModel = (printId: string) => {
+    const m: PrintModel = { id: crypto.randomUUID(), name: "" };
+    updatePrint(printId, { models: [...(p.prints.find(pr => pr.id === printId)?.models || []), m] });
+  };
+  const updateModel = (printId: string, modelId: string, partial: Partial<PrintModel>) => {
+    const pr = p.prints.find(x => x.id === printId);
+    if (!pr) return;
+    updatePrint(printId, { models: (pr.models || []).map(m => m.id === modelId ? { ...m, ...partial } : m) });
+  };
+  const removeModel = (printId: string, modelId: string) => {
+    const pr = p.prints.find(x => x.id === printId);
+    if (!pr) return;
+    updatePrint(printId, { models: (pr.models || []).filter(m => m.id !== modelId) });
+  };
+  const moveModel = (fromPrintId: string, modelId: string, toPrintId: string) => {
+    if (fromPrintId === toPrintId) return;
+    const from = p.prints.find(x => x.id === fromPrintId);
+    const to = p.prints.find(x => x.id === toPrintId);
+    if (!from || !to) return;
+    const model = (from.models || []).find(m => m.id === modelId);
+    if (!model) return;
+    save({
+      ...p,
+      prints: p.prints.map(pr => {
+        if (pr.id === fromPrintId) return { ...pr, models: (pr.models || []).filter(m => m.id !== modelId) };
+        if (pr.id === toPrintId) return { ...pr, models: [...(pr.models || []), model] };
+        return pr;
+      }),
+    });
+  };
 
   // Project expenses
   const addProjectExpense = () => save({ ...p, projectExpenses: [...(p.projectExpenses || []), newProjectExpense()] });
