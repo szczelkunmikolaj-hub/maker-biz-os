@@ -24,6 +24,7 @@ import { PlateImporter } from "@/components/PlateImporter";
 import { RecurringBadge } from "@/components/RecurringBadge";
 import { StatusPill } from "@/components/StatusPill";
 import { ColorPills } from "@/components/ColorPills";
+import { PlatePreview } from "@/components/PlatePreview";
 import { deriveProjectStatus, getStatusMeta } from "@/lib/projectStatus";
 
 const SOURCES: CustomerSource[] = ["Wallapop", "Instagram", "Website", "Other"];
