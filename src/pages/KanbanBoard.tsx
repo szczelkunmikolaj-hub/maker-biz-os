@@ -12,6 +12,7 @@ import { Clock, Weight, Layers, ArrowRight } from "lucide-react";
 import { usePersistedState } from "@/hooks/usePersistedState";
 import { RecurringBadge } from "@/components/RecurringBadge";
 import { ColorPills } from "@/components/ColorPills";
+import { PlatePreview } from "@/components/PlatePreview";
 
 const COLUMNS: { status: KanbanStatus; label: string; dotColor: string; bgClass: string }[] = [
   { status: "new-order", label: "New Order",  dotColor: "bg-status-new",        bgClass: "bg-status-new/5 border-status-new/20" },
