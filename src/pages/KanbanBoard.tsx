@@ -10,13 +10,14 @@ import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Clock, Weight, Layers, ArrowRight } from "lucide-react";
 import { usePersistedState } from "@/hooks/usePersistedState";
+import { RecurringBadge } from "@/components/RecurringBadge";
 
 const COLUMNS: { status: KanbanStatus; label: string; dotColor: string; bgClass: string }[] = [
-  { status: "new-order", label: "New Order", dotColor: "bg-blue-500", bgClass: "bg-blue-500/5 border-blue-500/20" },
-  { status: "printing", label: "Printing", dotColor: "bg-yellow-500", bgClass: "bg-yellow-500/5 border-yellow-500/20" },
-  { status: "finished", label: "Finished", dotColor: "bg-emerald-500", bgClass: "bg-emerald-500/5 border-emerald-500/20" },
-  { status: "paid", label: "Paid", dotColor: "bg-purple-500", bgClass: "bg-purple-500/5 border-purple-500/20" },
-  { status: "shipped", label: "Shipped", dotColor: "bg-muted-foreground", bgClass: "bg-muted/30 border-muted-foreground/20" },
+  { status: "new-order", label: "New Order",  dotColor: "bg-status-new",        bgClass: "bg-status-new/5 border-status-new/20" },
+  { status: "printing",  label: "Printing",   dotColor: "bg-status-printing",   bgClass: "bg-status-printing/5 border-status-printing/20" },
+  { status: "finished",  label: "Finished",   dotColor: "bg-status-ready",      bgClass: "bg-status-ready/5 border-status-ready/20" },
+  { status: "paid",      label: "Paid",       dotColor: "bg-status-postprocessing", bgClass: "bg-status-postprocessing/5 border-status-postprocessing/20" },
+  { status: "shipped",   label: "Shipped",    dotColor: "bg-status-completed",  bgClass: "bg-status-completed/5 border-status-completed/20" },
 ];
 
 export default function KanbanBoard() {
