@@ -10,9 +10,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Upload, FileText, Check, AlertTriangle, Clock, Weight, Box,
-  Plus, Trash2, Layers, Eye, Clipboard, File, Grid3X3,
+  Plus, Trash2, Layers, Eye, Clipboard, File, Grid3X3, Sparkles,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { SmartImporter } from "@/components/SmartImporter";
 import React from "react";
 
 // Lazy load the 3D viewer
@@ -375,12 +376,18 @@ export default function ImportQueue() {
         )}
       </div>
 
-      <Tabs defaultValue="upload">
+      <Tabs defaultValue="smart">
         <TabsList>
+          <TabsTrigger value="smart"><Sparkles className="h-3 w-3 mr-1" />Smart Import</TabsTrigger>
           <TabsTrigger value="upload"><Upload className="h-3 w-3 mr-1" />Upload</TabsTrigger>
           <TabsTrigger value="paste"><Clipboard className="h-3 w-3 mr-1" />Paste</TabsTrigger>
           <TabsTrigger value="plates"><Layers className="h-3 w-3 mr-1" />Build Plates</TabsTrigger>
         </TabsList>
+
+        {/* Smart Importer (Bambu Studio .3mf / .gcode) */}
+        <TabsContent value="smart">
+          <SmartImporter />
+        </TabsContent>
 
         {/* Upload tab */}
         <TabsContent value="upload">
