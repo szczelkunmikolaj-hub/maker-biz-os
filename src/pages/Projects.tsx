@@ -287,11 +287,7 @@ export default function Projects() {
 
                   {/* Badges row */}
                   <div className="flex items-center gap-1.5 flex-wrap">
-                    {p.isRecurringCustomer && (
-                      <Badge variant="secondary" className="text-[9px] px-1.5 py-0 gap-0.5">
-                        <RefreshCw className="h-2.5 w-2.5" />Recurring
-                      </Badge>
-                    )}
+                    {isRecurring && <RecurringBadge />}
                     <Badge variant="outline" className="text-[9px] px-1.5 py-0">{p.customerSource}</Badge>
                   </div>
 
