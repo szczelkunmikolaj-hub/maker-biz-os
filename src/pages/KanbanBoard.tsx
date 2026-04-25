@@ -90,7 +90,10 @@ export default function KanbanBoard() {
                       <div className="cursor-pointer" onClick={() => openProject(p.id)}>
                         <div className="flex items-start justify-between">
                           <div className="min-w-0 flex-1">
-                            <p className="font-semibold text-sm truncate group-hover:text-primary transition-colors">{p.name}</p>
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <p className="font-semibold text-sm truncate group-hover:text-primary transition-colors">{p.name}</p>
+                              {p.isRecurringCustomer && <RecurringBadge />}
+                            </div>
                             <p className="text-xs text-muted-foreground truncate">{p.customerName}</p>
                           </div>
                           <ArrowRight className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0 mt-1" />
