@@ -51,6 +51,8 @@ export default function Projects() {
   const [draft, setDraft] = useState<Project>(newProject());
   const [searchParams, setSearchParams] = useSearchParams();
   const [selectedId, setSelectedId] = useState<string | null>(searchParams.get('id'));
+  const [importMode, setImportMode] = useState<null | "full" | "into">(null);
+  const [appendTargetId, setAppendTargetId] = useState<string | null>(null);
 
   // Sync URL param to selectedId
   useEffect(() => {
