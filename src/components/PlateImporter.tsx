@@ -40,6 +40,7 @@ import {
 } from "@/lib/bambuParser";
 import { normalizeMaterial, normalizeColors } from "@/lib/normalize";
 import { ColorPills } from "@/components/ColorPills";
+import { PlatePreview } from "@/components/PlatePreview";
 
 type Mode = "add-new" | "merge-existing" | "replace-plate" | "append-models";
 
