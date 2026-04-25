@@ -12,8 +12,13 @@ export interface ParsedPlate {
   printTimeHours: number;
   filamentGrams: number;
   filamentType: string;
+  /** Comma-joined human-friendly color labels (already normalized at parse time when possible). */
   filamentColor: string;
+  /** Ordered hex palette for this plate (one entry per filament slot). */
+  filamentPalette?: string[];
   modelNames: string[];
+  /** Embedded preview thumbnail as data URL (PNG), if present in the .3mf. */
+  thumbnail?: string;
 }
 
 export interface ParsedImport {
@@ -23,6 +28,8 @@ export interface ParsedImport {
   plates: ParsedPlate[];
   totalTimeHours: number;
   totalFilamentGrams: number;
+  /** Project-level cover thumbnail (first plate's preview, if any). */
+  coverThumbnail?: string;
   rawMetadata?: Record<string, unknown>;
 }
 
