@@ -117,8 +117,8 @@ function parseSliceInfoXml(xml: string): { plates: Partial<ParsedPlate>[] } {
     while ((mm = metaRegex.exec(block)) !== null) meta[mm[1]] = mm[2];
 
     let totalGrams = 0;
-    let material = "";
-    let color = "";
+    const materials: string[] = [];
+    const palette: string[] = [];
     const filRegex = /<filament\b([^/]*)\/>/g;
     let fm: RegExpExecArray | null;
     while ((fm = filRegex.exec(block)) !== null) {
@@ -126,8 +126,8 @@ function parseSliceInfoXml(xml: string): { plates: Partial<ParsedPlate>[] } {
       const t = attrs.match(/type="([^"]+)"/);
       const c = attrs.match(/color="([^"]+)"/);
       const g = attrs.match(/used_g="([\d.]+)"/);
-      if (t && !material) material = t[1];
-      if (c && !color) color = c[1];
+      if (t) materials.push(t[1]);
+      if (c) palette.push(c[1]);
       if (g) totalGrams += parseFloat(g[1]);
     }
 
@@ -140,13 +140,18 @@ function parseSliceInfoXml(xml: string): { plates: Partial<ParsedPlate>[] } {
     const weight = meta.weight ? parseFloat(meta.weight) : totalGrams;
     const idx = meta.index ? parseInt(meta.index) : plates.length + 1;
 
+    // Pick a primary material (most common, normalized) and join unique colors as labels
+    const primaryMaterial = materials[0] || "";
+    const uniquePalette = Array.from(new Set(palette));
+
     plates.push({
       index: idx,
       name: `Plate ${idx}`,
       printTimeHours: Math.round((seconds / 3600) * 100) / 100,
       filamentGrams: Math.round(weight * 10) / 10,
-      filamentType: material,
-      filamentColor: color,
+      filamentType: primaryMaterial,
+      filamentColor: uniquePalette.join(", "),
+      filamentPalette: uniquePalette,
       modelNames,
     });
   }
