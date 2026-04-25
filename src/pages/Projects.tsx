@@ -347,6 +347,51 @@ export default function Projects() {
           <DialogFooter><Button onClick={handleAdd}>Add Project</Button></DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Smart Import dialog (full new project OR append-into-existing) */}
+      <ImportDialog open={importMode !== null} onOpenChange={(open) => { if (!open) { setImportMode(null); setAppendTargetId(null); } }}>
+        <ImportDialogContent className="max-w-xl">
+          <ImportDialogHeader>
+            <ImportDialogTitle className="flex items-center gap-2">
+              {importMode === "into" ? <><Upload className="h-4 w-4 text-primary" />Import into Existing Project</> : <><Sparkles className="h-4 w-4 text-primary" />Import Full Project</>}
+            </ImportDialogTitle>
+            <ImportDialogDescription>
+              {importMode === "into"
+                ? "Pick the target project, then drop a .3mf or .gcode file."
+                : "Drop a Bambu Studio .3mf or .gcode file to create a fully-structured new project."}
+            </ImportDialogDescription>
+          </ImportDialogHeader>
+
+          {importMode === "into" && (
+            <div className="space-y-2">
+              <Label className="text-xs">Target project</Label>
+              <Select value={appendTargetId ?? ""} onValueChange={setAppendTargetId}>
+                <SelectTrigger><SelectValue placeholder="Select project…" /></SelectTrigger>
+                <SelectContent>
+                  {projects.map(pr => (
+                    <SelectItem key={pr.id} value={pr.id}>{pr.name || "Untitled"} {pr.customerName && `· ${pr.customerName}`}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          <div className="pt-2">
+            {importMode === "full" && (
+              <PlateImporter onImported={() => setImportMode(null)} />
+            )}
+            {importMode === "into" && appendTargetId && (
+              <PlateImporter
+                project={projects.find(pp => pp.id === appendTargetId)!}
+                onImported={() => { setImportMode(null); setAppendTargetId(null); }}
+              />
+            )}
+            {importMode === "into" && !appendTargetId && (
+              <p className="text-xs text-muted-foreground text-center py-6">Select a project above to enable the dropzone.</p>
+            )}
+          </div>
+        </ImportDialogContent>
+      </ImportDialog>
     </div>
   );
 }
