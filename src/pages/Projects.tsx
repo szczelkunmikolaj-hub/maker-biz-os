@@ -139,7 +139,38 @@ export default function Projects() {
         <h1 className="text-2xl font-bold">Projects</h1>
         <div className="flex gap-2">
           <Button size="sm" variant="outline" onClick={exportCSV}><Download className="h-4 w-4 mr-1" />CSV</Button>
-          <Button size="sm" onClick={() => setShowAdd(true)}><Plus className="h-4 w-4 mr-1" />New Project</Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button size="sm">
+                <Plus className="h-4 w-4 mr-1" />New Project
+                <ChevronDown className="h-3 w-3 ml-1 opacity-70" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuItem onClick={() => setShowAdd(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                <div className="flex-1">
+                  <div className="text-sm font-medium">Manual Project</div>
+                  <div className="text-[11px] text-muted-foreground">Blank, fill in by hand</div>
+                </div>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setImportMode("full")}>
+                <Sparkles className="h-4 w-4 mr-2" />
+                <div className="flex-1">
+                  <div className="text-sm font-medium">Import Project (Full)</div>
+                  <div className="text-[11px] text-muted-foreground">Upload .3mf / .gcode → new project</div>
+                </div>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => setImportMode("into")} disabled={projects.length === 0}>
+                <Upload className="h-4 w-4 mr-2" />
+                <div className="flex-1">
+                  <div className="text-sm font-medium">Import into Project</div>
+                  <div className="text-[11px] text-muted-foreground">Append plates to existing project</div>
+                </div>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
