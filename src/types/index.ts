@@ -1,3 +1,12 @@
+export interface PrintModel {
+  id: string;
+  name: string;
+  material?: string;
+  color?: string;
+  grams?: number;
+  timeHours?: number;
+}
+
 export interface Print {
   id: string;
   name: string;
@@ -10,6 +19,8 @@ export interface Print {
   color: string;
   material: string;
   pricePerPiece: number;
+  /** Optional list of individual models (parts) on this plate. Backwards-compatible: legacy prints have empty/undefined. */
+  models?: PrintModel[];
 }
 
 export type KanbanStatus = 'new-order' | 'printing' | 'finished' | 'paid' | 'shipped';
@@ -109,6 +120,7 @@ export function normalizePrint(pr: Partial<Print> & { id: string; name: string }
     color: pr.color || '',
     material: pr.material || '',
     pricePerPiece: pr.pricePerPiece || 0,
+    models: pr.models || [],
   };
 }
 
