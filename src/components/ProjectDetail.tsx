@@ -15,6 +15,7 @@ import { ArrowLeft, Plus, Trash2, Copy, BookTemplate, Calendar, Kanban, Receipt,
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { PlateImporter } from "@/components/PlateImporter";
 import { RecurringBadge } from "@/components/RecurringBadge";
+import { ColorPills } from "@/components/ColorPills";
 import {
   DropdownMenu,
   DropdownMenuContent,
