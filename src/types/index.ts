@@ -56,6 +56,10 @@ export interface Project {
   completedAt?: string;
   paidAt?: string;
   isRecurringCustomer?: boolean;
+  // Smart Import metadata (Bambu Studio / GCODE)
+  importSource?: 'bambu-studio' | 'manual';
+  importFileType?: '3mf' | 'gcode';
+  originalFileName?: string;
 }
 
 /** Get the effective date for analytics: shippingDate > completedAt > paidAt > orderDate */
