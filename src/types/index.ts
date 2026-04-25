@@ -21,6 +21,10 @@ export interface Print {
   pricePerPiece: number;
   /** Optional list of individual models (parts) on this plate. Backwards-compatible: legacy prints have empty/undefined. */
   models?: PrintModel[];
+  /** Ordered hex palette captured at import (one entry per filament slot). Used to resolve "Color 1/2/3". */
+  colorPalette?: string[];
+  /** Embedded preview thumbnail (data URL) extracted from .3mf. */
+  thumbnail?: string;
 }
 
 export type KanbanStatus = 'new-order' | 'printing' | 'finished' | 'paid' | 'shipped';
@@ -71,6 +75,8 @@ export interface Project {
   importSource?: 'bambu-studio' | 'manual';
   importFileType?: '3mf' | 'gcode';
   originalFileName?: string;
+  /** Cover thumbnail (data URL) auto-extracted from .3mf import. */
+  coverThumbnail?: string;
 }
 
 /** Get the effective date for analytics: shippingDate > completedAt > paidAt > orderDate */

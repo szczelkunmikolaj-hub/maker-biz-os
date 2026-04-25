@@ -38,6 +38,8 @@ import {
   ParsedImport,
   ParsedPlate,
 } from "@/lib/bambuParser";
+import { normalizeMaterial, normalizeColors } from "@/lib/normalize";
+import { ColorPills } from "@/components/ColorPills";
 
 type Mode = "add-new" | "merge-existing" | "replace-plate" | "append-models";
 
@@ -53,29 +55,36 @@ interface Props {
 }
 
 function platesToPrints(plates: ParsedPlate[]): Print[] {
-  return plates.map((plate) => ({
-    id: crypto.randomUUID(),
-    name: plate.modelNames.length
-      ? `${plate.name} — ${plate.modelNames.slice(0, 3).join(", ")}${
-          plate.modelNames.length > 3 ? ` +${plate.modelNames.length - 3}` : ""
-        }`
-      : plate.name,
-    estimatedPrintTime: plate.printTimeHours,
-    materialUsed: plate.filamentGrams,
-    printer: "",
-    status: "not-printed" as const,
-    quantity: 1,
-    completedQuantity: 0,
-    color: plate.filamentColor,
-    material: plate.filamentType,
-    pricePerPiece: 0,
-    models: plate.modelNames.map((n) => ({
+  return plates.map((plate) => {
+    const material = normalizeMaterial(plate.filamentType);
+    const colors = normalizeColors(plate.filamentColor, plate.filamentPalette);
+    const colorLabel = colors.map((c) => c.label).join(", ");
+    return {
       id: crypto.randomUUID(),
-      name: n,
-      material: plate.filamentType,
-      color: plate.filamentColor,
-    })),
-  }));
+      name: plate.modelNames.length
+        ? `${plate.name} — ${plate.modelNames.slice(0, 3).join(", ")}${
+            plate.modelNames.length > 3 ? ` +${plate.modelNames.length - 3}` : ""
+          }`
+        : plate.name,
+      estimatedPrintTime: plate.printTimeHours,
+      materialUsed: plate.filamentGrams,
+      printer: "",
+      status: "not-printed" as const,
+      quantity: 1,
+      completedQuantity: 0,
+      color: colorLabel,
+      material,
+      pricePerPiece: 0,
+      colorPalette: plate.filamentPalette,
+      thumbnail: plate.thumbnail,
+      models: plate.modelNames.map((n) => ({
+        id: crypto.randomUUID(),
+        name: n,
+        material,
+        color: colorLabel,
+      })),
+    };
+  });
 }
 
 export function PlateImporter({ project, compact = false, onImported }: Props) {
@@ -189,6 +198,7 @@ export function PlateImporter({ project, compact = false, onImported }: Props) {
         importSource: "bambu-studio",
         importFileType: data.source,
         originalFileName: data.originalFileName,
+        coverThumbnail: data.coverThumbnail,
       };
       addProject(newProject);
     },
@@ -410,22 +420,39 @@ export function PlateImporter({ project, compact = false, onImported }: Props) {
                 </div>
               </div>
 
-              <div className="space-y-1.5 max-h-56 overflow-y-auto">
+              <div className="space-y-1.5 max-h-72 overflow-y-auto">
                 {parsed.plates.map((p) => (
-                  <div key={p.index} className="flex items-center justify-between rounded-lg border p-2.5 text-xs">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <Layers className="h-3.5 w-3.5 text-primary shrink-0" />
-                      <span className="font-medium">{p.name}</span>
-                      {p.modelNames.length > 0 && (
-                        <span className="text-muted-foreground truncate">
-                          · {p.modelNames.length} model{p.modelNames.length > 1 ? "s" : ""}
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      {p.filamentType && <Badge variant="secondary" className="text-[10px]">{p.filamentType}</Badge>}
-                      <span className="text-muted-foreground">{p.printTimeHours}h</span>
-                      <span className="text-muted-foreground">{p.filamentGrams}g</span>
+                  <div key={p.index} className="flex items-center gap-2.5 rounded-lg border p-2 text-xs">
+                    {p.thumbnail ? (
+                      <img
+                        src={p.thumbnail}
+                        alt={p.name}
+                        className="h-12 w-12 rounded-md object-cover border bg-muted shrink-0"
+                      />
+                    ) : (
+                      <div className="h-12 w-12 rounded-md border bg-muted/50 flex items-center justify-center shrink-0">
+                        <Layers className="h-5 w-5 text-muted-foreground/60" />
+                      </div>
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium truncate">{p.name}</span>
+                        {p.modelNames.length > 0 && (
+                          <span className="text-muted-foreground text-[10px] truncate">
+                            · {p.modelNames.length} model{p.modelNames.length > 1 ? "s" : ""}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                        {p.filamentType && (
+                          <Badge variant="secondary" className="text-[10px] py-0 px-1.5">
+                            {p.filamentType}
+                          </Badge>
+                        )}
+                        <ColorPills color={p.filamentColor} palette={p.filamentPalette} material={p.filamentType} size="xs" />
+                        <span className="text-muted-foreground">{p.printTimeHours}h</span>
+                        <span className="text-muted-foreground">{p.filamentGrams}g</span>
+                      </div>
                     </div>
                   </div>
                 ))}

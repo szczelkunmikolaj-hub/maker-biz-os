@@ -23,6 +23,7 @@ import { Dialog as ImportDialog, DialogContent as ImportDialogContent, DialogHea
 import { PlateImporter } from "@/components/PlateImporter";
 import { RecurringBadge } from "@/components/RecurringBadge";
 import { StatusPill } from "@/components/StatusPill";
+import { ColorPills } from "@/components/ColorPills";
 import { deriveProjectStatus, getStatusMeta } from "@/lib/projectStatus";
 
 const SOURCES: CustomerSource[] = ["Wallapop", "Instagram", "Website", "Other"];
@@ -242,9 +243,14 @@ export default function Projects() {
                 <CardContent className="p-4 space-y-3">
                   {/* Header */}
                   <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0 flex-1">
-                      <p className="font-semibold text-sm truncate group-hover:text-primary transition-colors">{p.name}</p>
-                      <p className="text-xs text-muted-foreground truncate">{p.customerName}</p>
+                    <div className="flex items-start gap-2 min-w-0 flex-1">
+                      {p.coverThumbnail && (
+                        <img src={p.coverThumbnail} alt={p.name} className="h-10 w-10 rounded-md border object-cover shrink-0" />
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <p className="font-semibold text-sm truncate group-hover:text-primary transition-colors">{p.name}</p>
+                        <p className="text-xs text-muted-foreground truncate">{p.customerName}</p>
+                      </div>
                     </div>
                     <StatusPill status={status} className="shrink-0" />
                   </div>
@@ -289,6 +295,12 @@ export default function Projects() {
                   <div className="flex items-center gap-1.5 flex-wrap">
                     {isRecurring && <RecurringBadge />}
                     <Badge variant="outline" className="text-[9px] px-1.5 py-0">{p.customerSource}</Badge>
+                    {(() => {
+                      const allColors = (p.prints || []).map(pr => pr.color).filter(Boolean).join(", ");
+                      const allPalettes = (p.prints || []).flatMap(pr => pr.colorPalette || []);
+                      if (!allColors) return null;
+                      return <ColorPills color={allColors} palette={allPalettes.length ? allPalettes : undefined} size="xs" showLabel={false} />;
+                    })()}
                   </div>
 
                   {/* Quick actions */}

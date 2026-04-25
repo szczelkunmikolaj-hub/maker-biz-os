@@ -11,6 +11,7 @@ import { useNavigate } from "react-router-dom";
 import { Clock, Weight, Layers, ArrowRight } from "lucide-react";
 import { usePersistedState } from "@/hooks/usePersistedState";
 import { RecurringBadge } from "@/components/RecurringBadge";
+import { ColorPills } from "@/components/ColorPills";
 
 const COLUMNS: { status: KanbanStatus; label: string; dotColor: string; bgClass: string }[] = [
   { status: "new-order", label: "New Order",  dotColor: "bg-status-new",        bgClass: "bg-status-new/5 border-status-new/20" },
@@ -88,18 +89,23 @@ export default function KanbanBoard() {
                   >
                     <CardContent className="p-3 space-y-2">
                       <div className="cursor-pointer" onClick={() => openProject(p.id)}>
-                        <div className="flex items-start justify-between">
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-1.5 flex-wrap">
-                              <p className="font-semibold text-sm truncate group-hover:text-primary transition-colors">{p.name}</p>
-                              {p.isRecurringCustomer && <RecurringBadge />}
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex items-start gap-2 min-w-0 flex-1">
+                            {p.coverThumbnail && (
+                              <img src={p.coverThumbnail} alt={p.name} className="h-9 w-9 rounded border object-cover shrink-0" />
+                            )}
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <p className="font-semibold text-sm truncate group-hover:text-primary transition-colors">{p.name}</p>
+                                {p.isRecurringCustomer && <RecurringBadge />}
+                              </div>
+                              <p className="text-xs text-muted-foreground truncate">{p.customerName}</p>
                             </div>
-                            <p className="text-xs text-muted-foreground truncate">{p.customerName}</p>
                           </div>
                           <ArrowRight className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0 mt-1" />
                         </div>
                         <p className="text-sm font-bold text-primary mt-1">€{p.totalPrice.toFixed(2)}</p>
-                        <div className="flex items-center gap-3 text-[10px] text-muted-foreground mt-1">
+                        <div className="flex items-center gap-3 text-[10px] text-muted-foreground mt-1 flex-wrap">
                           {(p.prints || []).length > 0 && (
                             <span className="flex items-center gap-0.5"><Layers className="h-3 w-3" />{(p.prints || []).length}</span>
                           )}
@@ -109,6 +115,12 @@ export default function KanbanBoard() {
                           {totalMaterial > 0 && (
                             <span className="flex items-center gap-0.5"><Weight className="h-3 w-3" />{totalMaterial.toFixed(0)}g</span>
                           )}
+                          {(() => {
+                            const allColors = (p.prints || []).map(pr => pr.color).filter(Boolean).join(", ");
+                            const allPalettes = (p.prints || []).flatMap(pr => pr.colorPalette || []);
+                            if (!allColors) return null;
+                            return <ColorPills color={allColors} palette={allPalettes.length ? allPalettes : undefined} size="xs" showLabel={false} />;
+                          })()}
                         </div>
                         {progress.totalPieces > 0 && (
                           <div className="flex items-center gap-1.5 mt-1.5">

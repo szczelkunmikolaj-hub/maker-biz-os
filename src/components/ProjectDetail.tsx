@@ -15,6 +15,7 @@ import { ArrowLeft, Plus, Trash2, Copy, BookTemplate, Calendar, Kanban, Receipt,
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { PlateImporter } from "@/components/PlateImporter";
 import { RecurringBadge } from "@/components/RecurringBadge";
+import { ColorPills } from "@/components/ColorPills";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -142,6 +143,9 @@ export default function ProjectDetail({ project, onBack }: Props) {
     <div className="space-y-6">
       <div className="flex items-center gap-2 flex-wrap">
         <Button variant="ghost" size="icon" onClick={onBack}><ArrowLeft className="h-4 w-4" /></Button>
+        {p.coverThumbnail && (
+          <img src={p.coverThumbnail} alt={p.name} className="h-10 w-10 rounded-md border object-cover" />
+        )}
         <div className="flex items-center gap-2 flex-1 flex-wrap min-w-0">
           <h1 className="text-2xl font-bold truncate">{p.name || "Untitled Project"}</h1>
           {p.isRecurringCustomer && <RecurringBadge size="md" />}
@@ -294,6 +298,12 @@ export default function ProjectDetail({ project, onBack }: Props) {
                     <ArrowDown className="h-3 w-3" />
                   </Button>
                   <span className="text-[10px] text-muted-foreground ml-1">#{idx + 1}</span>
+                  {pr.thumbnail && (
+                    <img src={pr.thumbnail} alt={pr.name} className="h-8 w-8 rounded border object-cover ml-2" />
+                  )}
+                  <div className="ml-2">
+                    <ColorPills color={pr.color} palette={pr.colorPalette} material={pr.material} size="sm" showLabel />
+                  </div>
                 </div>
                 <div className="grid gap-2 grid-cols-2 md:grid-cols-4">
                   <div className="col-span-2 md:col-span-1">
@@ -355,6 +365,7 @@ export default function ProjectDetail({ project, onBack }: Props) {
                             placeholder="Mat."
                             className="h-7 text-xs w-20"
                           />
+                          <ColorPills color={m.color || pr.color} palette={pr.colorPalette} material={m.material || pr.material} size="xs" showLabel={false} className="shrink-0" />
                           {otherPlates.length > 0 && (
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
