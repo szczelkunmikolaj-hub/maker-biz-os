@@ -142,7 +142,10 @@ export default function ProjectDetail({ project, onBack }: Props) {
     <div className="space-y-6">
       <div className="flex items-center gap-2 flex-wrap">
         <Button variant="ghost" size="icon" onClick={onBack}><ArrowLeft className="h-4 w-4" /></Button>
-        <h1 className="text-2xl font-bold flex-1">{p.name || "Untitled Project"}</h1>
+        <div className="flex items-center gap-2 flex-1 flex-wrap min-w-0">
+          <h1 className="text-2xl font-bold truncate">{p.name || "Untitled Project"}</h1>
+          {p.isRecurringCustomer && <RecurringBadge size="md" />}
+        </div>
         <div className="flex gap-1.5 flex-wrap">
           <Button size="sm" variant="outline" className="text-xs gap-1" onClick={() => navigate('/kanban')}>
             <Kanban className="h-3.5 w-3.5" />Kanban
