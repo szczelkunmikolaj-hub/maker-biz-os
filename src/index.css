@@ -49,6 +49,20 @@
     --success-foreground: 0 0% 100%;
     --warning: 38 92% 50%;
     --warning-foreground: 0 0% 100%;
+
+    /* Unified status palette (HSL — used in Kanban, Calendar, Cards, Dashboard) */
+    --status-new: 220 15% 55%;
+    --status-preparing: 217 91% 60%;
+    --status-printing: 25 95% 53%;
+    --status-postprocessing: 270 75% 60%;
+    --status-ready: 190 85% 50%;
+    --status-shipped: 175 70% 41%;
+    --status-completed: 142 70% 42%;
+    --status-overdue: 0 75% 55%;
+
+    /* Recurring customer accent gradient stops */
+    --recurring-from: 14 100% 57%;
+    --recurring-to: 350 95% 55%;
   }
 
   .dark {
@@ -93,6 +107,18 @@
     --success-foreground: 0 0% 100%;
     --warning: 38 92% 50%;
     --warning-foreground: 0 0% 100%;
+
+    --status-new: 220 10% 65%;
+    --status-preparing: 217 91% 65%;
+    --status-printing: 25 95% 58%;
+    --status-postprocessing: 270 75% 68%;
+    --status-ready: 190 85% 55%;
+    --status-shipped: 175 70% 48%;
+    --status-completed: 142 70% 48%;
+    --status-overdue: 0 75% 60%;
+
+    --recurring-from: 14 100% 60%;
+    --recurring-to: 350 95% 60%;
   }
 }
 
@@ -117,5 +143,18 @@
   @keyframes fadeIn {
     from { opacity: 0; transform: translateY(4px); }
     to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Recurring customer subtle pulse glow */
+  @keyframes recurring-glow {
+    0%, 100% {
+      box-shadow: 0 0 0 0 hsl(var(--recurring-from) / 0.55), 0 0 12px 0 hsl(var(--recurring-to) / 0.25);
+    }
+    50% {
+      box-shadow: 0 0 0 4px hsl(var(--recurring-from) / 0), 0 0 18px 2px hsl(var(--recurring-to) / 0.45);
+    }
+  }
+  .animate-recurring-glow {
+    animation: recurring-glow 2.4s ease-in-out infinite;
   }
 }

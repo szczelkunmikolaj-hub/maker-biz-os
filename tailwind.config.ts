@@ -57,6 +57,28 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        success: {
+          DEFAULT: "hsl(var(--success))",
+          foreground: "hsl(var(--success-foreground))",
+        },
+        warning: {
+          DEFAULT: "hsl(var(--warning))",
+          foreground: "hsl(var(--warning-foreground))",
+        },
+        status: {
+          new: "hsl(var(--status-new))",
+          preparing: "hsl(var(--status-preparing))",
+          printing: "hsl(var(--status-printing))",
+          postprocessing: "hsl(var(--status-postprocessing))",
+          ready: "hsl(var(--status-ready))",
+          shipped: "hsl(var(--status-shipped))",
+          completed: "hsl(var(--status-completed))",
+          overdue: "hsl(var(--status-overdue))",
+        },
+        recurring: {
+          from: "hsl(var(--recurring-from))",
+          to: "hsl(var(--recurring-to))",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",
