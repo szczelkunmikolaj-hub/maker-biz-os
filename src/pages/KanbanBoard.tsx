@@ -92,9 +92,14 @@ export default function KanbanBoard() {
                       <div className="cursor-pointer" onClick={() => openProject(p.id)}>
                         <div className="flex items-start justify-between gap-2">
                           <div className="flex items-start gap-2 min-w-0 flex-1">
-                            {p.coverThumbnail && (
-                              <img src={p.coverThumbnail} alt={p.name} className="h-9 w-9 rounded border object-cover shrink-0" />
-                            )}
+                            <PlatePreview
+                              thumbnail={p.coverThumbnail || p.prints?.[0]?.thumbnail}
+                              color={(p.prints || []).map(pr => pr.color).filter(Boolean).join(", ") || undefined}
+                              palette={(p.prints || []).flatMap(pr => pr.colorPalette || [])}
+                              label={p.name}
+                              size="sm"
+                              noHover
+                            />
                             <div className="min-w-0 flex-1">
                               <div className="flex items-center gap-1.5 flex-wrap">
                                 <p className="font-semibold text-sm truncate group-hover:text-primary transition-colors">{p.name}</p>
