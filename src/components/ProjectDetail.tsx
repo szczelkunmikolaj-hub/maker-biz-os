@@ -252,29 +252,53 @@ export default function ProjectDetail({ project, onBack }: Props) {
         </CardContent>
       </Card>
 
+      {/* Add Plates / Models — import from .3mf or .gcode */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Box className="h-4 w-4 text-primary" />
+            Add Plates / Models
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <PlateImporter project={p} compact />
+        </CardContent>
+      </Card>
+
       {/* Prints / Pieces */}
       <Card>
         <CardHeader className="flex-row items-center justify-between pb-2">
-          <CardTitle className="text-base">Pieces</CardTitle>
+          <CardTitle className="text-base">Plates / Pieces</CardTitle>
           <div className="flex gap-2">
             {templates.length > 0 && (
               <Button size="sm" variant="outline" onClick={() => setShowTemplates(true)}>
                 <BookTemplate className="h-4 w-4 mr-1" />From Template
               </Button>
             )}
-            <Button size="sm" variant="outline" onClick={addPrint}><Plus className="h-4 w-4 mr-1" />Add Piece</Button>
+            <Button size="sm" variant="outline" onClick={addPrint}><Plus className="h-4 w-4 mr-1" />Add Plate</Button>
           </div>
         </CardHeader>
         <CardContent className="space-y-3">
-          {p.prints.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">No pieces yet. Click "Add Piece" to start.</p>}
-          {p.prints.map(pr => {
+          {p.prints.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">No plates yet. Click "Add Plate" or import a .3mf above.</p>}
+          {p.prints.map((pr, idx) => {
             const pieceTotal = (pr.pricePerPiece || 0) * (pr.quantity || 1);
+            const models = pr.models || [];
+            const otherPlates = p.prints.filter(x => x.id !== pr.id);
             return (
               <div key={pr.id} className="p-3 rounded-lg border bg-muted/30 space-y-2">
+                <div className="flex items-center gap-1 -mb-1">
+                  <Button size="icon" variant="ghost" className="h-6 w-6" disabled={idx === 0} onClick={() => movePrint(pr.id, -1)} title="Move up">
+                    <ArrowUp className="h-3 w-3" />
+                  </Button>
+                  <Button size="icon" variant="ghost" className="h-6 w-6" disabled={idx === p.prints.length - 1} onClick={() => movePrint(pr.id, 1)} title="Move down">
+                    <ArrowDown className="h-3 w-3" />
+                  </Button>
+                  <span className="text-[10px] text-muted-foreground ml-1">#{idx + 1}</span>
+                </div>
                 <div className="grid gap-2 grid-cols-2 md:grid-cols-4">
                   <div className="col-span-2 md:col-span-1">
-                    <Label className="text-xs">Piece Name</Label>
-                    <Input value={pr.name} onChange={e => updatePrint(pr.id, { name: e.target.value })} list={`names-${pr.id}`} placeholder="e.g. Gear Housing" />
+                    <Label className="text-xs">Plate / Piece Name</Label>
+                    <Input value={pr.name} onChange={e => updatePrint(pr.id, { name: e.target.value })} list={`names-${pr.id}`} placeholder="e.g. Plate 1 / Gear Housing" />
                     <datalist id={`names-${pr.id}`}>{allPrintNames.map(n => <option key={n} value={n} />)}</datalist>
                   </div>
                   <div><Label className="text-xs">Material</Label><Input value={pr.material || ""} onChange={e => updatePrint(pr.id, { material: e.target.value })} placeholder="PLA, PETG..." /></div>
@@ -301,6 +325,61 @@ export default function ProjectDetail({ project, onBack }: Props) {
                     <Button size="icon" variant="ghost" className="text-destructive h-9 w-9" onClick={() => removePrint(pr.id)}><Trash2 className="h-4 w-4" /></Button>
                   </div>
                 </div>
+
+                {/* Models on this plate */}
+                <div className="pt-2 border-t border-border/60">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">
+                      Models ({models.length})
+                    </span>
+                    <Button size="sm" variant="ghost" className="h-6 text-[11px] gap-1" onClick={() => addModel(pr.id)}>
+                      <Plus className="h-3 w-3" />Add Model
+                    </Button>
+                  </div>
+                  {models.length === 0 ? (
+                    <p className="text-[11px] text-muted-foreground/70 italic">No individual models tracked.</p>
+                  ) : (
+                    <div className="space-y-1">
+                      {models.map(m => (
+                        <div key={m.id} className="flex items-center gap-1.5 text-xs">
+                          <Box className="h-3 w-3 text-muted-foreground shrink-0" />
+                          <Input
+                            value={m.name}
+                            onChange={e => updateModel(pr.id, m.id, { name: e.target.value })}
+                            placeholder="Model name"
+                            className="h-7 text-xs"
+                          />
+                          <Input
+                            value={m.material || ""}
+                            onChange={e => updateModel(pr.id, m.id, { material: e.target.value })}
+                            placeholder="Mat."
+                            className="h-7 text-xs w-20"
+                          />
+                          {otherPlates.length > 0 && (
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button size="icon" variant="ghost" className="h-7 w-7" title="Move to plate">
+                                  <MoveRight className="h-3 w-3" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                {otherPlates.map(op => (
+                                  <DropdownMenuItem key={op.id} onClick={() => moveModel(pr.id, m.id, op.id)}>
+                                    Move to {op.name || "plate"}
+                                  </DropdownMenuItem>
+                                ))}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          )}
+                          <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => removeModel(pr.id, m.id)}>
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
                 {pieceTotal > 0 && (
                   <div className="text-xs text-muted-foreground text-right">
                     Subtotal: <span className="font-medium text-foreground">€{pieceTotal.toFixed(2)}</span>
