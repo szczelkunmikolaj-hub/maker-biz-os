@@ -16,6 +16,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { PlateImporter } from "@/components/PlateImporter";
 import { RecurringBadge } from "@/components/RecurringBadge";
 import { ColorPills } from "@/components/ColorPills";
+import { PlatePreview } from "@/components/PlatePreview";
+import { normalizeMaterial } from "@/lib/normalize";
 import {
   DropdownMenu,
   DropdownMenuContent,
