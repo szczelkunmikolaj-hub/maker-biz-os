@@ -362,6 +362,7 @@ export default function ProjectDetail({ project, onBack }: Props) {
                             placeholder="Mat."
                             className="h-7 text-xs w-20"
                           />
+                          <ColorPills color={m.color || pr.color} palette={pr.colorPalette} material={m.material || pr.material} size="xs" showLabel={false} className="shrink-0" />
                           {otherPlates.length > 0 && (
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
