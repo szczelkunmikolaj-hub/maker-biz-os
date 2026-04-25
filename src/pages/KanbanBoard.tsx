@@ -82,7 +82,9 @@ export default function KanbanBoard() {
                     key={p.id}
                     draggable
                     onDragStart={() => handleDragStart(p.id)}
-                    className="cursor-grab active:cursor-grabbing hover:border-primary/50 hover:shadow-md transition-all group"
+                    className={`cursor-grab active:cursor-grabbing hover:border-primary/50 hover:shadow-md transition-all group ${
+                      p.isRecurringCustomer ? "ring-1 ring-recurring-from/30" : ""
+                    }`}
                   >
                     <CardContent className="p-3 space-y-2">
                       <div className="cursor-pointer" onClick={() => openProject(p.id)}>
