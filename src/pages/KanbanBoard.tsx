@@ -10,13 +10,14 @@ import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Clock, Weight, Layers, ArrowRight } from "lucide-react";
 import { usePersistedState } from "@/hooks/usePersistedState";
+import { RecurringBadge } from "@/components/RecurringBadge";
 
 const COLUMNS: { status: KanbanStatus; label: string; dotColor: string; bgClass: string }[] = [
-  { status: "new-order", label: "New Order", dotColor: "bg-blue-500", bgClass: "bg-blue-500/5 border-blue-500/20" },
-  { status: "printing", label: "Printing", dotColor: "bg-yellow-500", bgClass: "bg-yellow-500/5 border-yellow-500/20" },
-  { status: "finished", label: "Finished", dotColor: "bg-emerald-500", bgClass: "bg-emerald-500/5 border-emerald-500/20" },
-  { status: "paid", label: "Paid", dotColor: "bg-purple-500", bgClass: "bg-purple-500/5 border-purple-500/20" },
-  { status: "shipped", label: "Shipped", dotColor: "bg-muted-foreground", bgClass: "bg-muted/30 border-muted-foreground/20" },
+  { status: "new-order", label: "New Order",  dotColor: "bg-status-new",        bgClass: "bg-status-new/5 border-status-new/20" },
+  { status: "printing",  label: "Printing",   dotColor: "bg-status-printing",   bgClass: "bg-status-printing/5 border-status-printing/20" },
+  { status: "finished",  label: "Finished",   dotColor: "bg-status-ready",      bgClass: "bg-status-ready/5 border-status-ready/20" },
+  { status: "paid",      label: "Paid",       dotColor: "bg-status-postprocessing", bgClass: "bg-status-postprocessing/5 border-status-postprocessing/20" },
+  { status: "shipped",   label: "Shipped",    dotColor: "bg-status-completed",  bgClass: "bg-status-completed/5 border-status-completed/20" },
 ];
 
 export default function KanbanBoard() {
@@ -81,13 +82,18 @@ export default function KanbanBoard() {
                     key={p.id}
                     draggable
                     onDragStart={() => handleDragStart(p.id)}
-                    className="cursor-grab active:cursor-grabbing hover:border-primary/50 hover:shadow-md transition-all group"
+                    className={`cursor-grab active:cursor-grabbing hover:border-primary/50 hover:shadow-md transition-all group ${
+                      p.isRecurringCustomer ? "ring-1 ring-recurring-from/30" : ""
+                    }`}
                   >
                     <CardContent className="p-3 space-y-2">
                       <div className="cursor-pointer" onClick={() => openProject(p.id)}>
                         <div className="flex items-start justify-between">
                           <div className="min-w-0 flex-1">
-                            <p className="font-semibold text-sm truncate group-hover:text-primary transition-colors">{p.name}</p>
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <p className="font-semibold text-sm truncate group-hover:text-primary transition-colors">{p.name}</p>
+                              {p.isRecurringCustomer && <RecurringBadge />}
+                            </div>
                             <p className="text-xs text-muted-foreground truncate">{p.customerName}</p>
                           </div>
                           <ArrowRight className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0 mt-1" />

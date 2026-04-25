@@ -14,10 +14,16 @@ import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
-import { Plus, Search, Download, ArrowUpDown, RefreshCw, Printer, Package, Clock, Calendar, CreditCard } from "lucide-react";
+import { Plus, Search, Download, ArrowUpDown, RefreshCw, Printer, Package, Clock, Calendar, CreditCard, Sparkles, Upload, ChevronDown } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import ProjectDetail from "@/components/ProjectDetail";
 import { parseISO, isBefore } from "date-fns";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
+import { Dialog as ImportDialog, DialogContent as ImportDialogContent, DialogHeader as ImportDialogHeader, DialogTitle as ImportDialogTitle, DialogDescription as ImportDialogDescription } from "@/components/ui/dialog";
+import { PlateImporter } from "@/components/PlateImporter";
+import { RecurringBadge } from "@/components/RecurringBadge";
+import { StatusPill } from "@/components/StatusPill";
+import { deriveProjectStatus, getStatusMeta } from "@/lib/projectStatus";
 
 const SOURCES: CustomerSource[] = ["Wallapop", "Instagram", "Website", "Other"];
 const PAYMENT_METHODS: PaymentMethod[] = ["Cash", "PayPal", "Bank Transfer", "Bizum", "Other"];
@@ -45,6 +51,8 @@ export default function Projects() {
   const [draft, setDraft] = useState<Project>(newProject());
   const [searchParams, setSearchParams] = useSearchParams();
   const [selectedId, setSelectedId] = useState<string | null>(searchParams.get('id'));
+  const [importMode, setImportMode] = useState<null | "full" | "into">(null);
+  const [appendTargetId, setAppendTargetId] = useState<string | null>(null);
 
   // Sync URL param to selectedId
   useEffect(() => {
@@ -131,7 +139,38 @@ export default function Projects() {
         <h1 className="text-2xl font-bold">Projects</h1>
         <div className="flex gap-2">
           <Button size="sm" variant="outline" onClick={exportCSV}><Download className="h-4 w-4 mr-1" />CSV</Button>
-          <Button size="sm" onClick={() => setShowAdd(true)}><Plus className="h-4 w-4 mr-1" />New Project</Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button size="sm">
+                <Plus className="h-4 w-4 mr-1" />New Project
+                <ChevronDown className="h-3 w-3 ml-1 opacity-70" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuItem onClick={() => setShowAdd(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                <div className="flex-1">
+                  <div className="text-sm font-medium">Manual Project</div>
+                  <div className="text-[11px] text-muted-foreground">Blank, fill in by hand</div>
+                </div>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setImportMode("full")}>
+                <Sparkles className="h-4 w-4 mr-2" />
+                <div className="flex-1">
+                  <div className="text-sm font-medium">Import Project (Full)</div>
+                  <div className="text-[11px] text-muted-foreground">Upload .3mf / .gcode → new project</div>
+                </div>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => setImportMode("into")} disabled={projects.length === 0}>
+                <Upload className="h-4 w-4 mr-2" />
+                <div className="flex-1">
+                  <div className="text-sm font-medium">Import into Project</div>
+                  <div className="text-[11px] text-muted-foreground">Append plates to existing project</div>
+                </div>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
@@ -187,30 +226,17 @@ export default function Projects() {
             const margin = effectivePrice > 0 ? ((effectivePrice - projExpenses) / effectivePrice) * 100 : 0;
             const totalTime = getProjectTotalPrintTime(p);
 
-            // Status color logic
-            const isCompleted = p.printed && p.paid && p.sent;
-            const isLate = !isCompleted && p.dueDate && isBefore(parseISO(p.dueDate), new Date());
-            const isPrinting = !isCompleted && (p.prints || []).some(pr => pr.status === 'printing');
-            const statusColor = isCompleted
-              ? 'border-t-emerald-500'
-              : isLate
-              ? 'border-t-red-500'
-              : isPrinting
-              ? 'border-t-blue-500'
-              : 'border-t-muted-foreground/30';
-            const statusLabel = isCompleted ? 'Completed' : isLate ? 'Overdue' : isPrinting ? 'Printing' : 'Pending';
-            const statusBadgeClass = isCompleted
-              ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30'
-              : isLate
-              ? 'bg-red-500/15 text-red-700 dark:text-red-400 border-red-500/30'
-              : isPrinting
-              ? 'bg-blue-500/15 text-blue-700 dark:text-blue-400 border-blue-500/30'
-              : 'bg-muted text-muted-foreground border-border';
+            const status = deriveProjectStatus(p);
+            const meta = getStatusMeta(status);
+            const isLate = status === "overdue";
+            const isRecurring = !!p.isRecurringCustomer;
 
             return (
               <Card
                 key={p.id}
-                className={`border-t-[3px] ${statusColor} cursor-pointer hover:shadow-lg hover:scale-[1.02] transition-all duration-200 group`}
+                className={`border-t-[3px] ${meta.borderTop} cursor-pointer hover:shadow-lg hover:scale-[1.02] transition-all duration-200 group ${
+                  isRecurring ? "ring-1 ring-recurring-from/30 hover:ring-recurring-from/60" : ""
+                }`}
                 onClick={() => handleSelectProject(p.id)}
               >
                 <CardContent className="p-4 space-y-3">
@@ -220,9 +246,7 @@ export default function Projects() {
                       <p className="font-semibold text-sm truncate group-hover:text-primary transition-colors">{p.name}</p>
                       <p className="text-xs text-muted-foreground truncate">{p.customerName}</p>
                     </div>
-                    <Badge variant="outline" className={`text-[10px] shrink-0 ${statusBadgeClass}`}>
-                      {statusLabel}
-                    </Badge>
+                    <StatusPill status={status} className="shrink-0" />
                   </div>
 
                   {/* Price */}
@@ -263,11 +287,7 @@ export default function Projects() {
 
                   {/* Badges row */}
                   <div className="flex items-center gap-1.5 flex-wrap">
-                    {p.isRecurringCustomer && (
-                      <Badge variant="secondary" className="text-[9px] px-1.5 py-0 gap-0.5">
-                        <RefreshCw className="h-2.5 w-2.5" />Recurring
-                      </Badge>
-                    )}
+                    {isRecurring && <RecurringBadge />}
                     <Badge variant="outline" className="text-[9px] px-1.5 py-0">{p.customerSource}</Badge>
                   </div>
 
@@ -327,6 +347,51 @@ export default function Projects() {
           <DialogFooter><Button onClick={handleAdd}>Add Project</Button></DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Smart Import dialog (full new project OR append-into-existing) */}
+      <ImportDialog open={importMode !== null} onOpenChange={(open) => { if (!open) { setImportMode(null); setAppendTargetId(null); } }}>
+        <ImportDialogContent className="max-w-xl">
+          <ImportDialogHeader>
+            <ImportDialogTitle className="flex items-center gap-2">
+              {importMode === "into" ? <><Upload className="h-4 w-4 text-primary" />Import into Existing Project</> : <><Sparkles className="h-4 w-4 text-primary" />Import Full Project</>}
+            </ImportDialogTitle>
+            <ImportDialogDescription>
+              {importMode === "into"
+                ? "Pick the target project, then drop a .3mf or .gcode file."
+                : "Drop a Bambu Studio .3mf or .gcode file to create a fully-structured new project."}
+            </ImportDialogDescription>
+          </ImportDialogHeader>
+
+          {importMode === "into" && (
+            <div className="space-y-2">
+              <Label className="text-xs">Target project</Label>
+              <Select value={appendTargetId ?? ""} onValueChange={setAppendTargetId}>
+                <SelectTrigger><SelectValue placeholder="Select project…" /></SelectTrigger>
+                <SelectContent>
+                  {projects.map(pr => (
+                    <SelectItem key={pr.id} value={pr.id}>{pr.name || "Untitled"} {pr.customerName && `· ${pr.customerName}`}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          <div className="pt-2">
+            {importMode === "full" && (
+              <PlateImporter onImported={() => setImportMode(null)} />
+            )}
+            {importMode === "into" && appendTargetId && (
+              <PlateImporter
+                project={projects.find(pp => pp.id === appendTargetId)!}
+                onImported={() => { setImportMode(null); setAppendTargetId(null); }}
+              />
+            )}
+            {importMode === "into" && !appendTargetId && (
+              <p className="text-xs text-muted-foreground text-center py-6">Select a project above to enable the dropzone.</p>
+            )}
+          </div>
+        </ImportDialogContent>
+      </ImportDialog>
     </div>
   );
 }
