@@ -75,6 +75,8 @@ export interface Project {
   importSource?: 'bambu-studio' | 'manual';
   importFileType?: '3mf' | 'gcode';
   originalFileName?: string;
+  /** Cover thumbnail (data URL) auto-extracted from .3mf import. */
+  coverThumbnail?: string;
 }
 
 /** Get the effective date for analytics: shippingDate > completedAt > paidAt > orderDate */
