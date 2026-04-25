@@ -143,6 +143,9 @@ export default function ProjectDetail({ project, onBack }: Props) {
     <div className="space-y-6">
       <div className="flex items-center gap-2 flex-wrap">
         <Button variant="ghost" size="icon" onClick={onBack}><ArrowLeft className="h-4 w-4" /></Button>
+        {p.coverThumbnail && (
+          <img src={p.coverThumbnail} alt={p.name} className="h-10 w-10 rounded-md border object-cover" />
+        )}
         <div className="flex items-center gap-2 flex-1 flex-wrap min-w-0">
           <h1 className="text-2xl font-bold truncate">{p.name || "Untitled Project"}</h1>
           {p.isRecurringCustomer && <RecurringBadge size="md" />}
