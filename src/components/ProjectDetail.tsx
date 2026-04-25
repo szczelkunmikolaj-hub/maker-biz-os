@@ -295,6 +295,12 @@ export default function ProjectDetail({ project, onBack }: Props) {
                     <ArrowDown className="h-3 w-3" />
                   </Button>
                   <span className="text-[10px] text-muted-foreground ml-1">#{idx + 1}</span>
+                  {pr.thumbnail && (
+                    <img src={pr.thumbnail} alt={pr.name} className="h-8 w-8 rounded border object-cover ml-2" />
+                  )}
+                  <div className="ml-2">
+                    <ColorPills color={pr.color} palette={pr.colorPalette} material={pr.material} size="sm" showLabel />
+                  </div>
                 </div>
                 <div className="grid gap-2 grid-cols-2 md:grid-cols-4">
                   <div className="col-span-2 md:col-span-1">
