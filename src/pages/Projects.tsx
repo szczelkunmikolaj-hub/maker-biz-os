@@ -14,10 +14,16 @@ import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
-import { Plus, Search, Download, ArrowUpDown, RefreshCw, Printer, Package, Clock, Calendar, CreditCard } from "lucide-react";
+import { Plus, Search, Download, ArrowUpDown, RefreshCw, Printer, Package, Clock, Calendar, CreditCard, Sparkles, Upload, ChevronDown } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import ProjectDetail from "@/components/ProjectDetail";
 import { parseISO, isBefore } from "date-fns";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
+import { Dialog as ImportDialog, DialogContent as ImportDialogContent, DialogHeader as ImportDialogHeader, DialogTitle as ImportDialogTitle, DialogDescription as ImportDialogDescription } from "@/components/ui/dialog";
+import { PlateImporter } from "@/components/PlateImporter";
+import { RecurringBadge } from "@/components/RecurringBadge";
+import { StatusPill } from "@/components/StatusPill";
+import { deriveProjectStatus, getStatusMeta } from "@/lib/projectStatus";
 
 const SOURCES: CustomerSource[] = ["Wallapop", "Instagram", "Website", "Other"];
 const PAYMENT_METHODS: PaymentMethod[] = ["Cash", "PayPal", "Bank Transfer", "Bizum", "Other"];
