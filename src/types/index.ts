@@ -21,6 +21,10 @@ export interface Print {
   pricePerPiece: number;
   /** Optional list of individual models (parts) on this plate. Backwards-compatible: legacy prints have empty/undefined. */
   models?: PrintModel[];
+  /** Ordered hex palette captured at import (one entry per filament slot). Used to resolve "Color 1/2/3". */
+  colorPalette?: string[];
+  /** Embedded preview thumbnail (data URL) extracted from .3mf. */
+  thumbnail?: string;
 }
 
 export type KanbanStatus = 'new-order' | 'printing' | 'finished' | 'paid' | 'shipped';
