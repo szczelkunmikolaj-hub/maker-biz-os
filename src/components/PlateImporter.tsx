@@ -198,6 +198,7 @@ export function PlateImporter({ project, compact = false, onImported }: Props) {
         importSource: "bambu-studio",
         importFileType: data.source,
         originalFileName: data.originalFileName,
+        coverThumbnail: data.coverThumbnail,
       };
       addProject(newProject);
     },
