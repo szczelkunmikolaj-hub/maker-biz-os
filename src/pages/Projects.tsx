@@ -24,6 +24,7 @@ import { PlateImporter } from "@/components/PlateImporter";
 import { RecurringBadge } from "@/components/RecurringBadge";
 import { StatusPill } from "@/components/StatusPill";
 import { ColorPills } from "@/components/ColorPills";
+import { PlatePreview } from "@/components/PlatePreview";
 import { deriveProjectStatus, getStatusMeta } from "@/lib/projectStatus";
 
 const SOURCES: CustomerSource[] = ["Wallapop", "Instagram", "Website", "Other"];
@@ -244,9 +245,14 @@ export default function Projects() {
                   {/* Header */}
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex items-start gap-2 min-w-0 flex-1">
-                      {p.coverThumbnail && (
-                        <img src={p.coverThumbnail} alt={p.name} className="h-10 w-10 rounded-md border object-cover shrink-0" />
-                      )}
+                      <PlatePreview
+                        thumbnail={p.coverThumbnail || p.prints?.[0]?.thumbnail}
+                        color={(p.prints || []).map(pr => pr.color).filter(Boolean).join(", ") || undefined}
+                        palette={(p.prints || []).flatMap(pr => pr.colorPalette || [])}
+                        label={p.name}
+                        size="sm"
+                        noHover
+                      />
                       <div className="min-w-0 flex-1">
                         <p className="font-semibold text-sm truncate group-hover:text-primary transition-colors">{p.name}</p>
                         <p className="text-xs text-muted-foreground truncate">{p.customerName}</p>

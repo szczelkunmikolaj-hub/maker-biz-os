@@ -16,6 +16,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { PlateImporter } from "@/components/PlateImporter";
 import { RecurringBadge } from "@/components/RecurringBadge";
 import { ColorPills } from "@/components/ColorPills";
+import { PlatePreview } from "@/components/PlatePreview";
+import { normalizeMaterial } from "@/lib/normalize";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -143,9 +145,14 @@ export default function ProjectDetail({ project, onBack }: Props) {
     <div className="space-y-6">
       <div className="flex items-center gap-2 flex-wrap">
         <Button variant="ghost" size="icon" onClick={onBack}><ArrowLeft className="h-4 w-4" /></Button>
-        {p.coverThumbnail && (
-          <img src={p.coverThumbnail} alt={p.name} className="h-10 w-10 rounded-md border object-cover" />
-        )}
+        <PlatePreview
+          thumbnail={p.coverThumbnail || p.prints?.[0]?.thumbnail}
+          color={(p.prints || []).map(pr => pr.color).filter(Boolean).join(", ") || undefined}
+          palette={(p.prints || []).flatMap(pr => pr.colorPalette || [])}
+          label={p.name}
+          size="sm"
+          noHover
+        />
         <div className="flex items-center gap-2 flex-1 flex-wrap min-w-0">
           <h1 className="text-2xl font-bold truncate">{p.name || "Untitled Project"}</h1>
           {p.isRecurringCustomer && <RecurringBadge size="md" />}
@@ -290,19 +297,35 @@ export default function ProjectDetail({ project, onBack }: Props) {
             const otherPlates = p.prints.filter(x => x.id !== pr.id);
             return (
               <div key={pr.id} className="p-3 rounded-lg border bg-muted/30 space-y-2">
-                <div className="flex items-center gap-1 -mb-1">
-                  <Button size="icon" variant="ghost" className="h-6 w-6" disabled={idx === 0} onClick={() => movePrint(pr.id, -1)} title="Move up">
-                    <ArrowUp className="h-3 w-3" />
-                  </Button>
-                  <Button size="icon" variant="ghost" className="h-6 w-6" disabled={idx === p.prints.length - 1} onClick={() => movePrint(pr.id, 1)} title="Move down">
-                    <ArrowDown className="h-3 w-3" />
-                  </Button>
-                  <span className="text-[10px] text-muted-foreground ml-1">#{idx + 1}</span>
-                  {pr.thumbnail && (
-                    <img src={pr.thumbnail} alt={pr.name} className="h-8 w-8 rounded border object-cover ml-2" />
-                  )}
-                  <div className="ml-2">
-                    <ColorPills color={pr.color} palette={pr.colorPalette} material={pr.material} size="sm" showLabel />
+                <div className="flex items-start gap-3 -mb-1">
+                  <PlatePreview
+                    thumbnail={pr.thumbnail}
+                    color={pr.color}
+                    palette={pr.colorPalette}
+                    label={pr.name || `Plate ${idx + 1}`}
+                    size="md"
+                  />
+                  <div className="flex-1 min-w-0 space-y-1">
+                    <div className="flex items-center gap-1 flex-wrap">
+                      <Button size="icon" variant="ghost" className="h-6 w-6" disabled={idx === 0} onClick={() => movePrint(pr.id, -1)} title="Move up">
+                        <ArrowUp className="h-3 w-3" />
+                      </Button>
+                      <Button size="icon" variant="ghost" className="h-6 w-6" disabled={idx === p.prints.length - 1} onClick={() => movePrint(pr.id, 1)} title="Move down">
+                        <ArrowDown className="h-3 w-3" />
+                      </Button>
+                      <span className="text-[10px] text-muted-foreground ml-1">#{idx + 1}</span>
+                      {pr.material && (
+                        <span className="text-[10px] font-semibold text-foreground bg-secondary rounded px-1.5 py-0.5 ml-1">
+                          {normalizeMaterial(pr.material)}
+                        </span>
+                      )}
+                      <ColorPills color={pr.color} palette={pr.colorPalette} material={normalizeMaterial(pr.material)} size="sm" showLabel />
+                    </div>
+                    <div className="flex flex-wrap gap-2 text-[10px] text-muted-foreground">
+                      {pr.estimatedPrintTime > 0 && <span>⏱ {pr.estimatedPrintTime}h</span>}
+                      {pr.materialUsed > 0 && <span>⚖ {pr.materialUsed}g</span>}
+                      {(pr.models?.length || 0) > 0 && <span>🧩 {pr.models!.length} model{pr.models!.length > 1 ? 's' : ''}</span>}
+                    </div>
                   </div>
                 </div>
                 <div className="grid gap-2 grid-cols-2 md:grid-cols-4">
@@ -365,7 +388,7 @@ export default function ProjectDetail({ project, onBack }: Props) {
                             placeholder="Mat."
                             className="h-7 text-xs w-20"
                           />
-                          <ColorPills color={m.color || pr.color} palette={pr.colorPalette} material={m.material || pr.material} size="xs" showLabel={false} className="shrink-0" />
+                          <ColorPills color={m.color || pr.color} palette={pr.colorPalette} material={normalizeMaterial(m.material || pr.material)} size="xs" showLabel={false} className="shrink-0" />
                           {otherPlates.length > 0 && (
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>

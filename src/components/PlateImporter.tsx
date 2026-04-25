@@ -40,6 +40,7 @@ import {
 } from "@/lib/bambuParser";
 import { normalizeMaterial, normalizeColors } from "@/lib/normalize";
 import { ColorPills } from "@/components/ColorPills";
+import { PlatePreview } from "@/components/PlatePreview";
 
 type Mode = "add-new" | "merge-existing" | "replace-plate" | "append-models";
 
@@ -423,17 +424,14 @@ export function PlateImporter({ project, compact = false, onImported }: Props) {
               <div className="space-y-1.5 max-h-72 overflow-y-auto">
                 {parsed.plates.map((p) => (
                   <div key={p.index} className="flex items-center gap-2.5 rounded-lg border p-2 text-xs">
-                    {p.thumbnail ? (
-                      <img
-                        src={p.thumbnail}
-                        alt={p.name}
-                        className="h-12 w-12 rounded-md object-cover border bg-muted shrink-0"
-                      />
-                    ) : (
-                      <div className="h-12 w-12 rounded-md border bg-muted/50 flex items-center justify-center shrink-0">
-                        <Layers className="h-5 w-5 text-muted-foreground/60" />
-                      </div>
-                    )}
+                    <PlatePreview
+                      thumbnail={p.thumbnail}
+                      color={p.filamentColor}
+                      palette={p.filamentPalette}
+                      label={p.name}
+                      size="md"
+                      noHover
+                    />
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
                         <span className="font-medium truncate">{p.name}</span>
@@ -446,10 +444,10 @@ export function PlateImporter({ project, compact = false, onImported }: Props) {
                       <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                         {p.filamentType && (
                           <Badge variant="secondary" className="text-[10px] py-0 px-1.5">
-                            {p.filamentType}
+                            {normalizeMaterial(p.filamentType)}
                           </Badge>
                         )}
-                        <ColorPills color={p.filamentColor} palette={p.filamentPalette} material={p.filamentType} size="xs" />
+                        <ColorPills color={p.filamentColor} palette={p.filamentPalette} material={normalizeMaterial(p.filamentType)} size="xs" />
                         <span className="text-muted-foreground">{p.printTimeHours}h</span>
                         <span className="text-muted-foreground">{p.filamentGrams}g</span>
                       </div>
