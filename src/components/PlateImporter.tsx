@@ -38,6 +38,8 @@ import {
   ParsedImport,
   ParsedPlate,
 } from "@/lib/bambuParser";
+import { normalizeMaterial, normalizeColors } from "@/lib/normalize";
+import { ColorPills } from "@/components/ColorPills";
 
 type Mode = "add-new" | "merge-existing" | "replace-plate" | "append-models";
 
@@ -53,29 +55,36 @@ interface Props {
 }
 
 function platesToPrints(plates: ParsedPlate[]): Print[] {
-  return plates.map((plate) => ({
-    id: crypto.randomUUID(),
-    name: plate.modelNames.length
-      ? `${plate.name} — ${plate.modelNames.slice(0, 3).join(", ")}${
-          plate.modelNames.length > 3 ? ` +${plate.modelNames.length - 3}` : ""
-        }`
-      : plate.name,
-    estimatedPrintTime: plate.printTimeHours,
-    materialUsed: plate.filamentGrams,
-    printer: "",
-    status: "not-printed" as const,
-    quantity: 1,
-    completedQuantity: 0,
-    color: plate.filamentColor,
-    material: plate.filamentType,
-    pricePerPiece: 0,
-    models: plate.modelNames.map((n) => ({
+  return plates.map((plate) => {
+    const material = normalizeMaterial(plate.filamentType);
+    const colors = normalizeColors(plate.filamentColor, plate.filamentPalette);
+    const colorLabel = colors.map((c) => c.label).join(", ");
+    return {
       id: crypto.randomUUID(),
-      name: n,
-      material: plate.filamentType,
-      color: plate.filamentColor,
-    })),
-  }));
+      name: plate.modelNames.length
+        ? `${plate.name} — ${plate.modelNames.slice(0, 3).join(", ")}${
+            plate.modelNames.length > 3 ? ` +${plate.modelNames.length - 3}` : ""
+          }`
+        : plate.name,
+      estimatedPrintTime: plate.printTimeHours,
+      materialUsed: plate.filamentGrams,
+      printer: "",
+      status: "not-printed" as const,
+      quantity: 1,
+      completedQuantity: 0,
+      color: colorLabel,
+      material,
+      pricePerPiece: 0,
+      colorPalette: plate.filamentPalette,
+      thumbnail: plate.thumbnail,
+      models: plate.modelNames.map((n) => ({
+        id: crypto.randomUUID(),
+        name: n,
+        material,
+        color: colorLabel,
+      })),
+    };
+  });
 }
 
 export function PlateImporter({ project, compact = false, onImported }: Props) {
