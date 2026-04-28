@@ -3,7 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { usePersistedState } from "@/hooks/usePersistedState";
 import { useApp } from "@/context/AppContext";
 import { useMonth } from "@/context/MonthContext";
-import { Project, CustomerSource, PaymentMethod, getProjectProgress, getProjectTotalPieces, getProjectPiecesTotal, getProjectExpensesTotal, getProjectTotalPrintTime } from "@/types";
+import { Project, CustomerSource, PaymentMethod, getProjectProgress, getProjectTotalPieces, getProjectPiecesTotal, getProjectExpensesTotal, getProjectTotalPrintTime, getProjectTotalMaterial } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -26,6 +26,7 @@ import { StatusPill } from "@/components/StatusPill";
 import { ColorPills } from "@/components/ColorPills";
 import { PlatePreview } from "@/components/PlatePreview";
 import { deriveProjectStatus, getStatusMeta } from "@/lib/projectStatus";
+import { normalizeMaterial } from "@/lib/normalize";
 
 const SOURCES: CustomerSource[] = ["Wallapop", "Instagram", "Website", "Other"];
 const PAYMENT_METHODS: PaymentMethod[] = ["Cash", "PayPal", "Bank Transfer", "Bizum", "Other"];
@@ -283,7 +284,20 @@ export default function Projects() {
                   )}
 
                   {/* Meta info */}
-                  <div className="flex flex-wrap gap-x-3 gap-y-1 text-[10px] text-muted-foreground">
+                  <div className="flex flex-wrap gap-x-3 gap-y-1 text-[10px] text-muted-foreground items-center">
+                    {(() => {
+                      const grams = getProjectTotalMaterial(p);
+                      const mats = Array.from(new Set((p.prints || [])
+                        .map(pr => normalizeMaterial(pr.material))
+                        .filter(Boolean)));
+                      const matLabel = mats.length === 0 ? null : mats.length === 1 ? mats[0] : `${mats[0]} +${mats.length - 1}`;
+                      if (!matLabel && grams === 0) return null;
+                      return (
+                        <span className="inline-flex items-center gap-1 rounded-full border border-border bg-muted/40 px-1.5 py-0.5 font-medium text-foreground/80">
+                          {matLabel || "—"}{grams > 0 && <span className="text-muted-foreground">· {Math.round(grams)}g</span>}
+                        </span>
+                      );
+                    })()}
                     {totalPieces > 0 && (
                       <span className="flex items-center gap-0.5"><Package className="h-3 w-3" />{totalPieces} pcs</span>
                     )}

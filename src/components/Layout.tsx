@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, CalendarDays } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { NotificationBell } from "@/components/NotificationBell";
+import { GlobalStatusBar } from "@/components/GlobalStatusBar";
+import { CommandPalette } from "@/components/CommandPalette";
 
 const PAGE_TITLES: Record<string, string> = {
   "/": "Dashboard",
@@ -66,9 +68,11 @@ export function Layout() {
               </div>
             </div>
           </header>
+          <GlobalStatusBar />
           <main className="flex-1 overflow-auto p-4 md:p-6 animate-fade-in">
             <Outlet />
           </main>
+          <CommandPalette />
         </div>
       </div>
     </SidebarProvider>
