@@ -3,7 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { usePersistedState } from "@/hooks/usePersistedState";
 import { useApp } from "@/context/AppContext";
 import { useMonth } from "@/context/MonthContext";
-import { Project, CustomerSource, PaymentMethod, getProjectProgress, getProjectTotalPieces, getProjectPiecesTotal, getProjectExpensesTotal, getProjectTotalPrintTime } from "@/types";
+import { Project, CustomerSource, PaymentMethod, getProjectProgress, getProjectTotalPieces, getProjectPiecesTotal, getProjectExpensesTotal, getProjectTotalPrintTime, getProjectTotalMaterial } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
