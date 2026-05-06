@@ -72,12 +72,14 @@ const SPOOL_SIZE_GRAMS = 1000;
 
 export default function MaterialUsageSummary() {
   const { projects } = useApp();
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
 
   const groups = useMemo(() => {
     const map = new Map<string, MaterialGroup>();
     const activeProjects = projects.filter(p => !p.sent);
 
     activeProjects.forEach(p => {
+      const perProjectGrams = new Map<string, number>();
       (p.prints || []).forEach(pr => {
         if ((pr.materialUsed || 0) === 0) return;
         const remaining = ((pr.quantity || 1) - (pr.completedQuantity || 0));
@@ -90,15 +92,26 @@ export default function MaterialUsageSummary() {
         const existing = map.get(key) || {
           key, material: mat, color: col,
           totalGrams: 0, spoolsNeeded: 0, projectCount: 0,
+          byProject: [] as ProjectBreakdown[],
         };
         existing.totalGrams += grams;
         existing.spoolsNeeded = Math.ceil(existing.totalGrams / SPOOL_SIZE_GRAMS);
-        existing.projectCount++;
         map.set(key, existing);
+
+        perProjectGrams.set(key, (perProjectGrams.get(key) || 0) + grams);
+      });
+
+      perProjectGrams.forEach((grams, key) => {
+        const g = map.get(key);
+        if (!g) return;
+        g.byProject.push({ projectId: p.id, projectName: p.name, customer: p.customer, grams });
+        g.projectCount = g.byProject.length;
       });
     });
 
-    return Array.from(map.values()).sort((a, b) => b.totalGrams - a.totalGrams);
+    const arr = Array.from(map.values());
+    arr.forEach(g => g.byProject.sort((a, b) => b.grams - a.grams));
+    return arr.sort((a, b) => b.totalGrams - a.totalGrams);
   }, [projects]);
 
   if (groups.length === 0) return null;
@@ -112,32 +125,56 @@ export default function MaterialUsageSummary() {
           <Palette className="h-4 w-4" />
           Material Usage Summary
         </CardTitle>
-        <p className="text-xs text-muted-foreground">Filament needed for all active &amp; pending projects</p>
+        <p className="text-xs text-muted-foreground">Filament needed per project to ship all open orders</p>
       </CardHeader>
       <CardContent className="space-y-3">
-        {groups.map(g => (
-          <div key={g.key} className="space-y-1.5">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium">
-                  {g.material} {g.color !== 'unspecified' ? capitalizeWords(g.color) : ''}
-                </span>
-                <Badge variant="outline" className="text-[10px]">
-                  {g.projectCount} print{g.projectCount !== 1 ? 's' : ''}
-                </Badge>
-              </div>
-              <div className="text-right">
-                <span className="text-sm font-bold">{g.totalGrams.toFixed(0)}g</span>
-                <span className="text-xs text-muted-foreground ml-1.5">
-                  (~{g.spoolsNeeded} spool{g.spoolsNeeded !== 1 ? 's' : ''})
-                </span>
-              </div>
+        {groups.map(g => {
+          const isOpen = !!expanded[g.key];
+          return (
+            <div key={g.key} className="space-y-1.5">
+              <button
+                type="button"
+                onClick={() => setExpanded(s => ({ ...s, [g.key]: !s[g.key] }))}
+                className="w-full flex items-center justify-between gap-2 text-left hover:opacity-80 transition-opacity"
+              >
+                <div className="flex items-center gap-2 min-w-0">
+                  {isOpen ? <ChevronDown className="h-3.5 w-3.5 shrink-0" /> : <ChevronRight className="h-3.5 w-3.5 shrink-0" />}
+                  <span className="text-sm font-medium truncate">
+                    {g.material} {g.color !== 'unspecified' ? capitalizeWords(g.color) : ''}
+                  </span>
+                  <Badge variant="outline" className="text-[10px]">
+                    {g.projectCount} project{g.projectCount !== 1 ? 's' : ''}
+                  </Badge>
+                </div>
+                <div className="text-right shrink-0">
+                  <span className="text-sm font-bold">{g.totalGrams.toFixed(0)}g</span>
+                  <span className="text-xs text-muted-foreground ml-1.5">
+                    (~{g.spoolsNeeded} spool{g.spoolsNeeded !== 1 ? 's' : ''})
+                  </span>
+                </div>
+              </button>
+              <Progress value={(g.totalGrams / maxGrams) * 100} className="h-1.5" />
+              {isOpen && (
+                <ul className="mt-2 ml-5 space-y-1 border-l border-border pl-3">
+                  {g.byProject.map(bp => (
+                    <li key={bp.projectId} className="flex items-center justify-between gap-2 text-xs">
+                      <Link
+                        to={`/projects?id=${bp.projectId}`}
+                        className="truncate hover:underline text-foreground"
+                      >
+                        {bp.projectName}
+                        {bp.customer && <span className="text-muted-foreground"> · {bp.customer}</span>}
+                      </Link>
+                      <span className="font-medium tabular-nums shrink-0">{bp.grams.toFixed(0)}g</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
-            <Progress value={(g.totalGrams / maxGrams) * 100} className="h-1.5" />
-          </div>
-        ))}
+          );
+        })}
         <p className="text-[11px] text-muted-foreground pt-1">
-          Based on {SPOOL_SIZE_GRAMS / 1000}kg spool size. Only remaining (unprinted) quantities counted.
+          Based on {SPOOL_SIZE_GRAMS / 1000}kg spool size. Only remaining (unprinted) quantities counted. Click a row to see per-project breakdown.
         </p>
       </CardContent>
     </Card>
