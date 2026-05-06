@@ -1,9 +1,17 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { useApp } from "@/context/AppContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Palette } from "lucide-react";
+import { Palette, ChevronDown, ChevronRight } from "lucide-react";
+
+interface ProjectBreakdown {
+  projectId: string;
+  projectName: string;
+  customer?: string;
+  grams: number;
+}
 
 interface MaterialGroup {
   key: string;
@@ -12,6 +20,7 @@ interface MaterialGroup {
   totalGrams: number;
   spoolsNeeded: number;
   projectCount: number;
+  byProject: ProjectBreakdown[];
 }
 
 function normalizeMaterialName(raw: string): string {
