@@ -80,10 +80,34 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setProjects(prev => {
       const original = prev.find(x => x.id === id);
       if (!original) return prev;
+      // Strip existing trailing " N" or " (Copy)" to get the base name
+      const baseName = (original.name || '')
+        .replace(/\s*\(Copy\)\s*$/i, '')
+        .replace(/\s+\d+$/, '')
+        .trim();
+      // Find the next available number suffix among existing projects sharing the base name
+      const usedNumbers = new Set<number>();
+      prev.forEach(p => {
+        const n = (p.name || '').trim();
+        if (n === baseName) usedNumbers.add(0);
+        const m = n.match(/^(.*)\s+(\d+)$/);
+        if (m && m[1].trim() === baseName) usedNumbers.add(parseInt(m[2], 10));
+      });
+      let next = 1;
+      while (usedNumbers.has(next)) next++;
+      const newName = `${baseName} ${next}`;
+
+      const today = new Date().toISOString().slice(0, 10);
       const dup: Project = {
         ...original,
         id: crypto.randomUUID(),
-        name: `${original.name} (Copy)`,
+        name: newName,
+        // Reset lifecycle dates so revenue/analytics count in the new shipping month
+        orderDate: today,
+        dueDate: '',
+        shippingDate: '',
+        completedAt: '',
+        paidAt: '',
         printed: false, paid: false, sent: false,
         kanbanStatus: 'new-order',
         prints: (original.prints || []).map(pr => ({ ...pr, id: crypto.randomUUID(), status: 'not-printed' as const, completedQuantity: 0 })),
