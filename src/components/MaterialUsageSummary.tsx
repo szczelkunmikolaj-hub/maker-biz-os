@@ -104,7 +104,7 @@ export default function MaterialUsageSummary() {
       perProjectGrams.forEach((grams, key) => {
         const g = map.get(key);
         if (!g) return;
-        g.byProject.push({ projectId: p.id, projectName: p.name, customer: p.customer, grams });
+        g.byProject.push({ projectId: p.id, projectName: p.name, customer: p.customerName, grams });
         g.projectCount = g.byProject.length;
       });
     });
