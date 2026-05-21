@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 import { useMemo, useCallback } from "react";
 import {
-  format, parseISO, startOfWeek, endOfWeek, eachMonthOfInterval, eachWeekOfInterval, eachDayOfInterval,
+  format, parseISO, isBefore, startOfToday, startOfWeek, endOfWeek, eachMonthOfInterval, eachWeekOfInterval, eachDayOfInterval,
   startOfMonth, endOfMonth, startOfYear, endOfYear,
 } from "date-fns";
 import ProductionSummary from "@/components/ProductionSummary";
@@ -90,13 +90,14 @@ export default function Dashboard() {
     const completedProjects = filteredProjects.filter(p => getProjectProgress(p).percent === 100);
     const overdueProjects = filteredProjects.filter(p => {
       if (!p.dueDate) return false;
-      return getProjectProgress(p).percent < 100 && parseISO(p.dueDate) < new Date();
+      return getProjectProgress(p).percent < 100 && isBefore(parseISO(p.dueDate), startOfToday());
     });
 
     const allPrints = filteredProjects.flatMap(p => p.prints || []);
     const completedPrints = allPrints.filter(pr => (pr.completedQuantity || 0) >= (pr.quantity || 1));
     const totalHoursPrinted = allPrints.reduce((s, pr) => s + (pr.estimatedPrintTime || 0) * (pr.completedQuantity || 0), 0);
-    const avgPrintTime = completedPrints.length > 0 ? totalHoursPrinted / completedPrints.length : 0;
+    const totalCompletedPieces = allPrints.reduce((s, pr) => s + (pr.completedQuantity || 0), 0);
+    const avgPrintTime = totalCompletedPieces > 0 ? totalHoursPrinted / totalCompletedPieces : 0;
 
     const completionRate = filteredProjects.length > 0
       ? (completedProjects.length / filteredProjects.length) * 100 : 0;
@@ -199,7 +200,8 @@ export default function Dashboard() {
   }), [buildTimeSeries, profitGrouping]);
 
   const hoursOverTime = useMemo(() => buildTimeSeries(hoursGrouping, (ps) => {
-    const hours = ps.reduce((s, p) => s + getProjectTotalPrintTime(p), 0);
+    const hours = ps.reduce((s, p) =>
+      s + (p.prints || []).reduce((ph, pr) => ph + (pr.estimatedPrintTime || 0) * (pr.completedQuantity || 0), 0), 0);
     return { hours: +hours.toFixed(1) };
   }), [buildTimeSeries, hoursGrouping]);
 

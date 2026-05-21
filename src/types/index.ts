@@ -302,7 +302,9 @@ export function getAdvancedAnalytics(projects: Project[], expenses: Expense[], c
     (p.prints || []).forEach(pr => {
       if (!pr.name) return;
       const existing = printProfitMap.get(pr.name) || { name: pr.name, totalProfit: 0, count: 0 };
-      const printRevShare = p.prints.length > 0 ? (p.totalPrice || 0) / p.prints.length : 0;
+      const printRevShare = pr.pricePerPiece > 0
+        ? pr.pricePerPiece * (pr.quantity || 1)
+        : (p.prints.length > 0 ? (p.totalPrice || 0) / p.prints.length : 0);
       const printCost = (pr.materialUsed || 0) * (pr.quantity || 1) * costPerGram;
       existing.totalProfit += printRevShare - printCost;
       existing.count += pr.quantity || 1;

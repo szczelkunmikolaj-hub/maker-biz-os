@@ -1,5 +1,5 @@
 import { Project } from "@/types";
-import { parseISO, isBefore } from "date-fns";
+import { parseISO, isBefore, startOfToday } from "date-fns";
 
 export type UnifiedStatus =
   | "new"
@@ -47,7 +47,7 @@ export function deriveProjectStatus(p: Project): UnifiedStatus {
   if (isCompleted) return "completed";
   if (p.sent) return "shipped";
 
-  const overdue = p.dueDate && isBefore(parseISO(p.dueDate), new Date());
+  const overdue = p.dueDate && isBefore(parseISO(p.dueDate), startOfToday());
   if (overdue) return "overdue";
 
   const prints = p.prints || [];

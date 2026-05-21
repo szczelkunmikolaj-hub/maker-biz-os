@@ -61,9 +61,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const addProject = useCallback((p: Project) => setProjects(prev => [normalizeProject(p), ...prev]), []);
   const updateProject = useCallback((p: Project) => {
     const normalized = normalizeProject(p);
+    // Sync per-print status when project-level printed flag is set
+    if (normalized.printed) {
+      normalized.prints = normalized.prints.map(pr => ({
+        ...pr,
+        completedQuantity: pr.quantity,
+        status: 'completed' as const,
+      }));
+    }
     normalized.kanbanStatus = deriveKanbanStatus(normalized);
-    // Auto-set completedAt when all prints done or project marked printed
-    if (!normalized.completedAt && (normalized.printed || normalized.sent)) {
+    // Auto-set completedAt when all prints done or project marked printed/sent
+    const allPrintsComplete = normalized.prints.length > 0 &&
+      normalized.prints.every(pr => (pr.completedQuantity || 0) >= (pr.quantity || 1));
+    if (!normalized.completedAt && (normalized.printed || normalized.sent || allPrintsComplete)) {
       normalized.completedAt = new Date().toISOString();
     }
     // Auto-set paidAt when marked paid
@@ -74,7 +84,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, []);
   const deleteProject = useCallback((id: string) => setProjects(prev => prev.filter(x => x.id !== id)), []);
   const moveProject = useCallback((id: string, status: KanbanStatus) => {
-    setProjects(prev => prev.map(x => x.id === id ? { ...x, ...applyKanbanStatus(status) } : x));
+    setProjects(prev => prev.map(x => x.id === id ? { ...x, ...applyKanbanStatus(status, x) } : x));
   }, []);
   const duplicateProject = useCallback((id: string) => {
     setProjects(prev => {
