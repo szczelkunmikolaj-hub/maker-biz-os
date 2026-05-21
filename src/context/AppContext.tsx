@@ -58,6 +58,27 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => { localStorage.setItem('pt_templates', JSON.stringify(templates)); }, [templates]);
   useEffect(() => { localStorage.setItem('pt_filament_purchases', JSON.stringify(filamentPurchases)); }, [filamentPurchases]);
 
+  // One-time migration: back-fill completedQuantity/status for projects already marked printed
+  useEffect(() => {
+    if (localStorage.getItem('pt_migration_v1')) return;
+    setProjects(prev => {
+      const migrated = prev.map(p => {
+        if (!p.printed) return p;
+        return {
+          ...p,
+          prints: (p.prints || []).map(pr => ({
+            ...pr,
+            completedQuantity: pr.quantity,
+            status: 'completed' as const,
+          })),
+        };
+      });
+      localStorage.setItem('pt_projects', JSON.stringify(migrated));
+      localStorage.setItem('pt_migration_v1', 'done');
+      return migrated;
+    });
+  }, []);
+
   const addProject = useCallback((p: Project) => setProjects(prev => [normalizeProject(p), ...prev]), []);
   const updateProject = useCallback((p: Project) => {
     const normalized = normalizeProject(p);
