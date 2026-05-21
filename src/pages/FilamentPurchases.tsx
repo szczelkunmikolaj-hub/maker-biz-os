@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Plus, Trash2 } from "lucide-react";
+import posthog from "@/lib/posthog";
 
 function newPurchase(): FilamentPurchase {
   return {
@@ -30,6 +31,13 @@ export default function FilamentPurchases() {
   const handleAdd = () => {
     if (!draft.totalCost) return;
     addFilamentPurchase(draft);
+    posthog.capture('filament_purchase_added', {
+      material_type: draft.materialType,
+      brand: draft.brand || null,
+      number_of_spools: draft.numberOfSpools,
+      spool_weight_g: draft.spoolWeight,
+      total_cost: draft.totalCost,
+    });
     setDraft(newPurchase());
     setShowAdd(false);
   };

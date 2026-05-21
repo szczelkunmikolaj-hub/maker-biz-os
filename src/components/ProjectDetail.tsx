@@ -18,6 +18,7 @@ import { RecurringBadge } from "@/components/RecurringBadge";
 import { ColorPills } from "@/components/ColorPills";
 import { PlatePreview } from "@/components/PlatePreview";
 import { normalizeMaterial } from "@/lib/normalize";
+import posthog from "@/lib/posthog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -167,7 +168,7 @@ export default function ProjectDetail({ project, onBack }: Props) {
           <Button size="sm" variant="outline" className="text-xs gap-1" onClick={() => navigate('/expenses')}>
             <Receipt className="h-3.5 w-3.5" />Expenses
           </Button>
-          <Button size="sm" variant="outline" onClick={() => { duplicateProject(p.id); onBack(); }}>
+          <Button size="sm" variant="outline" onClick={() => { duplicateProject(p.id); posthog.capture('project_duplicated', { customer_source: p.customerSource }); onBack(); }}>
             <Copy className="h-4 w-4 mr-1" />Duplicate
           </Button>
         </div>
@@ -450,7 +451,7 @@ export default function ProjectDetail({ project, onBack }: Props) {
       </Card>
 
       <div className="flex justify-end">
-        <Button variant="destructive" size="sm" onClick={() => { deleteProject(p.id); onBack(); }}>
+        <Button variant="destructive" size="sm" onClick={() => { deleteProject(p.id); posthog.capture('project_deleted', { customer_source: p.customerSource, total_price: effectiveTotal }); onBack(); }}>
           <Trash2 className="h-4 w-4 mr-1" />Delete Project
         </Button>
       </div>

@@ -14,6 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Trash2, Download, ExternalLink } from "lucide-react";
+import posthog from "@/lib/posthog";
 
 const CATS: ExpenseCategory[] = ["Filament", "Shipping", "Equipment", "Tools", "Project Expense", "Other"];
 
@@ -39,6 +40,11 @@ export default function Expenses() {
   const handleAdd = () => {
     if (!draft.name) return;
     addExpense(draft);
+    posthog.capture('expense_added', {
+      category: draft.category,
+      amount: draft.amount,
+      has_linked_project: !!draft.linkedProject,
+    });
     setDraft(newExpense());
     setShowAdd(false);
   };
@@ -110,7 +116,7 @@ export default function Expenses() {
                     ) : '—'}
                   </TableCell>
                   <TableCell className="text-right font-mono">€{(e.amount || 0).toFixed(2)}</TableCell>
-                  <TableCell><Button size="icon" variant="ghost" className="text-destructive h-8 w-8" onClick={() => deleteExpense(e.id)}><Trash2 className="h-4 w-4" /></Button></TableCell>
+                  <TableCell><Button size="icon" variant="ghost" className="text-destructive h-8 w-8" onClick={() => { deleteExpense(e.id); posthog.capture('expense_deleted', { category: e.category, amount: e.amount }); }}><Trash2 className="h-4 w-4" /></Button></TableCell>
                 </TableRow>
               ))}
             </TableBody>

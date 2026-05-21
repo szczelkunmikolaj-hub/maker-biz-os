@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useApp } from "@/context/AppContext";
+import posthog from "@/lib/posthog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -36,6 +37,23 @@ export default function QuoteGenerator() {
   const totalCost = materialCost + timeCost;
   const suggestedPrice = margin < 100 ? totalCost / (1 - margin / 100) : totalCost;
   const profit = suggestedPrice - totalCost;
+
+  const captureTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    if (!isFinite(suggestedPrice) || suggestedPrice <= 0) return;
+    if (captureTimerRef.current) clearTimeout(captureTimerRef.current);
+    captureTimerRef.current = setTimeout(() => {
+      posthog.capture('quote_calculated', {
+        grams,
+        hours,
+        hourly_rate: hourlyRate,
+        margin_percent: margin,
+        suggested_price: parseFloat(suggestedPrice.toFixed(2)),
+        total_cost: parseFloat(totalCost.toFixed(2)),
+      });
+    }, 2000);
+    return () => { if (captureTimerRef.current) clearTimeout(captureTimerRef.current); };
+  }, [grams, hours, hourlyRate, margin, suggestedPrice, totalCost]);
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">

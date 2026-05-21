@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Download, Upload, AlertTriangle, Merge, Replace, Copy, User, FileText } from 'lucide-react';
+import posthog from '@/lib/posthog';
 import { normalizeProject } from '@/types';
 import { parseLegacyText } from '@/lib/legacyTextParser';
 import type { Project, Expense, PrintTemplate, FilamentPurchase, AppSettings } from '@/types';
@@ -56,6 +57,12 @@ export default function DataManagement() {
     a.download = `printtrack-backup-${new Date().toISOString().slice(0, 10)}.json`;
     a.click();
     URL.revokeObjectURL(url);
+    posthog.capture('data_exported', {
+      project_count: data.projects.length,
+      expense_count: data.expenses.length,
+      template_count: data.templates.length,
+      filament_purchase_count: data.filamentPurchases.length,
+    });
     toast({ title: 'Export complete', description: `${data.projects.length} projects exported.` });
   };
 
@@ -102,6 +109,7 @@ export default function DataManagement() {
         filamentPurchases: parsed.filamentPurchases || [],
         settings: parsed.settings || app.settings,
       });
+      posthog.capture('data_imported', { import_mode: 'replace', project_count: parsed.projects.length });
       toast({ title: 'Data replaced', description: `Loaded ${parsed.projects.length} projects.` });
     } else {
       // Merge: append non-duplicate items
@@ -127,6 +135,7 @@ export default function DataManagement() {
       (parsed.filamentPurchases || []).forEach(fp => {
         if (!existingFpIds.has(fp.id)) app.addFilamentPurchase(fp);
       });
+      posthog.capture('data_imported', { import_mode: 'merge', projects_added: added });
       toast({ title: 'Merge complete', description: `${added} new projects added.` });
     }
     setParsed(null);

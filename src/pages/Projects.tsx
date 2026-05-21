@@ -27,6 +27,7 @@ import { ColorPills } from "@/components/ColorPills";
 import { PlatePreview } from "@/components/PlatePreview";
 import { deriveProjectStatus, getStatusMeta } from "@/lib/projectStatus";
 import { normalizeMaterial } from "@/lib/normalize";
+import posthog from "@/lib/posthog";
 
 const SOURCES: CustomerSource[] = ["Wallapop", "Instagram", "Website", "Other"];
 const PAYMENT_METHODS: PaymentMethod[] = ["Cash", "PayPal", "Bank Transfer", "Bizum", "Other"];
@@ -111,13 +112,26 @@ export default function Projects() {
     const isRecurring = draft.customerName.trim() !== '' &&
       projects.some(p => p.customerName.toLowerCase().trim() === draft.customerName.toLowerCase().trim());
     addProject({ ...draft, isRecurringCustomer: isRecurring || draft.isRecurringCustomer });
+    posthog.capture('project_created', {
+      customer_source: draft.customerSource,
+      payment_method: draft.paymentMethod,
+      is_recurring_customer: isRecurring || draft.isRecurringCustomer,
+    });
     setDraft(newProject());
     setShowAdd(false);
   };
 
   const toggleStatus = (id: string, field: 'printed' | 'paid' | 'sent') => {
     const proj = projects.find(p => p.id === id);
-    if (proj) updateProject({ ...proj, [field]: !proj[field] });
+    if (proj) {
+      const newValue = !proj[field];
+      updateProject({ ...proj, [field]: newValue });
+      posthog.capture('project_status_updated', {
+        status_field: field,
+        new_value: newValue,
+        customer_source: proj.customerSource,
+      });
+    }
   };
 
   const exportCSV = () => {
@@ -410,12 +424,12 @@ export default function Projects() {
 
           <div className="pt-2">
             {importMode === "full" && (
-              <PlateImporter onImported={() => setImportMode(null)} />
+              <PlateImporter onImported={() => { posthog.capture('project_imported', { import_mode: 'full' }); setImportMode(null); }} />
             )}
             {importMode === "into" && appendTargetId && (
               <PlateImporter
                 project={projects.find(pp => pp.id === appendTargetId)!}
-                onImported={() => { setImportMode(null); setAppendTargetId(null); }}
+                onImported={() => { posthog.capture('project_imported', { import_mode: 'append' }); setImportMode(null); setAppendTargetId(null); }}
               />
             )}
             {importMode === "into" && !appendTargetId && (

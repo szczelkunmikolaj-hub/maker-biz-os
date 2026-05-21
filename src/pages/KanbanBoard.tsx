@@ -13,6 +13,7 @@ import { usePersistedState } from "@/hooks/usePersistedState";
 import { RecurringBadge } from "@/components/RecurringBadge";
 import { ColorPills } from "@/components/ColorPills";
 import { PlatePreview } from "@/components/PlatePreview";
+import posthog from "@/lib/posthog";
 
 const COLUMNS: { status: KanbanStatus; label: string; dotColor: string; bgClass: string }[] = [
   { status: "new-order", label: "New Order",  dotColor: "bg-status-new",        bgClass: "bg-status-new/5 border-status-new/20" },
@@ -35,7 +36,15 @@ export default function KanbanBoard() {
 
   const handleDragStart = (id: string) => setDragging(id);
   const handleDrop = (status: KanbanStatus) => {
-    if (dragging) { moveProject(dragging, status); setDragging(null); }
+    if (dragging) {
+      const proj = projects.find(p => p.id === dragging);
+      posthog.capture('project_kanban_moved', {
+        from_status: proj?.kanbanStatus,
+        to_status: status,
+      });
+      moveProject(dragging, status);
+      setDragging(null);
+    }
   };
 
   const toggleField = (id: string, field: 'printed' | 'paid' | 'sent') => {
