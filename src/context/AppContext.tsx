@@ -94,11 +94,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         const lsSettings = loadJSON<AppSettings | null>('pt_settings', null);
         const hasLocal = lsProjects.length || lsExpenses.length || lsTemplates.length || lsFilament.length || lsSettings;
         if (hasLocal) {
-          if (lsProjects.length) await supabase.from('projects').upsert(lsProjects.map(p => ({ id: p.id, user_id: userId, data: p })));
-          if (lsExpenses.length) await supabase.from('expenses').upsert(lsExpenses.map(e => ({ id: e.id, user_id: userId, data: e })));
-          if (lsTemplates.length) await supabase.from('templates').upsert(lsTemplates.map(t => ({ id: t.id, user_id: userId, data: t })));
-          if (lsFilament.length) await supabase.from('filament_purchases').upsert(lsFilament.map(f => ({ id: f.id, user_id: userId, data: f })));
-          if (lsSettings) await supabase.from('user_settings').upsert({ user_id: userId, data: lsSettings });
+          if (lsProjects.length) await supabase.from('projects').upsert(lsProjects.map(p => ({ id: p.id, user_id: userId, data: p as any })));
+          if (lsExpenses.length) await supabase.from('expenses').upsert(lsExpenses.map(e => ({ id: e.id, user_id: userId, data: e as any })));
+          if (lsTemplates.length) await supabase.from('templates').upsert(lsTemplates.map(t => ({ id: t.id, user_id: userId, data: t as any })));
+          if (lsFilament.length) await supabase.from('filament_purchases').upsert(lsFilament.map(f => ({ id: f.id, user_id: userId, data: f as any })));
+          if (lsSettings) await supabase.from('user_settings').upsert({ user_id: userId, data: lsSettings as any });
           nextProjects = lsProjects.length ? lsProjects : nextProjects;
           nextExpenses = lsExpenses.length ? lsExpenses : nextExpenses;
           nextTemplates = lsTemplates.length ? lsTemplates : nextTemplates;
@@ -197,7 +197,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const updateSettings = useCallback((s: AppSettings) => {
     setSettings(s);
-    if (userId) supabase.from('user_settings').upsert({ user_id: userId, data: s }).then(({ error }) => error && console.error(error));
+    if (userId) supabase.from('user_settings').upsert({ user_id: userId, data: s as any }).then(({ error }) => error && console.error(error));
   }, [userId]);
 
   const addTemplate = useCallback((t: PrintTemplate) => { setTemplates(prev => [t, ...prev]); up('templates', t.id, t); }, [userId]);
@@ -225,11 +225,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       supabase.from('templates').delete().eq('user_id', userId),
       supabase.from('filament_purchases').delete().eq('user_id', userId),
     ]);
-    if (data.projects.length) await supabase.from('projects').upsert(data.projects.map(p => ({ id: p.id, user_id: userId, data: p })));
-    if (data.expenses.length) await supabase.from('expenses').upsert(data.expenses.map(e => ({ id: e.id, user_id: userId, data: e })));
-    if (data.templates.length) await supabase.from('templates').upsert(data.templates.map(t => ({ id: t.id, user_id: userId, data: t })));
-    if (data.filamentPurchases.length) await supabase.from('filament_purchases').upsert(data.filamentPurchases.map(f => ({ id: f.id, user_id: userId, data: f })));
-    await supabase.from('user_settings').upsert({ user_id: userId, data: data.settings });
+    if (data.projects.length) await supabase.from('projects').upsert(data.projects.map(p => ({ id: p.id, user_id: userId, data: p as any })));
+    if (data.expenses.length) await supabase.from('expenses').upsert(data.expenses.map(e => ({ id: e.id, user_id: userId, data: e as any })));
+    if (data.templates.length) await supabase.from('templates').upsert(data.templates.map(t => ({ id: t.id, user_id: userId, data: t as any })));
+    if (data.filamentPurchases.length) await supabase.from('filament_purchases').upsert(data.filamentPurchases.map(f => ({ id: f.id, user_id: userId, data: f as any })));
+    await supabase.from('user_settings').upsert({ user_id: userId, data: data.settings as any });
   }, [userId]);
 
   const allPrintNames = React.useMemo(() => {
