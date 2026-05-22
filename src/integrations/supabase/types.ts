@@ -14,7 +14,141 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      expenses: {
+        Row: {
+          data: Json
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          data: Json
+          id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          data?: Json
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      filament_purchases: {
+        Row: {
+          data: Json
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          data: Json
+          id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          data?: Json
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          demo_mode: boolean
+          display_name: string | null
+          language: string
+          migrated_at: string | null
+          updated_at: string
+          user_id: string
+          welcome_dismissed: boolean
+        }
+        Insert: {
+          created_at?: string
+          demo_mode?: boolean
+          display_name?: string | null
+          language?: string
+          migrated_at?: string | null
+          updated_at?: string
+          user_id: string
+          welcome_dismissed?: boolean
+        }
+        Update: {
+          created_at?: string
+          demo_mode?: boolean
+          display_name?: string | null
+          language?: string
+          migrated_at?: string | null
+          updated_at?: string
+          user_id?: string
+          welcome_dismissed?: boolean
+        }
+        Relationships: []
+      }
+      projects: {
+        Row: {
+          data: Json
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          data: Json
+          id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          data?: Json
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      templates: {
+        Row: {
+          data: Json
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          data: Json
+          id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          data?: Json
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_settings: {
+        Row: {
+          data: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          data: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          data?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
