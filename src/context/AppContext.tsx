@@ -78,10 +78,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (cancelled) return;
 
       let nextProjects = (pjs.data || []).map(r => normalizeProject(r.data as any));
-      let nextExpenses = (exs.data || []).map(r => r.data as Expense);
-      let nextTemplates = (tps.data || []).map(r => r.data as PrintTemplate);
-      let nextFilament = (fps.data || []).map(r => r.data as FilamentPurchase);
-      let nextSettings: AppSettings = (st.data?.data as AppSettings) || DEFAULT_SETTINGS;
+      let nextExpenses = (exs.data || []).map(r => r.data as unknown as Expense);
+      let nextTemplates = (tps.data || []).map(r => r.data as unknown as PrintTemplate);
+      let nextFilament = (fps.data || []).map(r => r.data as unknown as FilamentPurchase);
+      let nextSettings: AppSettings = (st.data?.data as unknown as AppSettings) || DEFAULT_SETTINGS;
 
       // One-time localStorage migration
       const alreadyMigrated = profile.data?.migrated_at != null;
