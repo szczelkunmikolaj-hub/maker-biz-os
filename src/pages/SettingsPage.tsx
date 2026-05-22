@@ -1,13 +1,21 @@
+import { useRef } from "react";
 import { useApp } from "@/context/AppContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import posthog from "@/lib/posthog";
 
 export default function SettingsPage() {
   const { settings, updateSettings } = useApp();
+  const captureTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const update = (key: string, value: number) =>
+  const update = (key: string, value: number) => {
     updateSettings({ ...settings, [key]: value });
+    if (captureTimerRef.current) clearTimeout(captureTimerRef.current);
+    captureTimerRef.current = setTimeout(() => {
+      posthog.capture('settings_updated', { setting_key: key, new_value: value });
+    }, 1500);
+  };
 
   return (
     <div className="space-y-6 max-w-lg">

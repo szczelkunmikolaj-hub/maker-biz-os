@@ -83,7 +83,7 @@ export default function FilamentPurchases() {
                   <TableCell className="text-sm">{fp.spoolWeight}g</TableCell>
                   <TableCell className="text-right font-mono">€{(fp.totalCost || 0).toFixed(2)}</TableCell>
                   <TableCell>
-                    <Button size="icon" variant="ghost" className="text-destructive h-8 w-8" onClick={() => deleteFilamentPurchase(fp.id)}>
+                    <Button size="icon" variant="ghost" className="text-destructive h-8 w-8" onClick={() => { posthog.capture('filament_purchase_deleted', { material_type: fp.materialType, total_cost: fp.totalCost }); deleteFilamentPurchase(fp.id); }}>
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </TableCell>

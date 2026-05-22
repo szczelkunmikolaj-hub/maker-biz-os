@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Plus, Trash2 } from "lucide-react";
+import posthog from "@/lib/posthog";
 
 function newTemplate(): PrintTemplate {
   return { id: crypto.randomUUID(), name: "", estimatedPrintTime: 0, materialUsed: 0, notes: "" };
@@ -22,6 +23,11 @@ export default function TemplatesPage() {
   const handleAdd = () => {
     if (!draft.name) return;
     addTemplate(draft);
+    posthog.capture('template_created', {
+      estimated_print_time: draft.estimatedPrintTime,
+      material_used_g: draft.materialUsed,
+      has_notes: !!draft.notes,
+    });
     setDraft(newTemplate());
     setShowAdd(false);
   };
@@ -60,7 +66,7 @@ export default function TemplatesPage() {
                   <TableCell className="font-mono text-sm">{t.materialUsed}g</TableCell>
                   <TableCell className="text-sm text-muted-foreground">{t.notes || "—"}</TableCell>
                   <TableCell>
-                    <Button size="icon" variant="ghost" className="text-destructive h-8 w-8" onClick={() => deleteTemplate(t.id)}>
+                    <Button size="icon" variant="ghost" className="text-destructive h-8 w-8" onClick={() => { deleteTemplate(t.id); posthog.capture('template_deleted'); }}>
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </TableCell>
