@@ -1,11 +1,12 @@
 import {
-  LayoutDashboard, FolderKanban, Columns3, Receipt, Calculator, Settings, BookTemplate, Upload, Calendar, Package, Database, Truck, ExternalLink,
+  LayoutDashboard, FolderKanban, Columns3, Receipt, Calculator, Settings, BookTemplate, Upload, Calendar, Package, Database, Truck, ExternalLink, LogOut,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
+import { useAuth } from "@/context/AuthContext";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent,
-  SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader, useSidebar,
+  SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader, SidebarFooter, useSidebar,
 } from "@/components/ui/sidebar";
 
 const items = [
