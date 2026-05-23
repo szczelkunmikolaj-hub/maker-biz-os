@@ -1,44 +1,41 @@
 import { useState, useEffect, useRef } from "react";
 import { useApp } from "@/context/AppContext";
 import { useTranslation } from "react-i18next";
+import { Link } from "react-router-dom";
 import posthog from "@/lib/posthog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { DollarSign, Clock, Weight, TrendingUp, Calculator } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { DollarSign, Clock, Weight, TrendingUp, Calculator, Zap, User } from "lucide-react";
 
-/**
- * Time-based cost with diminishing returns:
- * - First 5 hours: full rate
- * - Next 10 hours: 70% rate
- * - Remaining hours: 40% rate
- */
-function calculateTimeCost(hours: number, hourlyRate: number): number {
-  if (hours <= 0) return 0;
-  let cost = 0;
-  const tier1 = Math.min(hours, 5);
-  cost += tier1 * hourlyRate;
-  const tier2 = Math.min(Math.max(hours - 5, 0), 10);
-  cost += tier2 * hourlyRate * 0.7;
-  const tier3 = Math.max(hours - 15, 0);
-  cost += tier3 * hourlyRate * 0.4;
-  return cost;
-}
-
-export default function QuoteGenerator() {
+export default function QuoteGenerator({ isPublic = false }: { isPublic?: boolean }) {
   const { settings } = useApp();
   const { t } = useTranslation();
-  const [grams, setGrams] = useState(0);
-  const [hours, setHours] = useState(0);
-  const [margin, setMargin] = useState(50);
-  const [hourlyRate, setHourlyRate] = useState(2.5);
 
-  const materialCost = grams * settings.filamentCostPerGram;
-  const timeCost = calculateTimeCost(hours, hourlyRate);
-  const totalCost = materialCost + timeCost;
+  const [grams, setGrams] = useState(100);
+  const [filamentCostKg, setFilamentCostKg] = useState(20);
+  const [hours, setHours] = useState(2);
+  const [electricityRate, setElectricityRate] = useState(0.10);
+  const [labourRate, setLabourRate] = useState(0);
+  const [margin, setMargin] = useState(20);
+
+  // For logged-in users, sync filament cost from settings on first load
+  useEffect(() => {
+    if (!isPublic && settings.filamentCostPerGram > 0) {
+      setFilamentCostKg(Math.round(settings.filamentCostPerGram * 1000 * 100) / 100);
+    }
+  }, [settings.filamentCostPerGram, isPublic]);
+
+  const filamentCostPerGram = filamentCostKg / 1000;
+  const materialCost = grams * filamentCostPerGram;
+  const electricityCost = hours * electricityRate;
+  const labourCost = hours * labourRate;
+  const totalCost = materialCost + electricityCost + labourCost;
   const suggestedPrice = margin < 100 ? totalCost / (1 - margin / 100) : totalCost;
   const profit = suggestedPrice - totalCost;
+  const profitMarginActual = suggestedPrice > 0 ? (profit / suggestedPrice * 100) : 0;
 
   const captureTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
@@ -48,14 +45,17 @@ export default function QuoteGenerator() {
       posthog.capture('quote_calculated', {
         grams,
         hours,
-        hourly_rate: hourlyRate,
+        filament_cost_kg: filamentCostKg,
+        electricity_rate: electricityRate,
+        labour_rate: labourRate,
         margin_percent: margin,
         suggested_price: parseFloat(suggestedPrice.toFixed(2)),
         total_cost: parseFloat(totalCost.toFixed(2)),
+        is_public: isPublic,
       });
     }, 2000);
     return () => { if (captureTimerRef.current) clearTimeout(captureTimerRef.current); };
-  }, [grams, hours, hourlyRate, margin, suggestedPrice, totalCost]);
+  }, [grams, hours, filamentCostKg, electricityRate, labourRate, margin, suggestedPrice, totalCost, isPublic]);
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
@@ -75,7 +75,7 @@ export default function QuoteGenerator() {
           <CardHeader className="pb-4">
             <CardTitle className="text-base">{t('quote.printParameters')}</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-5">
+          <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label className="flex items-center gap-2">
                 <Weight className="h-3.5 w-3.5 text-muted-foreground" />
@@ -83,11 +83,25 @@ export default function QuoteGenerator() {
               </Label>
               <Input
                 type="number"
-                placeholder="0"
+                min="0"
+                placeholder="100"
                 value={grams || ""}
                 onChange={e => setGrams(parseFloat(e.target.value) || 0)}
               />
-              <p className="text-xs text-muted-foreground">€{settings.filamentCostPerGram.toFixed(4)}/g {t('quote.fromSettings')}</p>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2">
+                <DollarSign className="h-3.5 w-3.5 text-muted-foreground" />
+                {t('quote.filamentCostKg')}
+              </Label>
+              <Input
+                type="number"
+                min="0"
+                step="0.5"
+                value={filamentCostKg || ""}
+                onChange={e => setFilamentCostKg(parseFloat(e.target.value) || 0)}
+              />
             </div>
 
             <div className="space-y-2">
@@ -98,24 +112,40 @@ export default function QuoteGenerator() {
               <Input
                 type="number"
                 step="0.5"
-                placeholder="0"
+                min="0"
+                placeholder="2"
                 value={hours || ""}
                 onChange={e => setHours(parseFloat(e.target.value) || 0)}
               />
-              <p className="text-xs text-muted-foreground">{t('quote.tieredRateDesc')}</p>
             </div>
 
             <div className="space-y-2">
               <Label className="flex items-center gap-2">
-                <DollarSign className="h-3.5 w-3.5 text-muted-foreground" />
-                {t('quote.hourlyRate')}
+                <Zap className="h-3.5 w-3.5 text-muted-foreground" />
+                {t('quote.electricityRate')}
+              </Label>
+              <Input
+                type="number"
+                step="0.01"
+                min="0"
+                value={electricityRate || ""}
+                onChange={e => setElectricityRate(parseFloat(e.target.value) || 0)}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2">
+                <User className="h-3.5 w-3.5 text-muted-foreground" />
+                {t('quote.labourRate')}
               </Label>
               <Input
                 type="number"
                 step="0.5"
-                value={hourlyRate}
-                onChange={e => setHourlyRate(parseFloat(e.target.value) || 0)}
+                min="0"
+                value={labourRate || ""}
+                onChange={e => setLabourRate(parseFloat(e.target.value) || 0)}
               />
+              <p className="text-xs text-muted-foreground">{t('quote.labourRateHint')}</p>
             </div>
 
             <div className="space-y-2">
@@ -125,6 +155,8 @@ export default function QuoteGenerator() {
               </Label>
               <Input
                 type="number"
+                min="0"
+                max="99"
                 value={margin}
                 onChange={e => setMargin(parseFloat(e.target.value) || 0)}
               />
@@ -137,16 +169,22 @@ export default function QuoteGenerator() {
           <CardHeader className="pb-4">
             <CardTitle className="text-base">{t('quote.quoteResult')}</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-3">
+          <CardContent className="space-y-3">
+            <div className="space-y-2.5">
               <div className="flex justify-between items-center">
                 <span className="text-sm text-muted-foreground">{t('quote.materialCost')}</span>
                 <span className="font-mono font-semibold">€{materialCost.toFixed(2)}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">{t('quote.timeCost')}</span>
-                <span className="font-mono font-semibold">€{timeCost.toFixed(2)}</span>
+                <span className="text-sm text-muted-foreground">{t('quote.electricityCost')}</span>
+                <span className="font-mono font-semibold">€{electricityCost.toFixed(2)}</span>
               </div>
+              {labourRate > 0 && (
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">{t('quote.labourCost')}</span>
+                  <span className="font-mono font-semibold">€{labourCost.toFixed(2)}</span>
+                </div>
+              )}
               <Separator />
               <div className="flex justify-between items-center">
                 <span className="text-sm font-medium">{t('quote.totalCost')}</span>
@@ -169,21 +207,29 @@ export default function QuoteGenerator() {
                   €{isFinite(profit) && profit >= 0 ? profit.toFixed(2) : "—"}
                 </span>
               </div>
-            </div>
-
-            {hours > 0 && (
-              <div className="rounded-lg bg-muted/30 p-3 space-y-1.5">
-                <p className="text-xs font-medium text-muted-foreground">{t('quote.timeCostBreakdown')}</p>
-                <div className="text-xs space-y-0.5">
-                  {hours > 0 && <p>First {Math.min(hours, 5).toFixed(1)}h × €{hourlyRate.toFixed(2)} = €{(Math.min(hours, 5) * hourlyRate).toFixed(2)}</p>}
-                  {hours > 5 && <p>Next {Math.min(hours - 5, 10).toFixed(1)}h × €{(hourlyRate * 0.7).toFixed(2)} = €{(Math.min(hours - 5, 10) * hourlyRate * 0.7).toFixed(2)}</p>}
-                  {hours > 15 && <p>Remaining {(hours - 15).toFixed(1)}h × €{(hourlyRate * 0.4).toFixed(2)} = €{((hours - 15) * hourlyRate * 0.4).toFixed(2)}</p>}
-                </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-muted-foreground">{t('quote.profitMargin')}</span>
+                <span className="font-mono font-semibold text-primary">
+                  {isFinite(profitMarginActual) ? profitMarginActual.toFixed(1) : "—"}%
+                </span>
               </div>
-            )}
+            </div>
           </CardContent>
         </Card>
       </div>
+
+      {isPublic && (
+        <Card className="border-primary/40 bg-primary/5">
+          <CardContent className="py-6 text-center space-y-3">
+            <p className="text-sm text-muted-foreground">
+              {t('quote.ctaDesc')}
+            </p>
+            <Button asChild size="lg">
+              <Link to="/auth?mode=signup">{t('quote.signUpCta')}</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

@@ -1,5 +1,6 @@
+import React, { useState } from "react";
 import {
-  LayoutDashboard, FolderKanban, Columns3, Receipt, Settings, Calendar, Package, Database, Truck, ExternalLink, LogOut, FlaskConical, Globe,
+  LayoutDashboard, FolderKanban, Columns3, Receipt, Settings, Calendar, Package, Database, Truck, ExternalLink, LogOut, FlaskConical, Globe, MessageSquare,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -12,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useTranslation } from "react-i18next";
 import i18n from "@/i18n";
 import { supabase, supabaseConfigured } from "@/integrations/supabase/client";
+import { FeedbackModal } from "@/components/FeedbackModal";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent,
   SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader, SidebarFooter, useSidebar,
@@ -33,6 +35,7 @@ export function AppSidebar() {
   const { user, signOut } = useAuth();
   const { isDemoMode, toggleDemoMode } = useDemo();
   const { t } = useTranslation();
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
 
   const allItems = [
     { title: t('nav.dashboard'), url: "/", icon: LayoutDashboard, hint: t('helpTips.dashboard') },
@@ -181,6 +184,16 @@ export function AppSidebar() {
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
+            <SidebarMenuButton
+              onClick={() => setFeedbackOpen(true)}
+              className="hover:bg-sidebar-accent text-sidebar-foreground/60 hover:text-sidebar-foreground"
+              title={t('feedback.button')}
+            >
+              <MessageSquare className="h-4 w-4" />
+              {!collapsed && <span>{t('feedback.button')}</span>}
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
             <SidebarMenuButton onClick={() => signOut()} className="hover:bg-sidebar-accent" title={t('nav.signOut')}>
               <LogOut className="h-4 w-4" />
               {!collapsed && <span>{t('nav.signOut')}</span>}
@@ -188,6 +201,7 @@ export function AppSidebar() {
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>
+      <FeedbackModal open={feedbackOpen} onClose={() => setFeedbackOpen(false)} />
     </Sidebar>
   );
 }

@@ -26,14 +26,17 @@ export function Layout() {
     "/calendar": t('nav.calendar'),
     "/expenses": t('nav.expenses'),
     "/filament": t('nav.filament'),
+    "/templates": t('nav.templates'),
+    "/quote": t('nav.quote'),
     "/data": t('nav.data'),
     "/settings": t('nav.settings'),
+    "/customer-orders": t('nav.customerOrders'),
   };
 
   const title = PAGE_TITLES[location.pathname] || "";
 
   useEffect(() => {
-    document.title = title ? `${title} — Maker Biz OS` : 'Maker Biz OS';
+    document.title = title ? `${title} — PrintTrack` : 'PrintTrack — 3D Printing Business Manager';
   }, [title]);
 
   return (

@@ -8,9 +8,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import posthog from "@/lib/posthog";
 import { useTranslation } from "react-i18next";
-import { FileSpreadsheet, Wand2 } from "lucide-react";
+import { FileSpreadsheet, Wand2, MessageSquare, Share2, Check } from "lucide-react";
 import { ImportFromSpreadsheet } from "@/components/ImportFromSpreadsheet";
 import { ImportFromAI } from "@/components/ImportFromAI";
+import { FeedbackModal } from "@/components/FeedbackModal";
 import { useToast } from "@/hooks/useToast";
 import { CURRENCIES } from "@/types";
 import type { Project } from "@/types";
@@ -24,6 +25,8 @@ export default function SettingsPage() {
   const captureTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [showSpreadsheetImport, setShowSpreadsheetImport] = useState(false);
   const [showAIImport, setShowAIImport] = useState(false);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const [shareCopied, setShareCopied] = useState(false);
   const [apiKeyInput, setApiKeyInput] = useState('');
   const storedKey = localStorage.getItem(API_KEY_LS);
 
@@ -38,6 +41,14 @@ export default function SettingsPage() {
     localStorage.setItem(API_KEY_LS, trimmed);
     setApiKeyInput('');
     toast.success(t('importAI.keySaved'));
+  };
+
+  const handleShare = () => {
+    const msg = "I use PrintTrack to manage my 3D printing business — it's free! printtrack.xyz";
+    navigator.clipboard.writeText(msg).then(() => {
+      setShareCopied(true);
+      setTimeout(() => setShareCopied(false), 2500);
+    });
   };
 
   const update = (key: string, value: number) => {
@@ -193,6 +204,36 @@ export default function SettingsPage() {
         </CardContent>
       </Card>
 
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Share2 className="h-4 w-4" />
+            {t('settings.shareTitle')}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Button variant="outline" onClick={handleShare} className="gap-2">
+            {shareCopied ? <Check className="h-4 w-4 text-green-600" /> : <Share2 className="h-4 w-4" />}
+            {shareCopied ? t('settings.shareCopied') : t('settings.shareButton')}
+          </Button>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <MessageSquare className="h-4 w-4" />
+            {t('feedback.button')}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Button variant="outline" onClick={() => setFeedbackOpen(true)} className="gap-2">
+            <MessageSquare className="h-4 w-4" />
+            {t('feedback.title')}
+          </Button>
+        </CardContent>
+      </Card>
+
       <ImportFromSpreadsheet
         open={showSpreadsheetImport}
         onClose={() => setShowSpreadsheetImport(false)}
@@ -203,6 +244,7 @@ export default function SettingsPage() {
         onClose={() => setShowAIImport(false)}
         onImport={handleBulkImport}
       />
+      <FeedbackModal open={feedbackOpen} onClose={() => setFeedbackOpen(false)} />
     </div>
   );
 }

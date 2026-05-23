@@ -72,7 +72,7 @@ export default function Landing() {
             <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
               <span className="text-primary-foreground font-bold text-sm" style={{ fontFamily: 'Space Grotesk' }}>PT</span>
             </div>
-            <span className="font-bold" style={{ fontFamily: 'Space Grotesk' }}>Maker Biz OS</span>
+            <span className="font-bold" style={{ fontFamily: 'Space Grotesk' }}>PrintTrack</span>
           </Link>
           <div className="flex items-center gap-2">
             <Select value={i18n.language} onValueChange={handleLanguageChange}>

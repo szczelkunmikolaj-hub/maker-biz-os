@@ -24,6 +24,7 @@ import CalendarPage from "@/pages/CalendarPage";
 import FilamentPurchases from "@/pages/FilamentPurchases";
 import DataManagement from "@/pages/DataManagement";
 import AuthPage from "@/pages/Auth";
+import PricingPage from "@/pages/PricingPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -41,6 +42,7 @@ const App = () => (
                 <Sonner />
                 <Routes>
                   <Route path="/auth" element={<AuthPage />} />
+                  <Route path="/pricing" element={<PricingPage />} />
                   <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
                     <Route path="/customer-orders" element={<AdminRoute><CustomerOrdersPage /></AdminRoute>} />
                     <Route path="/projects" element={<Projects />} />
