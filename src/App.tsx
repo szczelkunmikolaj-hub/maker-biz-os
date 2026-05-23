@@ -22,6 +22,7 @@ import CalendarPage from "@/pages/CalendarPage";
 import FilamentPurchases from "@/pages/FilamentPurchases";
 import DataManagement from "@/pages/DataManagement";
 import AuthPage from "@/pages/Auth";
+import AuthCallback from "@/pages/AuthCallback";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -39,6 +40,7 @@ const App = () => (
                 <Sonner />
                 <Routes>
                   <Route path="/auth" element={<AuthPage />} />
+                  <Route path="/auth/callback" element={<AuthCallback />} />
                   <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
                     <Route path="/projects" element={<Projects />} />
                     <Route path="/kanban" element={<KanbanBoard />} />

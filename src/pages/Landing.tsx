@@ -1,10 +1,28 @@
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Box, Clock, TrendingUp, Sparkles } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import i18n from '@/i18n';
+
+const LANGUAGES = [
+  { code: 'en', flag: '🇬🇧', label: 'English' },
+  { code: 'es', flag: '🇪🇸', label: 'Español' },
+  { code: 'de', flag: '🇩🇪', label: 'Deutsch' },
+  { code: 'pl', flag: '🇵🇱', label: 'Polski' },
+  { code: 'fr', flag: '🇫🇷', label: 'Français' },
+  { code: 'pt', flag: '🇧🇷', label: 'Português' },
+];
 
 export default function Landing() {
   const { t } = useTranslation();
+
+  const handleLanguageChange = (lang: string) => {
+    i18n.changeLanguage(lang);
+    localStorage.setItem('pt_language', lang);
+  };
+
+  const currentLang = LANGUAGES.find(l => l.code === i18n.language) || LANGUAGES[0];
 
   const features = [
     { icon: Box, title: t('landing.feature1Title'), desc: t('landing.feature1Desc') },
@@ -30,7 +48,19 @@ export default function Landing() {
             </div>
             <span className="font-bold" style={{ fontFamily: 'Space Grotesk' }}>Maker Biz OS</span>
           </Link>
-          <div className="flex gap-2">
+          <div className="flex items-center gap-2">
+            <Select value={i18n.language} onValueChange={handleLanguageChange}>
+              <SelectTrigger className="h-8 w-auto gap-1 border-0 bg-transparent px-2 text-sm">
+                <SelectValue>
+                  <span>{currentLang.flag} {currentLang.label}</span>
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {LANGUAGES.map(l => (
+                  <SelectItem key={l.code} value={l.code}>{l.flag} {l.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <Button variant="ghost" asChild><Link to="/auth?mode=signin">{t('auth.logIn')}</Link></Button>
             <Button asChild><Link to="/auth?mode=signup">{t('auth.signUp')}</Link></Button>
           </div>

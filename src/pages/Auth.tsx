@@ -50,7 +50,9 @@ export default function AuthPage() {
 
   const onGoogle = async () => {
     setBusy(true);
-    const result = await lovable.auth.signInWithOAuth('google', { redirect_uri: window.location.origin });
+    const result = await lovable.auth.signInWithOAuth('google', {
+      redirect_uri: 'https://maker-biz-os.lovable.app/auth/callback',
+    });
     if (result.error) { toast.error(t('auth.googleSignInFailed')); setBusy(false); return; }
     if (result.redirected) return;
     navigate('/');
