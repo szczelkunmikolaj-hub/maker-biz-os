@@ -10,7 +10,7 @@ const fr = {
     templates: "Modèles",
     importQueue: "File d'import",
     quote: "Calculateur de prix",
-    data: "Données",
+    data: "Importer & Exporter",
     settings: "Paramètres",
     demoMode: "Mode démo",
     signOut: "Se déconnecter",
@@ -276,7 +276,7 @@ const fr = {
     fromSettings: "depuis les paramètres",
   },
   data: {
-    title: "Gestion des données",
+    title: "Importer & Exporter",
     deviceId: "Votre identifiant d'appareil",
     deviceIdDesc: "Cet identifiant identifie votre appareil. Il sera utilisé pour la synchronisation cloud future.",
     copied: "Copié !",

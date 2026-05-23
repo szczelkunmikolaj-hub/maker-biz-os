@@ -1,5 +1,5 @@
 import {
-  LayoutDashboard, FolderKanban, Columns3, Receipt, Calculator, Settings, BookTemplate, Upload, Calendar, Package, Database, Truck, ExternalLink, LogOut, FlaskConical, Globe,
+  LayoutDashboard, FolderKanban, Columns3, Receipt, Settings, Calendar, Package, Database, Truck, ExternalLink, LogOut, FlaskConical, Globe,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -42,9 +42,6 @@ export function AppSidebar() {
     { title: t('nav.calendar'), url: "/calendar", icon: Calendar, hint: t('helpTips.calendar') },
     { title: t('nav.expenses'), url: "/expenses", icon: Receipt, hint: t('helpTips.expenses') },
     { title: t('nav.filament'), url: "/filament", icon: Package, hint: t('helpTips.filament') },
-    { title: t('nav.templates'), url: "/templates", icon: BookTemplate },
-    { title: t('nav.importQueue'), url: "/import", icon: Upload },
-    { title: t('nav.quote'), url: "/quote", icon: Calculator },
     { title: t('nav.data'), url: "/data", icon: Database },
     { title: t('nav.settings'), url: "/settings", icon: Settings },
   ];

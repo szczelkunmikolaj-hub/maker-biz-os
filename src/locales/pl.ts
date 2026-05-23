@@ -10,7 +10,7 @@ const pl = {
     templates: "Szablony",
     importQueue: "Kolejka importu",
     quote: "Kalkulator cen",
-    data: "Dane",
+    data: "Import i Eksport",
     settings: "Ustawienia",
     demoMode: "Tryb demo",
     signOut: "Wyloguj",
@@ -276,7 +276,7 @@ const pl = {
     fromSettings: "z ustawień",
   },
   data: {
-    title: "Zarządzanie danymi",
+    title: "Import i Eksport",
     deviceId: "Twój identyfikator urządzenia",
     deviceIdDesc: "Ten identyfikator identyfikuje twoje urządzenie. Będzie używany do przyszłej synchronizacji z chmurą.",
     copied: "Skopiowano!",

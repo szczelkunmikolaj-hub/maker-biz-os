@@ -10,7 +10,7 @@ const pt = {
     templates: "Modelos",
     importQueue: "Fila de importação",
     quote: "Calculadora de preços",
-    data: "Dados",
+    data: "Importar e Exportar",
     settings: "Configurações",
     demoMode: "Modo demo",
     signOut: "Sair",
@@ -276,7 +276,7 @@ const pt = {
     fromSettings: "das configurações",
   },
   data: {
-    title: "Gerenciamento de dados",
+    title: "Importar e Exportar",
     deviceId: "Seu ID de dispositivo",
     deviceIdDesc: "Este ID identifica seu dispositivo. Será usado para sincronização na nuvem futura.",
     copied: "Copiado!",

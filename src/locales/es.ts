@@ -10,7 +10,7 @@ const es = {
     templates: "Plantillas",
     importQueue: "Cola de importación",
     quote: "Calculadora de precios",
-    data: "Datos",
+    data: "Importar y Exportar",
     settings: "Configuración",
     demoMode: "Modo demo",
     signOut: "Cerrar sesión",
@@ -276,7 +276,7 @@ const es = {
     fromSettings: "desde configuración",
   },
   data: {
-    title: "Gestión de datos",
+    title: "Importar y Exportar",
     deviceId: "Tu ID de dispositivo",
     deviceIdDesc: "Este ID identifica tu dispositivo. Se usará para sincronización en la nube.",
     copied: "¡Copiado!",

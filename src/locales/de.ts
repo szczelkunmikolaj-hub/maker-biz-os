@@ -10,7 +10,7 @@ const de = {
     templates: "Vorlagen",
     importQueue: "Import-Warteschlange",
     quote: "Preisrechner",
-    data: "Daten",
+    data: "Importieren & Exportieren",
     settings: "Einstellungen",
     demoMode: "Demo-Modus",
     signOut: "Abmelden",
@@ -276,7 +276,7 @@ const de = {
     fromSettings: "aus Einstellungen",
   },
   data: {
-    title: "Datenverwaltung",
+    title: "Importieren & Exportieren",
     deviceId: "Deine Geräte-ID",
     deviceIdDesc: "Diese ID identifiziert dein Gerät. Sie wird für zukünftige Cloud-Synchronisierung verwendet.",
     copied: "Kopiert!",

@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { usePersistedState } from "@/hooks/usePersistedState";
 import { useApp } from "@/context/AppContext";
 import { useMonth } from "@/context/MonthContext";
-import { Project, CustomerSource, PaymentMethod, getProjectProgress, getProjectTotalPieces, getProjectPiecesTotal, getProjectExpensesTotal, getProjectTotalPrintTime, getProjectTotalMaterial } from "@/types";
+import { Project, CustomerSource, PaymentMethod, PrintTemplate, getProjectProgress, getProjectTotalPieces, getProjectPiecesTotal, getProjectExpensesTotal, getProjectTotalPrintTime, getProjectTotalMaterial } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -15,7 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
-import { Plus, Search, Download, ArrowUpDown, Printer, Package, Clock, Calendar, CreditCard, Sparkles, Upload, ChevronDown, FileSpreadsheet, Wand2 } from "lucide-react";
+import { Plus, Search, Download, ArrowUpDown, Printer, Package, Clock, Calendar, CreditCard, Sparkles, Upload, ChevronDown, FileSpreadsheet, Wand2, BookTemplate, Trash2 } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import ProjectDetail from "@/components/ProjectDetail";
 import { parseISO, isBefore } from "date-fns";
@@ -31,11 +31,16 @@ import { normalizeMaterial } from "@/lib/normalize";
 import posthog from "@/lib/posthog";
 import { ImportFromSpreadsheet } from "@/components/ImportFromSpreadsheet";
 import { ImportFromAI } from "@/components/ImportFromAI";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const SOURCES: CustomerSource[] = ["Wallapop", "Instagram", "Website", "Other"];
 const PAYMENT_METHODS: PaymentMethod[] = ["Cash", "PayPal", "Bank Transfer", "Bizum", "Other"];
 
 type SortKey = "date" | "price" | "paid" | "shipped";
+
+function newTemplate(): PrintTemplate {
+  return { id: crypto.randomUUID(), name: "", estimatedPrintTime: 0, materialUsed: 0, notes: "" };
+}
 
 function newProject(): Project {
   return {
@@ -48,9 +53,10 @@ function newProject(): Project {
 }
 
 export default function Projects() {
-  const { projects, addProject, updateProject } = useApp();
+  const { projects, addProject, updateProject, templates, addTemplate, deleteTemplate } = useApp();
   const { filterProjectsForWorkflow, mode } = useMonth();
   const { t } = useTranslation();
+  const [activeTab, setActiveTab] = useState<"projects" | "templates">("projects");
   const [search, setSearch] = useState("");
   const [filter, setFilter] = usePersistedState<string>("projects_filter", "all");
   const [sortBy, setSortBy] = usePersistedState<SortKey>("projects_sort", "date");
@@ -63,6 +69,8 @@ export default function Projects() {
   const [appendTargetId, setAppendTargetId] = useState<string | null>(null);
   const [showSpreadsheetImport, setShowSpreadsheetImport] = useState(false);
   const [showAIImport, setShowAIImport] = useState(false);
+  const [showAddTemplate, setShowAddTemplate] = useState(false);
+  const [templateDraft, setTemplateDraft] = useState<PrintTemplate>(newTemplate());
 
   // Sync URL param to selectedId
   useEffect(() => {
@@ -132,6 +140,14 @@ export default function Projects() {
     posthog.capture('projects_bulk_imported', { count: imported.length });
   };
 
+  const handleAddTemplate = () => {
+    if (!templateDraft.name) return;
+    addTemplate(templateDraft);
+    posthog.capture('template_created', { estimated_print_time: templateDraft.estimatedPrintTime });
+    setTemplateDraft(newTemplate());
+    setShowAddTemplate(false);
+  };
+
   const toggleStatus = (id: string, field: 'printed' | 'paid' | 'sent') => {
     const proj = projects.find(p => p.id === id);
     if (proj) {
@@ -162,9 +178,15 @@ export default function Projects() {
   }
 
   return (
-    <div className="space-y-4">
+    <Tabs value={activeTab} onValueChange={v => setActiveTab(v as "projects" | "templates")} className="space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-2">
-        <h1 className="text-2xl font-bold">{t('projects.title')}</h1>
+        <TabsList>
+          <TabsTrigger value="projects">{t('nav.projects')}</TabsTrigger>
+          <TabsTrigger value="templates" className="flex items-center gap-1.5">
+            <BookTemplate className="h-3.5 w-3.5" />{t('nav.templates')}
+          </TabsTrigger>
+        </TabsList>
+        {activeTab === 'projects' && (
         <div className="flex gap-2">
           <Button size="sm" variant="outline" onClick={exportCSV}><Download className="h-4 w-4 mr-1" />{t('common.csv')}</Button>
           <DropdownMenu>
@@ -215,8 +237,15 @@ export default function Projects() {
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
+        )}
+        {activeTab === 'templates' && (
+          <Button size="sm" onClick={() => setShowAddTemplate(true)}>
+            <Plus className="h-4 w-4 mr-1" />{t('templates.newTemplate')}
+          </Button>
+        )}
       </div>
 
+      <TabsContent value="projects" className="space-y-4">
       <div className="flex gap-2 flex-wrap items-center">
         <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -400,6 +429,38 @@ export default function Projects() {
           })}
         </div>
       )}
+      </TabsContent>
+
+      <TabsContent value="templates" className="space-y-4">
+        <p className="text-sm text-muted-foreground">{t('templates.description')}</p>
+        {templates.length === 0 ? (
+          <Card><CardContent className="p-8 text-center text-muted-foreground">{t('templates.noTemplates')}</CardContent></Card>
+        ) : (
+          <div className="space-y-2">
+            {templates.map(tmpl => (
+              <Card key={tmpl.id}>
+                <CardContent className="p-3 flex items-center justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-sm">{tmpl.name}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {tmpl.estimatedPrintTime}h · {tmpl.materialUsed}g
+                      {tmpl.notes ? ` · ${tmpl.notes}` : ''}
+                    </p>
+                  </div>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="text-destructive h-8 w-8 shrink-0"
+                    onClick={() => deleteTemplate(tmpl.id)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+      </TabsContent>
 
       <Dialog open={showAdd} onOpenChange={setShowAdd}>
         <DialogContent>
@@ -483,6 +544,31 @@ export default function Projects() {
           </div>
         </ImportDialogContent>
       </ImportDialog>
-    </div>
+
+      <Dialog open={showAddTemplate} onOpenChange={setShowAddTemplate}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>{t('templates.dialogTitle')}</DialogTitle></DialogHeader>
+          <div className="grid gap-3">
+            <div>
+              <Label>{t('templates.printName')}</Label>
+              <Input value={templateDraft.name} onChange={e => setTemplateDraft({ ...templateDraft, name: e.target.value })} />
+            </div>
+            <div>
+              <Label>{t('templates.estimatedPrintTime')}</Label>
+              <Input type="number" step="0.1" value={templateDraft.estimatedPrintTime || ""} onChange={e => setTemplateDraft({ ...templateDraft, estimatedPrintTime: parseFloat(e.target.value) || 0 })} />
+            </div>
+            <div>
+              <Label>{t('templates.materialUsed')}</Label>
+              <Input type="number" value={templateDraft.materialUsed || ""} onChange={e => setTemplateDraft({ ...templateDraft, materialUsed: parseFloat(e.target.value) || 0 })} />
+            </div>
+            <div>
+              <Label>{t('common.notes')}</Label>
+              <Textarea value={templateDraft.notes} onChange={e => setTemplateDraft({ ...templateDraft, notes: e.target.value })} />
+            </div>
+          </div>
+          <DialogFooter><Button onClick={handleAddTemplate}>{t('templates.saveTemplate')}</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </Tabs>
   );
 }
