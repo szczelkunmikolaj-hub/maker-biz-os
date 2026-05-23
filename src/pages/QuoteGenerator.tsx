@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useApp } from "@/context/AppContext";
+import { useTranslation } from "react-i18next";
 import posthog from "@/lib/posthog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -27,6 +28,7 @@ function calculateTimeCost(hours: number, hourlyRate: number): number {
 
 export default function QuoteGenerator() {
   const { settings } = useApp();
+  const { t } = useTranslation();
   const [grams, setGrams] = useState(0);
   const [hours, setHours] = useState(0);
   const [margin, setMargin] = useState(50);
@@ -62,8 +64,8 @@ export default function QuoteGenerator() {
           <Calculator className="h-5 w-5 text-primary" />
         </div>
         <div>
-          <h1 className="text-2xl font-bold">Quote Generator</h1>
-          <p className="text-sm text-muted-foreground">Calculate pricing with time-based cost scaling</p>
+          <h1 className="text-2xl font-bold">{t('quote.title')}</h1>
+          <p className="text-sm text-muted-foreground">{t('quote.description')}</p>
         </div>
       </div>
 
@@ -71,13 +73,13 @@ export default function QuoteGenerator() {
         {/* Inputs */}
         <Card>
           <CardHeader className="pb-4">
-            <CardTitle className="text-base">Print Parameters</CardTitle>
+            <CardTitle className="text-base">{t('quote.printParameters')}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-5">
             <div className="space-y-2">
               <Label className="flex items-center gap-2">
                 <Weight className="h-3.5 w-3.5 text-muted-foreground" />
-                Material (grams)
+                {t('quote.material')}
               </Label>
               <Input
                 type="number"
@@ -85,13 +87,13 @@ export default function QuoteGenerator() {
                 value={grams || ""}
                 onChange={e => setGrams(parseFloat(e.target.value) || 0)}
               />
-              <p className="text-xs text-muted-foreground">€{settings.filamentCostPerGram.toFixed(4)}/g from settings</p>
+              <p className="text-xs text-muted-foreground">€{settings.filamentCostPerGram.toFixed(4)}/g {t('quote.fromSettings')}</p>
             </div>
 
             <div className="space-y-2">
               <Label className="flex items-center gap-2">
                 <Clock className="h-3.5 w-3.5 text-muted-foreground" />
-                Print Time (hours)
+                {t('quote.printTime')}
               </Label>
               <Input
                 type="number"
@@ -100,13 +102,13 @@ export default function QuoteGenerator() {
                 value={hours || ""}
                 onChange={e => setHours(parseFloat(e.target.value) || 0)}
               />
-              <p className="text-xs text-muted-foreground">Tiered rate: 100% first 5h, 70% next 10h, 40% after</p>
+              <p className="text-xs text-muted-foreground">{t('quote.tieredRateDesc')}</p>
             </div>
 
             <div className="space-y-2">
               <Label className="flex items-center gap-2">
                 <DollarSign className="h-3.5 w-3.5 text-muted-foreground" />
-                Hourly Rate (€/h)
+                {t('quote.hourlyRate')}
               </Label>
               <Input
                 type="number"
@@ -119,7 +121,7 @@ export default function QuoteGenerator() {
             <div className="space-y-2">
               <Label className="flex items-center gap-2">
                 <TrendingUp className="h-3.5 w-3.5 text-muted-foreground" />
-                Profit Margin (%)
+                {t('quote.profitMargin')}
               </Label>
               <Input
                 type="number"
@@ -133,21 +135,21 @@ export default function QuoteGenerator() {
         {/* Results */}
         <Card className="border-primary/30 bg-accent/10">
           <CardHeader className="pb-4">
-            <CardTitle className="text-base">Quote Result</CardTitle>
+            <CardTitle className="text-base">{t('quote.quoteResult')}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-3">
               <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">Material Cost</span>
+                <span className="text-sm text-muted-foreground">{t('quote.materialCost')}</span>
                 <span className="font-mono font-semibold">€{materialCost.toFixed(2)}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">Time Cost</span>
+                <span className="text-sm text-muted-foreground">{t('quote.timeCost')}</span>
                 <span className="font-mono font-semibold">€{timeCost.toFixed(2)}</span>
               </div>
               <Separator />
               <div className="flex justify-between items-center">
-                <span className="text-sm font-medium">Total Cost</span>
+                <span className="text-sm font-medium">{t('quote.totalCost')}</span>
                 <span className="font-mono font-bold">€{totalCost.toFixed(2)}</span>
               </div>
             </div>
@@ -156,13 +158,13 @@ export default function QuoteGenerator() {
 
             <div className="rounded-xl bg-primary/5 border border-primary/20 p-4 space-y-3">
               <div className="flex justify-between items-center">
-                <span className="font-semibold">Suggested Price</span>
+                <span className="font-semibold">{t('quote.suggestedPrice')}</span>
                 <span className="font-mono font-bold text-2xl text-primary">
                   €{isFinite(suggestedPrice) && suggestedPrice >= 0 ? suggestedPrice.toFixed(2) : "—"}
                 </span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">Estimated Profit</span>
+                <span className="text-sm text-muted-foreground">{t('quote.estimatedProfit')}</span>
                 <span className="font-mono font-semibold text-primary">
                   €{isFinite(profit) && profit >= 0 ? profit.toFixed(2) : "—"}
                 </span>
@@ -171,7 +173,7 @@ export default function QuoteGenerator() {
 
             {hours > 0 && (
               <div className="rounded-lg bg-muted/30 p-3 space-y-1.5">
-                <p className="text-xs font-medium text-muted-foreground">Time Cost Breakdown</p>
+                <p className="text-xs font-medium text-muted-foreground">{t('quote.timeCostBreakdown')}</p>
                 <div className="text-xs space-y-0.5">
                   {hours > 0 && <p>First {Math.min(hours, 5).toFixed(1)}h × €{hourlyRate.toFixed(2)} = €{(Math.min(hours, 5) * hourlyRate).toFixed(2)}</p>}
                   {hours > 5 && <p>Next {Math.min(hours - 5, 10).toFixed(1)}h × €{(hourlyRate * 0.7).toFixed(2)} = €{(Math.min(hours - 5, 10) * hourlyRate * 0.7).toFixed(2)}</p>}

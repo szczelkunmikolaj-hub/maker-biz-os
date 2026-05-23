@@ -1,5 +1,6 @@
 import { useApp } from "@/context/AppContext";
 import { useMonth } from "@/context/MonthContext";
+import { useTranslation } from "react-i18next";
 import { KanbanStatus, getProjectTotalPrintTime, getProjectTotalMaterial, getProjectProgress } from "@/types";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -15,17 +16,18 @@ import { ColorPills } from "@/components/ColorPills";
 import { PlatePreview } from "@/components/PlatePreview";
 import posthog from "@/lib/posthog";
 
-const COLUMNS: { status: KanbanStatus; label: string; dotColor: string; bgClass: string }[] = [
-  { status: "new-order", label: "New Order",  dotColor: "bg-status-new",        bgClass: "bg-status-new/5 border-status-new/20" },
-  { status: "printing",  label: "Printing",   dotColor: "bg-status-printing",   bgClass: "bg-status-printing/5 border-status-printing/20" },
-  { status: "finished",  label: "Finished",   dotColor: "bg-status-ready",      bgClass: "bg-status-ready/5 border-status-ready/20" },
-  { status: "paid",      label: "Paid",       dotColor: "bg-status-postprocessing", bgClass: "bg-status-postprocessing/5 border-status-postprocessing/20" },
-  { status: "shipped",   label: "Shipped",    dotColor: "bg-status-completed",  bgClass: "bg-status-completed/5 border-status-completed/20" },
-];
-
 export default function KanbanBoard() {
   const { projects, moveProject, updateProject } = useApp();
   const { filterProjectsForWorkflow, mode } = useMonth();
+  const { t } = useTranslation();
+
+  const COLUMNS: { status: KanbanStatus; label: string; dotColor: string; bgClass: string }[] = [
+    { status: "new-order", label: t('kanban.newOrder'),  dotColor: "bg-status-new",        bgClass: "bg-status-new/5 border-status-new/20" },
+    { status: "printing",  label: t('kanban.printing'),  dotColor: "bg-status-printing",   bgClass: "bg-status-printing/5 border-status-printing/20" },
+    { status: "finished",  label: t('kanban.finished'),  dotColor: "bg-status-ready",      bgClass: "bg-status-ready/5 border-status-ready/20" },
+    { status: "paid",      label: t('kanban.paid'),      dotColor: "bg-status-postprocessing", bgClass: "bg-status-postprocessing/5 border-status-postprocessing/20" },
+    { status: "shipped",   label: t('kanban.shipped'),   dotColor: "bg-status-completed",  bgClass: "bg-status-completed/5 border-status-completed/20" },
+  ];
   const navigate = useNavigate();
   const [dragging, setDragging] = useState<string | null>(null);
   const [showAll, setShowAll] = usePersistedState<boolean>("kanban_show_all", true);
@@ -57,11 +59,11 @@ export default function KanbanBoard() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Kanban Board</h1>
+        <h1 className="text-2xl font-bold">{t('kanban.title')}</h1>
         {mode === 'month' && (
           <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer select-none">
             <Switch checked={showAll} onCheckedChange={setShowAll} className="h-5 w-9 [&>span]:h-4 [&>span]:w-4 data-[state=checked]:[&>span]:translate-x-4" />
-            Show All Projects
+            {t('kanban.showAllProjects')}
           </label>
         )}
       </div>
@@ -151,7 +153,7 @@ export default function KanbanBoard() {
                         {(["printed", "paid", "sent"] as const).map(field => (
                           <label key={field} className="flex items-center gap-1 cursor-pointer">
                             <Checkbox checked={p[field]} onCheckedChange={() => toggleField(p.id, field)} />
-                            <span className="text-[10px] capitalize">{field === 'sent' ? 'shipped' : field}</span>
+                            <span className="text-[10px]">{field === 'sent' ? t('kanban.shippedLabel') : field === 'paid' ? t('kanban.paidLabel') : t('kanban.printedLabel')}</span>
                           </label>
                         ))}
                       </div>
@@ -161,7 +163,7 @@ export default function KanbanBoard() {
               })}
               {items.length === 0 && (
                 <div className="text-xs text-muted-foreground text-center py-10 border-2 border-dashed rounded-lg">
-                  Drop here
+                  {t('kanban.dropHere')}
                 </div>
               )}
             </div>

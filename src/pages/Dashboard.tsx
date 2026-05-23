@@ -18,6 +18,7 @@ import {
   Printer, Award, BarChart3, AlertTriangle, Activity, ExternalLink,
 } from "lucide-react";
 import { useMemo, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import {
   format, parseISO, isBefore, startOfToday, startOfWeek, endOfWeek, eachMonthOfInterval, eachWeekOfInterval, eachDayOfInterval,
   startOfMonth, endOfMonth, startOfYear, endOfYear,
@@ -70,6 +71,7 @@ export default function Dashboard() {
   const { projects, expenses, totalFilamentPurchasesCost } = useApp();
   const { filterProjects, filterExpenses, interval, mode } = useMonth();
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   // Per-chart independent grouping — persisted
   const [revenueGrouping, setRevenueGrouping] = usePersistedState<ChartGrouping>("dash_chart_revenue", "month");
@@ -208,11 +210,11 @@ export default function Dashboard() {
 
   const statusDistribution = useMemo(() => {
     return [
-      { name: "Completed", value: stats.completedProjects, color: "hsl(168,60%,38%)" },
-      { name: "Active", value: stats.activeProjects, color: "hsl(220,60%,50%)" },
-      { name: "Overdue", value: stats.overdueProjects, color: "hsl(0,72%,51%)" },
+      { name: t('dashboard.completed'), value: stats.completedProjects, color: "hsl(168,60%,38%)" },
+      { name: t('dashboard.active'), value: stats.activeProjects, color: "hsl(220,60%,50%)" },
+      { name: t('dashboard.overdue'), value: stats.overdueProjects, color: "hsl(0,72%,51%)" },
     ].filter(d => d.value > 0);
-  }, [stats]);
+  }, [stats, t]);
 
   const insights = useMemo(() => {
     const dayMap = new Map<string, number>();
@@ -237,20 +239,20 @@ export default function Dashboard() {
       ? stats.netProfit / stats.totalPrintsCompleted : 0;
 
     return [
-      { label: "Best Day (Revenue)", value: bestDay ? `${format(parseISO(bestDay[0]), "MMM d, yyyy")} — €${bestDay[1].toFixed(2)}` : "—" },
-      { label: "Most Used Material", value: stats.mostUsedMaterial },
-      { label: "Busiest Week", value: busiestWeek ? `${busiestWeek[0]} (${busiestWeek[1]} orders)` : "—" },
-      { label: "Avg Profit/Print", value: `€${avgProfitPerPrint.toFixed(2)}` },
+      { label: t('dashboard.bestDay'), value: bestDay ? `${format(parseISO(bestDay[0]), "MMM d, yyyy")} — €${bestDay[1].toFixed(2)}` : "—" },
+      { label: t('dashboard.mostUsedMaterial'), value: stats.mostUsedMaterial },
+      { label: t('dashboard.busiestWeek'), value: busiestWeek ? `${busiestWeek[0]} (${busiestWeek[1]} ${t('dashboard.ordersLabel')})` : "—" },
+      { label: t('dashboard.avgProfitPrint'), value: `€${avgProfitPerPrint.toFixed(2)}` },
     ];
-  }, [filteredProjects, stats]);
+  }, [filteredProjects, stats, t]);
 
   const kpis = [
-    { label: "Revenue", value: `€${stats.totalRevenue.toFixed(2)}`, icon: DollarSign, color: "text-emerald-600" },
-    { label: "Net Profit", value: `€${stats.netProfit.toFixed(2)}`, icon: TrendingUp, color: stats.netProfit >= 0 ? "text-emerald-600" : "text-destructive" },
-    { label: "Expenses", value: `€${stats.totalExpenses.toFixed(2)}`, icon: AlertTriangle, color: "text-destructive" },
-    { label: "Orders", value: stats.totalOrders, icon: Package, color: "text-primary" },
-    { label: "Hours Printed", value: `${stats.totalHoursPrinted.toFixed(1)}h`, icon: Clock, color: "text-primary" },
-    { label: "Material Used", value: `${stats.totalMaterial.toFixed(0)}g`, icon: Weight, color: "text-primary" },
+    { label: t('dashboard.revenue'), value: `€${stats.totalRevenue.toFixed(2)}`, icon: DollarSign, color: "text-emerald-600" },
+    { label: t('dashboard.netProfit'), value: `€${stats.netProfit.toFixed(2)}`, icon: TrendingUp, color: stats.netProfit >= 0 ? "text-emerald-600" : "text-destructive" },
+    { label: t('dashboard.expenses'), value: `€${stats.totalExpenses.toFixed(2)}`, icon: AlertTriangle, color: "text-destructive" },
+    { label: t('dashboard.orders'), value: stats.totalOrders, icon: Package, color: "text-primary" },
+    { label: t('dashboard.hoursPrinted'), value: `${stats.totalHoursPrinted.toFixed(1)}h`, icon: Clock, color: "text-primary" },
+    { label: t('dashboard.materialUsed'), value: `${stats.totalMaterial.toFixed(0)}g`, icon: Weight, color: "text-primary" },
   ];
 
   const tooltipStyle = { borderRadius: 8, fontSize: 12, border: "1px solid hsl(var(--border))" };
@@ -262,8 +264,8 @@ export default function Dashboard() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
-          <HelpTip text="Your business at a glance — revenue, profit, print hours, and active orders." />
+          <h1 className="text-2xl font-bold tracking-tight">{t('dashboard.title')}</h1>
+          <HelpTip text={t('dashboard.helpTip')} />
         </div>
         <p className="text-xs text-muted-foreground hidden lg:block">
           {new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
@@ -272,14 +274,14 @@ export default function Dashboard() {
 
       {noData && (
         <Card><CardContent className="p-8 text-center text-muted-foreground">
-          No data for this period. Try switching to "All Time" or selecting a different month.
+          {t('dashboard.noData')}
         </CardContent></Card>
       )}
 
       {/* KPI Grid */}
       <div className="flex items-center gap-1.5 -mb-1">
-        <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Key Metrics</span>
-        <HelpTip text="Calculated from paid & shipped orders for the selected time period." />
+        <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t('dashboard.keyMetrics')}</span>
+        <HelpTip text={t('dashboard.keyMetricsHint')} />
       </div>
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
         {kpis.map(k => (
@@ -300,31 +302,31 @@ export default function Dashboard() {
       {/* Print Performance + Project Insights Row */}
       <div className="grid md:grid-cols-3 gap-3">
         <Card className="border-border/60">
-          <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><Printer className="h-4 w-4 text-primary" />Print Performance</CardTitle></CardHeader>
+          <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><Printer className="h-4 w-4 text-primary" />{t('dashboard.printPerformance')}</CardTitle></CardHeader>
           <CardContent className="space-y-2">
-            <div className="flex justify-between text-sm"><span className="text-muted-foreground">Prints Completed</span><span className="font-semibold">{stats.totalPrintsCompleted}</span></div>
-            <div className="flex justify-between text-sm"><span className="text-muted-foreground">Total Hours</span><span className="font-semibold">{stats.totalHoursPrinted.toFixed(1)}h</span></div>
-            <div className="flex justify-between text-sm"><span className="text-muted-foreground">Avg Time/Print</span><span className="font-semibold">{stats.avgPrintTime.toFixed(1)}h</span></div>
+            <div className="flex justify-between text-sm"><span className="text-muted-foreground">{t('dashboard.printsCompleted')}</span><span className="font-semibold">{stats.totalPrintsCompleted}</span></div>
+            <div className="flex justify-between text-sm"><span className="text-muted-foreground">{t('dashboard.totalHours')}</span><span className="font-semibold">{stats.totalHoursPrinted.toFixed(1)}h</span></div>
+            <div className="flex justify-between text-sm"><span className="text-muted-foreground">{t('dashboard.avgTimePrint')}</span><span className="font-semibold">{stats.avgPrintTime.toFixed(1)}h</span></div>
           </CardContent>
         </Card>
 
         <Card className="border-border/60">
-          <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><Activity className="h-4 w-4 text-primary" />Efficiency</CardTitle></CardHeader>
+          <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><Activity className="h-4 w-4 text-primary" />{t('dashboard.efficiency')}</CardTitle></CardHeader>
           <CardContent className="space-y-2">
-            <div className="flex justify-between text-sm"><span className="text-muted-foreground">Completion Rate</span><span className="font-semibold">{stats.completionRate.toFixed(0)}%</span></div>
-            <div className="flex justify-between text-sm"><span className="text-muted-foreground">On-Time</span><span className="font-semibold text-emerald-600">{stats.onTime}</span></div>
-            <div className="flex justify-between text-sm"><span className="text-muted-foreground">Late</span><span className="font-semibold text-destructive">{stats.late}</span></div>
-            <div className="flex justify-between text-sm"><span className="text-muted-foreground">Avg Time/Project</span><span className="font-semibold">{stats.avgTimePerProject.toFixed(1)}h</span></div>
+            <div className="flex justify-between text-sm"><span className="text-muted-foreground">{t('dashboard.completionRate')}</span><span className="font-semibold">{stats.completionRate.toFixed(0)}%</span></div>
+            <div className="flex justify-between text-sm"><span className="text-muted-foreground">{t('dashboard.onTime')}</span><span className="font-semibold text-emerald-600">{stats.onTime}</span></div>
+            <div className="flex justify-between text-sm"><span className="text-muted-foreground">{t('dashboard.late')}</span><span className="font-semibold text-destructive">{stats.late}</span></div>
+            <div className="flex justify-between text-sm"><span className="text-muted-foreground">{t('dashboard.avgTimeProject')}</span><span className="font-semibold">{stats.avgTimePerProject.toFixed(1)}h</span></div>
           </CardContent>
         </Card>
 
         <Card className="border-border/60">
-          <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><Package className="h-4 w-4 text-primary" />Projects</CardTitle></CardHeader>
+          <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><Package className="h-4 w-4 text-primary" />{t('dashboard.projectsCard')}</CardTitle></CardHeader>
           <CardContent className="space-y-2">
-            <div className="flex justify-between text-sm"><span className="text-muted-foreground">Active</span><span className="font-semibold">{stats.activeProjects}</span></div>
-            <div className="flex justify-between text-sm"><span className="text-muted-foreground">Completed</span><span className="font-semibold text-emerald-600">{stats.completedProjects}</span></div>
-            <div className="flex justify-between text-sm"><span className="text-muted-foreground">Overdue</span><span className="font-semibold text-destructive">{stats.overdueProjects}</span></div>
-            <div className="flex justify-between text-sm"><span className="text-muted-foreground">Avg Profit/Project</span><span className="font-semibold">€{stats.avgProfitPerProject.toFixed(2)}</span></div>
+            <div className="flex justify-between text-sm"><span className="text-muted-foreground">{t('dashboard.active')}</span><span className="font-semibold">{stats.activeProjects}</span></div>
+            <div className="flex justify-between text-sm"><span className="text-muted-foreground">{t('dashboard.completed')}</span><span className="font-semibold text-emerald-600">{stats.completedProjects}</span></div>
+            <div className="flex justify-between text-sm"><span className="text-muted-foreground">{t('dashboard.overdue')}</span><span className="font-semibold text-destructive">{stats.overdueProjects}</span></div>
+            <div className="flex justify-between text-sm"><span className="text-muted-foreground">{t('dashboard.avgProfitProject')}</span><span className="font-semibold">€{stats.avgProfitPerProject.toFixed(2)}</span></div>
           </CardContent>
         </Card>
       </div>
@@ -335,14 +337,14 @@ export default function Dashboard() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Printer className="h-4 w-4 text-primary" />
-              <span className="text-sm font-semibold">Global Print Progress</span>
+              <span className="text-sm font-semibold">{t('dashboard.globalPrintProgress')}</span>
             </div>
             <span className="text-sm font-bold text-primary">{globalProgress.percent}%</span>
           </div>
           <Progress value={globalProgress.percent} className="h-2.5" />
           <div className="flex gap-4 text-xs text-muted-foreground">
-            <span>Completed: {globalProgress.completedHours.toFixed(1)}h</span>
-            <span>Remaining: {globalProgress.remainingHours.toFixed(1)}h</span>
+            <span>{t('dashboard.completedHours')}: {globalProgress.completedHours.toFixed(1)}h</span>
+            <span>{t('dashboard.remainingHours')}: {globalProgress.remainingHours.toFixed(1)}h</span>
           </div>
         </CardContent>
       </Card>
@@ -355,7 +357,7 @@ export default function Dashboard() {
       {/* Smart Insight Cards */}
       <Card className="border-border/60">
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm flex items-center gap-2"><Award className="h-4 w-4 text-primary" />Quick Insights</CardTitle>
+          <CardTitle className="text-sm flex items-center gap-2"><Award className="h-4 w-4 text-primary" />{t('dashboard.quickInsights')}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -374,13 +376,13 @@ export default function Dashboard() {
         <Card className="border-border/60">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-sm">Revenue Over Time</CardTitle>
+              <CardTitle className="text-sm">{t('dashboard.revenueOverTime')}</CardTitle>
               <ChartGroupingSelect value={revenueGrouping} onChange={setRevenueGrouping} />
             </div>
           </CardHeader>
           <CardContent>
             {revenueOverTime.length === 0 ? (
-              <p className="text-sm text-muted-foreground py-8 text-center">No completed orders yet.</p>
+              <p className="text-sm text-muted-foreground py-8 text-center">{t('dashboard.noCompletedOrders')}</p>
             ) : (
               <ResponsiveContainer width="100%" height={250}>
                 <LineChart data={revenueOverTime}>
@@ -388,7 +390,7 @@ export default function Dashboard() {
                   <XAxis dataKey="label" className="text-xs" tick={{ fontSize: 11 }} />
                   <YAxis className="text-xs" tick={{ fontSize: 11 }} />
                   <Tooltip contentStyle={tooltipStyle} />
-                  <Line type="monotone" dataKey="revenue" stroke="hsl(220,60%,50%)" strokeWidth={2} dot={{ r: 3 }} name="Revenue (€)" />
+                  <Line type="monotone" dataKey="revenue" stroke="hsl(220,60%,50%)" strokeWidth={2} dot={{ r: 3 }} name={`${t('dashboard.revenue')} (€)`} />
                 </LineChart>
               </ResponsiveContainer>
             )}
@@ -398,13 +400,13 @@ export default function Dashboard() {
         <Card className="border-border/60">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-sm">Profit vs Expenses</CardTitle>
+              <CardTitle className="text-sm">{t('dashboard.profitVsExpenses')}</CardTitle>
               <ChartGroupingSelect value={profitGrouping} onChange={setProfitGrouping} />
             </div>
           </CardHeader>
           <CardContent>
             {profitExpensesData.length === 0 ? (
-              <p className="text-sm text-muted-foreground py-8 text-center">No data yet.</p>
+              <p className="text-sm text-muted-foreground py-8 text-center">{t('dashboard.noDataYet')}</p>
             ) : (
               <ResponsiveContainer width="100%" height={250}>
                 <BarChart data={profitExpensesData}>
@@ -413,8 +415,8 @@ export default function Dashboard() {
                   <YAxis className="text-xs" tick={{ fontSize: 11 }} />
                   <Tooltip contentStyle={tooltipStyle} />
                   <Legend wrapperStyle={{ fontSize: 12 }} />
-                  <Bar dataKey="profit" fill="hsl(168,60%,38%)" radius={[4, 4, 0, 0]} name="Profit" />
-                  <Bar dataKey="expenses" fill="hsl(0,72%,51%)" radius={[4, 4, 0, 0]} name="Expenses" />
+                  <Bar dataKey="profit" fill="hsl(168,60%,38%)" radius={[4, 4, 0, 0]} name={t('dashboard.netProfit')} />
+                  <Bar dataKey="expenses" fill="hsl(0,72%,51%)" radius={[4, 4, 0, 0]} name={t('dashboard.expenses')} />
                 </BarChart>
               </ResponsiveContainer>
             )}
@@ -427,13 +429,13 @@ export default function Dashboard() {
         <Card className="border-border/60">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-sm">Hours Printed Over Time</CardTitle>
+              <CardTitle className="text-sm">{t('dashboard.hoursPrintedOverTime')}</CardTitle>
               <ChartGroupingSelect value={hoursGrouping} onChange={setHoursGrouping} />
             </div>
           </CardHeader>
           <CardContent>
             {hoursOverTime.every(h => (h as any).hours === 0) ? (
-              <p className="text-sm text-muted-foreground py-8 text-center">No print data yet.</p>
+              <p className="text-sm text-muted-foreground py-8 text-center">{t('dashboard.noPrintData')}</p>
             ) : (
               <ResponsiveContainer width="100%" height={250}>
                 <LineChart data={hoursOverTime}>
@@ -441,7 +443,7 @@ export default function Dashboard() {
                   <XAxis dataKey="label" className="text-xs" tick={{ fontSize: 11 }} />
                   <YAxis className="text-xs" tick={{ fontSize: 11 }} />
                   <Tooltip contentStyle={tooltipStyle} />
-                  <Line type="monotone" dataKey="hours" stroke="hsl(38,92%,50%)" strokeWidth={2} dot={{ r: 3 }} name="Hours" />
+                  <Line type="monotone" dataKey="hours" stroke="hsl(38,92%,50%)" strokeWidth={2} dot={{ r: 3 }} name={t('dashboard.hoursPrinted')} />
                 </LineChart>
               </ResponsiveContainer>
             )}
@@ -449,10 +451,10 @@ export default function Dashboard() {
         </Card>
 
         <Card className="border-border/60">
-          <CardHeader className="pb-2"><CardTitle className="text-sm">Material Usage Breakdown</CardTitle></CardHeader>
+          <CardHeader className="pb-2"><CardTitle className="text-sm">{t('dashboard.materialBreakdown')}</CardTitle></CardHeader>
           <CardContent>
             {stats.materialBreakdown.length === 0 ? (
-              <p className="text-sm text-muted-foreground py-8 text-center">No material data yet.</p>
+              <p className="text-sm text-muted-foreground py-8 text-center">{t('dashboard.noMaterialData')}</p>
             ) : (
               <ResponsiveContainer width="100%" height={250}>
                 <PieChart>
@@ -471,10 +473,10 @@ export default function Dashboard() {
       {/* Charts Row 3 */}
       <div className="grid md:grid-cols-2 gap-6">
         <Card className="border-border/60">
-          <CardHeader className="pb-2"><CardTitle className="text-sm">Project Status Distribution</CardTitle></CardHeader>
+          <CardHeader className="pb-2"><CardTitle className="text-sm">{t('dashboard.statusDistribution')}</CardTitle></CardHeader>
           <CardContent>
             {statusDistribution.length === 0 ? (
-              <p className="text-sm text-muted-foreground py-8 text-center">No projects yet.</p>
+              <p className="text-sm text-muted-foreground py-8 text-center">{t('dashboard.noProjects')}</p>
             ) : (
               <ResponsiveContainer width="100%" height={250}>
                 <PieChart>
@@ -491,7 +493,7 @@ export default function Dashboard() {
         </Card>
 
         <Card className="border-border/60">
-          <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><BarChart3 className="h-4 w-4" />Revenue by Source</CardTitle></CardHeader>
+          <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><BarChart3 className="h-4 w-4" />{t('dashboard.revenueBySource')}</CardTitle></CardHeader>
           <CardContent>
             {(() => {
               const sourceData = (() => {
@@ -505,7 +507,7 @@ export default function Dashboard() {
                 return Array.from(map.entries()).map(([name, v]) => ({ name, value: v.orders, revenue: v.revenue }));
               })();
               return sourceData.filter(s => s.revenue > 0).length === 0 ? (
-                <p className="text-sm text-muted-foreground py-8 text-center">No revenue data yet.</p>
+                <p className="text-sm text-muted-foreground py-8 text-center">{t('dashboard.noRevenueData')}</p>
               ) : (
                 <ResponsiveContainer width="100%" height={250}>
                   <BarChart data={sourceData.filter(s => s.revenue > 0)} layout="vertical">
@@ -513,7 +515,7 @@ export default function Dashboard() {
                     <XAxis type="number" className="text-xs" tick={{ fontSize: 11 }} />
                     <YAxis type="category" dataKey="name" className="text-xs" width={80} tick={{ fontSize: 11 }} />
                     <Tooltip contentStyle={tooltipStyle} />
-                    <Bar dataKey="revenue" fill="hsl(168,60%,38%)" radius={[0, 4, 4, 0]} name="Revenue (€)" />
+                    <Bar dataKey="revenue" fill="hsl(168,60%,38%)" radius={[0, 4, 4, 0]} name={`${t('dashboard.revenue')} (€)`} />
                   </BarChart>
                 </ResponsiveContainer>
               );
@@ -528,7 +530,7 @@ export default function Dashboard() {
           <CardHeader className="pb-2">
             <CardTitle className="text-sm flex items-center gap-2">
               <Package className="h-4 w-4 text-primary" />
-              Recent Projects
+              {t('dashboard.recentProjects')}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
@@ -558,14 +560,14 @@ export default function Dashboard() {
           <CardHeader className="pb-2">
             <CardTitle className="text-sm flex items-center gap-2">
               <Lightbulb className="h-4 w-4 text-yellow-500" />
-              Suggestions
+              {t('dashboard.suggestions')}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             {suggestions.map((s, i) => (
               <div key={i} className="rounded-lg border p-3 hover:bg-accent/20 transition-colors">
                 <div className="flex items-center gap-2 mb-1">
-                  <Badge variant="outline" className="text-xs">{s.type === "batch" ? "Batch" : "Next Print"}</Badge>
+                  <Badge variant="outline" className="text-xs">{s.type === "batch" ? t('dashboard.batch') : t('dashboard.nextPrint')}</Badge>
                 </div>
                 <p className="text-sm">{s.message}</p>
                 <div className="flex flex-wrap gap-1 mt-1.5">

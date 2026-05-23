@@ -10,25 +10,28 @@ import { GlobalStatusBar } from "@/components/GlobalStatusBar";
 import { CommandPalette } from "@/components/CommandPalette";
 import { WelcomeModal } from "@/components/WelcomeModal";
 import { useDemo } from "@/context/DemoContext";
-
-const PAGE_TITLES: Record<string, string> = {
-  "/": "Dashboard",
-  "/projects": "Projects",
-  "/kanban": "Kanban Board",
-  "/calendar": "Calendar",
-  "/expenses": "Expenses",
-  "/filament": "Filament",
-  "/templates": "Templates",
-  "/import": "Import Queue",
-  "/quote": "Quote Generator",
-  "/settings": "Settings",
-};
+import { useTranslation } from "react-i18next";
 
 export function Layout() {
   const location = useLocation();
-  const title = PAGE_TITLES[location.pathname] || "";
   const { mode, setMode, label, prevMonth, nextMonth } = useMonth();
   const { isDemoMode, toggleDemoMode } = useDemo();
+  const { t } = useTranslation();
+
+  const PAGE_TITLES: Record<string, string> = {
+    "/": t('nav.dashboard'),
+    "/projects": t('nav.projects'),
+    "/kanban": t('nav.kanban'),
+    "/calendar": t('nav.calendar'),
+    "/expenses": t('nav.expenses'),
+    "/filament": t('nav.filament'),
+    "/templates": t('nav.templates'),
+    "/import": t('nav.importQueue'),
+    "/quote": t('nav.quote'),
+    "/settings": t('nav.settings'),
+  };
+
+  const title = PAGE_TITLES[location.pathname] || "";
 
   return (
     <SidebarProvider>
@@ -44,7 +47,7 @@ export function Layout() {
               <div className="flex items-center gap-1.5">
                 <CalendarDays className="h-3.5 w-3.5 text-muted-foreground" />
                 <label className="text-xs text-muted-foreground cursor-pointer select-none" htmlFor="month-toggle">
-                  {mode === 'all' ? 'All Time' : 'Monthly'}
+                  {mode === 'all' ? t('common.allTime') : t('common.monthly')}
                 </label>
                 <Switch
                   id="month-toggle"
@@ -74,8 +77,8 @@ export function Layout() {
           <GlobalStatusBar />
           {isDemoMode && (
             <div className="bg-yellow-500/10 border-b border-yellow-500/25 px-4 py-2 flex items-center justify-between shrink-0">
-              <span className="text-sm font-medium text-yellow-700 dark:text-yellow-400">Demo mode — viewing sample data.</span>
-              <button onClick={toggleDemoMode} className="text-xs text-yellow-700 dark:text-yellow-400 underline hover:no-underline">Turn off</button>
+              <span className="text-sm font-medium text-yellow-700 dark:text-yellow-400">{t('demo.banner')}</span>
+              <button onClick={toggleDemoMode} className="text-xs text-yellow-700 dark:text-yellow-400 underline hover:no-underline">{t('demo.turnOff')}</button>
             </div>
           )}
           <main className="flex-1 overflow-auto p-4 md:p-6 animate-fade-in">

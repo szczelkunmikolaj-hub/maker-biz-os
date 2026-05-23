@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { usePersistedState } from "@/hooks/usePersistedState";
 import { useApp } from "@/context/AppContext";
 import { useMonth } from "@/context/MonthContext";
@@ -25,6 +26,7 @@ function newExpense(): Expense {
 export default function Expenses() {
   const { expenses, addExpense, deleteExpense, projects } = useApp();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const { filterExpenses, mode } = useMonth();
   const [showAdd, setShowAdd] = useState(false);
   const [draft, setDraft] = useState<Expense>(newExpense());
@@ -59,10 +61,10 @@ export default function Expenses() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-2">
-        <h1 className="text-2xl font-bold">Expenses</h1>
+        <h1 className="text-2xl font-bold">{t('expenses.title')}</h1>
         <div className="flex gap-2">
-          <Button size="sm" variant="outline" onClick={exportCSV}><Download className="h-4 w-4 mr-1" />CSV</Button>
-          <Button size="sm" onClick={() => setShowAdd(true)}><Plus className="h-4 w-4 mr-1" />Add Expense</Button>
+          <Button size="sm" variant="outline" onClick={exportCSV}><Download className="h-4 w-4 mr-1" />{t('common.csv')}</Button>
+          <Button size="sm" onClick={() => setShowAdd(true)}><Plus className="h-4 w-4 mr-1" />{t('expenses.addExpense')}</Button>
         </div>
       </div>
 
@@ -70,11 +72,11 @@ export default function Expenses() {
         <Select value={catFilter} onValueChange={setCatFilter}>
           <SelectTrigger className="w-[170px]"><SelectValue /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Categories</SelectItem>
+            <SelectItem value="all">{t('expenses.allCategories')}</SelectItem>
             {CATS.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
           </SelectContent>
         </Select>
-        <span className="text-sm text-muted-foreground">Total: <strong className="text-foreground">€{total.toFixed(2)}</strong></span>
+        <span className="text-sm text-muted-foreground">{t('expenses.total')}: <strong className="text-foreground">€{total.toFixed(2)}</strong></span>
       </div>
 
       <Card>
@@ -82,18 +84,18 @@ export default function Expenses() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Date</TableHead>
-                <TableHead>Name</TableHead>
-                <TableHead>Category</TableHead>
-                <TableHead>Project</TableHead>
-                <TableHead className="text-right">Amount</TableHead>
+                <TableHead>{t('expenses.tableDate')}</TableHead>
+                <TableHead>{t('expenses.tableName')}</TableHead>
+                <TableHead>{t('expenses.tableCategory')}</TableHead>
+                <TableHead>{t('expenses.tableProject')}</TableHead>
+                <TableHead className="text-right">{t('expenses.tableAmount')}</TableHead>
                 <TableHead></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filtered.length === 0 && (
                 <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">
-                  {mode === 'month' ? "No expenses for this month." : "No expenses yet."}
+                  {mode === 'month' ? t('expenses.noExpensesMonth') : t('expenses.noExpensesEmpty')}
                 </TableCell></TableRow>
               )}
               {filtered.map(e => (
@@ -126,20 +128,20 @@ export default function Expenses() {
 
       <Dialog open={showAdd} onOpenChange={setShowAdd}>
         <DialogContent>
-          <DialogHeader><DialogTitle>Add Expense</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{t('expenses.dialogTitle')}</DialogTitle></DialogHeader>
           <div className="grid gap-3">
-            <div><Label>Date</Label><Input type="date" value={draft.date} onChange={e => setDraft({ ...draft, date: e.target.value })} /></div>
-            <div><Label>Name</Label><Input value={draft.name} onChange={e => setDraft({ ...draft, name: e.target.value })} /></div>
-            <div><Label>Category</Label>
+            <div><Label>{t('common.date')}</Label><Input type="date" value={draft.date} onChange={e => setDraft({ ...draft, date: e.target.value })} /></div>
+            <div><Label>{t('common.name')}</Label><Input value={draft.name} onChange={e => setDraft({ ...draft, name: e.target.value })} /></div>
+            <div><Label>{t('common.category')}</Label>
               <Select value={draft.category} onValueChange={v => setDraft({ ...draft, category: v as ExpenseCategory })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>{CATS.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
               </Select>
             </div>
-            <div><Label>Amount (€)</Label><Input type="number" step="0.01" value={draft.amount || ""} onChange={e => setDraft({ ...draft, amount: parseFloat(e.target.value) || 0 })} /></div>
-            <div><Label>Notes</Label><Textarea value={draft.notes} onChange={e => setDraft({ ...draft, notes: e.target.value })} /></div>
+            <div><Label>{t('expenses.amount')}</Label><Input type="number" step="0.01" value={draft.amount || ""} onChange={e => setDraft({ ...draft, amount: parseFloat(e.target.value) || 0 })} /></div>
+            <div><Label>{t('common.notes')}</Label><Textarea value={draft.notes} onChange={e => setDraft({ ...draft, notes: e.target.value })} /></div>
           </div>
-          <DialogFooter><Button onClick={handleAdd}>Add Expense</Button></DialogFooter>
+          <DialogFooter><Button onClick={handleAdd}>{t('expenses.addExpenseBtn')}</Button></DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

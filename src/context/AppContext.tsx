@@ -5,6 +5,7 @@ import { deriveKanbanStatus, applyKanbanStatus } from '@/types/sync';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
 import { useDemo } from '@/context/DemoContext';
+import i18n from '@/i18n';
 import { DEMO_PROJECTS, DEMO_EXPENSES, DEMO_FILAMENT, DEMO_FILAMENT_COST } from '@/lib/demoData';
 
 interface AppContextType {
@@ -78,7 +79,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         supabase.from('templates').select('data').eq('user_id', userId),
         supabase.from('filament_purchases').select('data').eq('user_id', userId),
         supabase.from('user_settings').select('data').eq('user_id', userId).maybeSingle(),
-        supabase.from('profiles').select('migrated_at').eq('user_id', userId).maybeSingle(),
+        supabase.from('profiles').select('migrated_at, language').eq('user_id', userId).maybeSingle(),
       ]);
       if (cancelled) return;
 
@@ -87,6 +88,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       let nextTemplates = (tps.data || []).map(r => r.data as unknown as PrintTemplate);
       let nextFilament = (fps.data || []).map(r => r.data as unknown as FilamentPurchase);
       let nextSettings: AppSettings = (st.data?.data as unknown as AppSettings) || DEFAULT_SETTINGS;
+
+      // Sync language preference from profile
+      if (profile.data?.language) {
+        i18n.changeLanguage(profile.data.language);
+        localStorage.setItem('pt_language', profile.data.language);
+      }
 
       // One-time localStorage migration
       const alreadyMigrated = profile.data?.migrated_at != null;

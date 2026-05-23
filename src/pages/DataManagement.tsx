@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react';
 import { useApp } from '@/context/AppContext';
+import { useTranslation } from 'react-i18next';
 import { getUserId } from '@/lib/userId';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -30,6 +31,7 @@ function isValidExport(data: any): data is ExportData {
 export default function DataManagement() {
   const app = useApp();
   const { toast } = useToast();
+  const { t } = useTranslation();
   const fileRef = useRef<HTMLInputElement>(null);
   const [jsonText, setJsonText] = useState('');
   const [parsed, setParsed] = useState<ExportData | null>(null);
@@ -63,7 +65,7 @@ export default function DataManagement() {
       template_count: data.templates.length,
       filament_purchase_count: data.filamentPurchases.length,
     });
-    toast({ title: 'Export complete', description: `${data.projects.length} projects exported.` });
+    toast({ title: t('data.exportComplete'), description: `${data.projects.length} ${t('data.projectsWord')} exported.` });
   };
 
   // ── Parse helper ──
@@ -110,7 +112,7 @@ export default function DataManagement() {
         settings: parsed.settings || app.settings,
       });
       posthog.capture('data_imported', { import_mode: 'replace', project_count: parsed.projects.length });
-      toast({ title: 'Data replaced', description: `Loaded ${parsed.projects.length} projects.` });
+      toast({ title: t('data.dataReplaced'), description: `${parsed.projects.length} ${t('data.projectsWord')} loaded.` });
     } else {
       // Merge: append non-duplicate items
       const existingProjectNames = new Set(app.projects.map(p => p.name.toLowerCase()));
@@ -136,7 +138,7 @@ export default function DataManagement() {
         if (!existingFpIds.has(fp.id)) app.addFilamentPurchase(fp);
       });
       posthog.capture('data_imported', { import_mode: 'merge', projects_added: added });
-      toast({ title: 'Merge complete', description: `${added} new projects added.` });
+      toast({ title: t('data.mergeComplete'), description: `${added} ${t('data.projectsWord')} added.` });
     }
     setParsed(null);
     setJsonText('');
@@ -144,17 +146,17 @@ export default function DataManagement() {
 
   return (
     <div className="space-y-6 max-w-2xl">
-      <h1 className="text-2xl font-bold tracking-tight">Data Management</h1>
+      <h1 className="text-2xl font-bold tracking-tight">{t('data.title')}</h1>
 
       {/* User ID */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2"><User className="h-4 w-4" /> Your Device ID</CardTitle>
-          <CardDescription>This ID identifies your device. It will be used for future cloud sync.</CardDescription>
+          <CardTitle className="text-base flex items-center gap-2"><User className="h-4 w-4" /> {t('data.deviceId')}</CardTitle>
+          <CardDescription>{t('data.deviceIdDesc')}</CardDescription>
         </CardHeader>
         <CardContent className="flex items-center gap-2">
           <code className="text-xs bg-muted px-3 py-1.5 rounded-md font-mono flex-1 truncate">{userId}</code>
-          <Button variant="outline" size="sm" onClick={() => { navigator.clipboard.writeText(userId); toast({ title: 'Copied!' }); }}>
+          <Button variant="outline" size="sm" onClick={() => { navigator.clipboard.writeText(userId); toast({ title: t('data.copied') }); }}>
             <Copy className="h-3 w-3" />
           </Button>
         </CardContent>
@@ -163,30 +165,30 @@ export default function DataManagement() {
       {/* Export */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2"><Download className="h-4 w-4" /> Export Data</CardTitle>
-          <CardDescription>Download all your data as a JSON file.</CardDescription>
+          <CardTitle className="text-base flex items-center gap-2"><Download className="h-4 w-4" /> {t('data.exportData')}</CardTitle>
+          <CardDescription>{t('data.exportDataDesc')}</CardDescription>
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground mb-3">
-            Includes {app.projects.length} projects, {app.expenses.length} expenses, {app.templates.length} templates, {app.filamentPurchases.length} filament purchases.
+            Includes {app.projects.length} {t('data.projectsWord')}, {app.expenses.length} {t('data.expensesWord')}, {app.templates.length} {t('data.templatesWord')}, {app.filamentPurchases.length} {t('data.filamentPurchasesWord')}.
           </p>
-          <Button onClick={handleExport}><Download className="h-4 w-4 mr-2" /> Export JSON</Button>
+          <Button onClick={handleExport}><Download className="h-4 w-4 mr-2" /> {t('data.exportJSON')}</Button>
         </CardContent>
       </Card>
 
       {/* Import */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2"><Upload className="h-4 w-4" /> Import Data</CardTitle>
-          <CardDescription>Upload a JSON backup or paste JSON text.</CardDescription>
+          <CardTitle className="text-base flex items-center gap-2"><Upload className="h-4 w-4" /> {t('data.importData')}</CardTitle>
+          <CardDescription>{t('data.importDataDesc')}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <Label>Upload JSON file</Label>
+            <Label>{t('data.uploadJSON')}</Label>
             <input ref={fileRef} type="file" accept=".json" onChange={handleFile} className="block mt-1 text-sm file:mr-3 file:rounded-md file:border-0 file:bg-primary file:text-primary-foreground file:px-3 file:py-1.5 file:text-sm file:font-medium file:cursor-pointer" />
           </div>
           <div>
-            <Label>Or paste JSON</Label>
+            <Label>{t('data.pasteJSON')}</Label>
             <Textarea
               rows={6}
               placeholder='{"version":1,"projects":[...]}'
@@ -194,7 +196,7 @@ export default function DataManagement() {
               onChange={e => setJsonText(e.target.value)}
               className="font-mono text-xs mt-1"
             />
-            <Button variant="outline" size="sm" className="mt-2" onClick={() => tryParse(jsonText)}>Parse JSON</Button>
+            <Button variant="outline" size="sm" className="mt-2" onClick={() => tryParse(jsonText)}>{t('data.parseJSON')}</Button>
           </div>
 
           {parseError && (
@@ -205,19 +207,19 @@ export default function DataManagement() {
 
           {parsed && (
             <div className="border rounded-lg p-4 space-y-3 bg-muted/30">
-              <p className="text-sm font-medium">Ready to import:</p>
+              <p className="text-sm font-medium">{t('data.readyToImport')}</p>
               <ul className="text-sm text-muted-foreground space-y-1">
-                <li>• {parsed.projects?.length || 0} projects</li>
-                <li>• {parsed.expenses?.length || 0} expenses</li>
-                <li>• {parsed.templates?.length || 0} templates</li>
-                <li>• {parsed.filamentPurchases?.length || 0} filament purchases</li>
+                <li>• {parsed.projects?.length || 0} {t('data.projectsWord')}</li>
+                <li>• {parsed.expenses?.length || 0} {t('data.expensesWord')}</li>
+                <li>• {parsed.templates?.length || 0} {t('data.templatesWord')}</li>
+                <li>• {parsed.filamentPurchases?.length || 0} {t('data.filamentPurchasesWord')}</li>
               </ul>
               <div className="flex gap-2 pt-2">
                 <Button variant="destructive" onClick={() => doImport('replace')}>
-                  <Replace className="h-4 w-4 mr-2" /> Replace All Data
+                  <Replace className="h-4 w-4 mr-2" /> {t('data.replaceAll')}
                 </Button>
                 <Button onClick={() => doImport('merge')}>
-                  <Merge className="h-4 w-4 mr-2" /> Merge with Existing
+                  <Merge className="h-4 w-4 mr-2" /> {t('data.mergeWith')}
                 </Button>
               </div>
             </div>
@@ -227,8 +229,8 @@ export default function DataManagement() {
       {/* Legacy Text Import */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2"><FileText className="h-4 w-4" /> Import from Raw Text</CardTitle>
-          <CardDescription>Paste unstructured notes with [x] completed items grouped by month.</CardDescription>
+          <CardTitle className="text-base flex items-center gap-2"><FileText className="h-4 w-4" /> {t('data.importFromText')}</CardTitle>
+          <CardDescription>{t('data.importFromTextDesc')}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <Textarea
@@ -241,14 +243,14 @@ export default function DataManagement() {
           <Button variant="outline" size="sm" onClick={() => {
             const result = parseLegacyText(legacyText);
             setLegacyResult(result);
-          }}>Parse Text</Button>
+          }}>{t('data.parseText')}</Button>
 
           {legacyResult && (
             <div className="border rounded-lg p-4 space-y-3 bg-muted/30">
-              <p className="text-sm font-medium">Parsed from text:</p>
+              <p className="text-sm font-medium">{t('data.parsedFromText')}</p>
               <ul className="text-sm text-muted-foreground space-y-1">
-                <li>• {legacyResult.projects.length} completed projects</li>
-                <li>• {legacyResult.expenses.length} expenses</li>
+                <li>• {legacyResult.projects.length} {t('data.completedProjectsWord')}</li>
+                <li>• {legacyResult.expenses.length} {t('data.expensesWord')}</li>
               </ul>
               <div className="flex gap-2 pt-2">
                 <Button onClick={() => {
@@ -263,11 +265,11 @@ export default function DataManagement() {
                     }
                   });
                   legacyResult.expenses.forEach(e => app.addExpense(e));
-                  toast({ title: 'Legacy import complete', description: `${added} projects and ${legacyResult.expenses.length} expenses added.` });
+                  toast({ title: t('data.legacyImportComplete'), description: `${added} ${t('data.projectsWord')} and ${legacyResult.expenses.length} ${t('data.expensesWord')} added.` });
                   setLegacyResult(null);
                   setLegacyText('');
                 }}>
-                  <Merge className="h-4 w-4 mr-2" /> Import & Merge
+                  <Merge className="h-4 w-4 mr-2" /> {t('data.importMerge')}
                 </Button>
               </div>
             </div>

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useApp } from "@/context/AppContext";
+import { useTranslation } from "react-i18next";
 import { PrintTemplate } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -17,6 +18,7 @@ function newTemplate(): PrintTemplate {
 
 export default function TemplatesPage() {
   const { templates, addTemplate, deleteTemplate } = useApp();
+  const { t } = useTranslation();
   const [showAdd, setShowAdd] = useState(false);
   const [draft, setDraft] = useState<PrintTemplate>(newTemplate());
 
@@ -35,12 +37,12 @@ export default function TemplatesPage() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-2">
-        <h1 className="text-2xl font-bold">Print Templates</h1>
-        <Button size="sm" onClick={() => setShowAdd(true)}><Plus className="h-4 w-4 mr-1" />New Template</Button>
+        <h1 className="text-2xl font-bold">{t('templates.title')}</h1>
+        <Button size="sm" onClick={() => setShowAdd(true)}><Plus className="h-4 w-4 mr-1" />{t('templates.newTemplate')}</Button>
       </div>
 
       <p className="text-sm text-muted-foreground">
-        Save reusable print configurations here. Templates can be inserted into any project.
+        {t('templates.description')}
       </p>
 
       <Card>
@@ -48,16 +50,16 @@ export default function TemplatesPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Print Time</TableHead>
-                <TableHead>Material</TableHead>
-                <TableHead>Notes</TableHead>
+                <TableHead>{t('templates.tableName')}</TableHead>
+                <TableHead>{t('templates.tablePrintTime')}</TableHead>
+                <TableHead>{t('templates.tableMaterial')}</TableHead>
+                <TableHead>{t('templates.tableNotes')}</TableHead>
                 <TableHead></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {templates.length === 0 && (
-                <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8">No templates yet.</TableCell></TableRow>
+                <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8">{t('templates.noTemplates')}</TableCell></TableRow>
               )}
               {templates.map(t => (
                 <TableRow key={t.id}>
@@ -79,14 +81,14 @@ export default function TemplatesPage() {
 
       <Dialog open={showAdd} onOpenChange={setShowAdd}>
         <DialogContent>
-          <DialogHeader><DialogTitle>New Template</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{t('templates.dialogTitle')}</DialogTitle></DialogHeader>
           <div className="grid gap-3">
-            <div><Label>Print Name</Label><Input value={draft.name} onChange={e => setDraft({ ...draft, name: e.target.value })} /></div>
-            <div><Label>Estimated Print Time (hours)</Label><Input type="number" step="0.1" value={draft.estimatedPrintTime || ""} onChange={e => setDraft({ ...draft, estimatedPrintTime: parseFloat(e.target.value) || 0 })} /></div>
-            <div><Label>Material Used (grams)</Label><Input type="number" value={draft.materialUsed || ""} onChange={e => setDraft({ ...draft, materialUsed: parseFloat(e.target.value) || 0 })} /></div>
-            <div><Label>Notes</Label><Textarea value={draft.notes} onChange={e => setDraft({ ...draft, notes: e.target.value })} /></div>
+            <div><Label>{t('templates.printName')}</Label><Input value={draft.name} onChange={e => setDraft({ ...draft, name: e.target.value })} /></div>
+            <div><Label>{t('templates.estimatedPrintTime')}</Label><Input type="number" step="0.1" value={draft.estimatedPrintTime || ""} onChange={e => setDraft({ ...draft, estimatedPrintTime: parseFloat(e.target.value) || 0 })} /></div>
+            <div><Label>{t('templates.materialUsed')}</Label><Input type="number" value={draft.materialUsed || ""} onChange={e => setDraft({ ...draft, materialUsed: parseFloat(e.target.value) || 0 })} /></div>
+            <div><Label>{t('common.notes')}</Label><Textarea value={draft.notes} onChange={e => setDraft({ ...draft, notes: e.target.value })} /></div>
           </div>
-          <DialogFooter><Button onClick={handleAdd}>Save Template</Button></DialogFooter>
+          <DialogFooter><Button onClick={handleAdd}>{t('templates.saveTemplate')}</Button></DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

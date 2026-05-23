@@ -1,5 +1,5 @@
 import {
-  LayoutDashboard, FolderKanban, Columns3, Receipt, Calculator, Settings, BookTemplate, Upload, Calendar, Package, Database, Truck, ExternalLink, LogOut, FlaskConical,
+  LayoutDashboard, FolderKanban, Columns3, Receipt, Calculator, Settings, BookTemplate, Upload, Calendar, Package, Database, Truck, ExternalLink, LogOut, FlaskConical, Globe,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -7,24 +7,22 @@ import { useAuth } from "@/context/AuthContext";
 import { useDemo } from "@/context/DemoContext";
 import { HelpTip } from "@/components/HelpTip";
 import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useTranslation } from "react-i18next";
+import i18n from "@/i18n";
+import { supabase, supabaseConfigured } from "@/integrations/supabase/client";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent,
   SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader, SidebarFooter, useSidebar,
 } from "@/components/ui/sidebar";
 
-const items = [
-  { title: "Dashboard", url: "/", icon: LayoutDashboard, hint: "Overview of your revenue, profit, material usage, and print performance." },
-  { title: "Projects", url: "/projects", icon: FolderKanban, hint: "Create and manage all your 3D printing orders from start to delivery." },
-  { title: "Customer Orders", url: "https://prints-barcelona-pro.lovable.app/admin-orders", icon: Truck, external: true },
-  { title: "Kanban Board", url: "/kanban", icon: Columns3, hint: "Drag projects through status columns to track their progress visually." },
-  { title: "Calendar", url: "/calendar", icon: Calendar, hint: "See your project deadlines laid out on a monthly calendar." },
-  { title: "Expenses", url: "/expenses", icon: Receipt, hint: "Log costs like filament and shipping to track your real net profit." },
-  { title: "Filament", url: "/filament", icon: Package, hint: "Record filament purchases to calculate accurate material costs per project." },
-  { title: "Templates", url: "/templates", icon: BookTemplate },
-  { title: "Import Queue", url: "/import", icon: Upload },
-  { title: "Quote Generator", url: "/quote", icon: Calculator },
-  { title: "Data", url: "/data", icon: Database },
-  { title: "Settings", url: "/settings", icon: Settings },
+const LANGUAGES = [
+  { code: "en", flag: "🇬🇧", label: "English" },
+  { code: "es", flag: "🇪🇸", label: "Español" },
+  { code: "de", flag: "🇩🇪", label: "Deutsch" },
+  { code: "pl", flag: "🇵🇱", label: "Polski" },
+  { code: "fr", flag: "🇫🇷", label: "Français" },
+  { code: "pt", flag: "🇧🇷", label: "Português" },
 ];
 
 export function AppSidebar() {
@@ -33,6 +31,32 @@ export function AppSidebar() {
   const location = useLocation();
   const { user, signOut } = useAuth();
   const { isDemoMode, toggleDemoMode } = useDemo();
+  const { t } = useTranslation();
+
+  const items = [
+    { title: t('nav.dashboard'), url: "/", icon: LayoutDashboard, hint: t('helpTips.dashboard') },
+    { title: t('nav.projects'), url: "/projects", icon: FolderKanban, hint: t('helpTips.projects') },
+    { title: t('nav.customerOrders'), url: "https://prints-barcelona-pro.lovable.app/admin-orders", icon: Truck, external: true },
+    { title: t('nav.kanban'), url: "/kanban", icon: Columns3, hint: t('helpTips.kanban') },
+    { title: t('nav.calendar'), url: "/calendar", icon: Calendar, hint: t('helpTips.calendar') },
+    { title: t('nav.expenses'), url: "/expenses", icon: Receipt, hint: t('helpTips.expenses') },
+    { title: t('nav.filament'), url: "/filament", icon: Package, hint: t('helpTips.filament') },
+    { title: t('nav.templates'), url: "/templates", icon: BookTemplate },
+    { title: t('nav.importQueue'), url: "/import", icon: Upload },
+    { title: t('nav.quote'), url: "/quote", icon: Calculator },
+    { title: t('nav.data'), url: "/data", icon: Database },
+    { title: t('nav.settings'), url: "/settings", icon: Settings },
+  ];
+
+  const handleLanguageChange = (lang: string) => {
+    i18n.changeLanguage(lang);
+    localStorage.setItem('pt_language', lang);
+    if (supabaseConfigured && user) {
+      supabase.from('profiles').update({ language: lang }).eq('user_id', user.id).then(() => {});
+    }
+  };
+
+  const currentLang = LANGUAGES.find(l => l.code === i18n.language) || LANGUAGES[0];
 
   return (
     <Sidebar collapsible="icon">
@@ -102,16 +126,51 @@ export function AppSidebar() {
           <div className="px-2 py-1.5 text-xs text-sidebar-foreground/70 truncate">{user.email}</div>
         )}
         <SidebarMenu>
+          {/* Language switcher */}
+          <SidebarMenuItem>
+            {!collapsed ? (
+              <div className="flex items-center gap-2 px-2 py-1">
+                <Globe className="h-4 w-4 text-sidebar-foreground/70 shrink-0" />
+                <Select value={i18n.language} onValueChange={handleLanguageChange}>
+                  <SelectTrigger className="h-7 text-xs border-0 bg-transparent shadow-none px-0 focus:ring-0 flex-1">
+                    <SelectValue>
+                      <span>{currentLang.flag} {currentLang.label}</span>
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {LANGUAGES.map(lang => (
+                      <SelectItem key={lang.code} value={lang.code} className="text-xs">
+                        {lang.flag} {lang.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            ) : (
+              <SidebarMenuButton
+                onClick={() => {
+                  const idx = LANGUAGES.findIndex(l => l.code === i18n.language);
+                  const next = LANGUAGES[(idx + 1) % LANGUAGES.length];
+                  handleLanguageChange(next.code);
+                }}
+                className="hover:bg-sidebar-accent"
+                title={t('language.label')}
+              >
+                <Globe className="h-4 w-4" />
+              </SidebarMenuButton>
+            )}
+          </SidebarMenuItem>
+
           <SidebarMenuItem>
             <SidebarMenuButton
               onClick={toggleDemoMode}
               className={`hover:bg-sidebar-accent ${isDemoMode ? 'text-yellow-600 dark:text-yellow-400' : ''}`}
-              title="Demo mode"
+              title={t('nav.demoMode')}
             >
               <FlaskConical className="h-4 w-4" />
               {!collapsed && (
                 <>
-                  <span className="flex-1">Demo mode</span>
+                  <span className="flex-1">{t('nav.demoMode')}</span>
                   <Switch
                     checked={isDemoMode}
                     className="h-4 w-7 pointer-events-none [&>span]:h-3 [&>span]:w-3 data-[state=checked]:[&>span]:translate-x-3"
@@ -122,9 +181,9 @@ export function AppSidebar() {
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <SidebarMenuButton onClick={() => signOut()} className="hover:bg-sidebar-accent" title="Sign out">
+            <SidebarMenuButton onClick={() => signOut()} className="hover:bg-sidebar-accent" title={t('nav.signOut')}>
               <LogOut className="h-4 w-4" />
-              {!collapsed && <span>Sign out</span>}
+              {!collapsed && <span>{t('nav.signOut')}</span>}
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

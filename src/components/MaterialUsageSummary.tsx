@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Palette, ChevronDown, ChevronRight } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 interface ProjectBreakdown {
   projectId: string;
@@ -31,7 +32,6 @@ function parseMaterialColor(material: string, color: string): { mat: string; col
   const normMat = normalizeMaterialName(material);
   const normCol = normalizeMaterialName(color);
 
-  // Handle cases like "PLA Black" in material field
   const knownMaterials = ['pla', 'petg', 'abs', 'tpu', 'nylon', 'asa', 'pc', 'pva', 'hips'];
   const matParts = normMat.split(' ');
 
@@ -39,29 +39,19 @@ function parseMaterialColor(material: string, color: string): { mat: string; col
     const baseMat = matParts[0];
     if (knownMaterials.includes(baseMat)) {
       const colorFromMat = matParts.slice(1).join(' ');
-      return {
-        mat: baseMat.toUpperCase(),
-        col: normCol || colorFromMat,
-      };
+      return { mat: baseMat.toUpperCase(), col: normCol || colorFromMat };
     }
   }
 
-  // Also handle "Black PLA" (color first, material second)
   if (matParts.length > 1) {
     const lastPart = matParts[matParts.length - 1];
     if (knownMaterials.includes(lastPart)) {
       const colorFromMat = matParts.slice(0, -1).join(' ');
-      return {
-        mat: lastPart.toUpperCase(),
-        col: normCol || colorFromMat,
-      };
+      return { mat: lastPart.toUpperCase(), col: normCol || colorFromMat };
     }
   }
 
-  return {
-    mat: normMat ? normMat.toUpperCase() : 'UNKNOWN',
-    col: normCol || 'unspecified',
-  };
+  return { mat: normMat ? normMat.toUpperCase() : 'UNKNOWN', col: normCol || 'unspecified' };
 }
 
 function capitalizeWords(s: string): string {
@@ -73,6 +63,7 @@ const SPOOL_SIZE_GRAMS = 1000;
 export default function MaterialUsageSummary() {
   const { projects } = useApp();
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const { t } = useTranslation();
 
   const groups = useMemo(() => {
     const map = new Map<string, MaterialGroup>();
@@ -123,13 +114,16 @@ export default function MaterialUsageSummary() {
       <CardHeader className="pb-3">
         <CardTitle className="text-base flex items-center gap-2">
           <Palette className="h-4 w-4" />
-          Material Usage Summary
+          {t('material.title')}
         </CardTitle>
-        <p className="text-xs text-muted-foreground">Filament needed per project to ship all open orders</p>
+        <p className="text-xs text-muted-foreground">{t('material.subtitle')}</p>
       </CardHeader>
       <CardContent className="space-y-3">
         {groups.map(g => {
           const isOpen = !!expanded[g.key];
+          const spoolText = g.spoolsNeeded !== 1
+            ? t('material.spoolsNeeded', { count: g.spoolsNeeded })
+            : t('material.spoolNeeded');
           return (
             <div key={g.key} className="space-y-1.5">
               <button
@@ -143,14 +137,12 @@ export default function MaterialUsageSummary() {
                     {g.material} {g.color !== 'unspecified' ? capitalizeWords(g.color) : ''}
                   </span>
                   <Badge variant="outline" className="text-[10px]">
-                    {g.projectCount} project{g.projectCount !== 1 ? 's' : ''}
+                    {g.projectCount} {g.projectCount !== 1 ? t('material.projects_other') : t('material.projects_one')}
                   </Badge>
                 </div>
                 <div className="text-right shrink-0">
                   <span className="text-sm font-bold">{g.totalGrams.toFixed(0)}g</span>
-                  <span className="text-xs text-muted-foreground ml-1.5">
-                    (~{g.spoolsNeeded} spool{g.spoolsNeeded !== 1 ? 's' : ''})
-                  </span>
+                  <span className="text-xs text-muted-foreground ml-1.5">{spoolText}</span>
                 </div>
               </button>
               <Progress value={(g.totalGrams / maxGrams) * 100} className="h-1.5" />
@@ -174,7 +166,7 @@ export default function MaterialUsageSummary() {
           );
         })}
         <p className="text-[11px] text-muted-foreground pt-1">
-          Based on {SPOOL_SIZE_GRAMS / 1000}kg spool size. Only remaining (unprinted) quantities counted. Click a row to see per-project breakdown.
+          {t('material.basedOn', { size: SPOOL_SIZE_GRAMS / 1000 })}
         </p>
       </CardContent>
     </Card>

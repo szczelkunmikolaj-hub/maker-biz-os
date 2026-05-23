@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { usePersistedState } from "@/hooks/usePersistedState";
 import { useApp } from "@/context/AppContext";
 import { useMonth } from "@/context/MonthContext";
@@ -47,6 +48,7 @@ function newProject(): Project {
 export default function Projects() {
   const { projects, addProject, updateProject } = useApp();
   const { filterProjectsForWorkflow, mode } = useMonth();
+  const { t } = useTranslation();
   const [search, setSearch] = useState("");
   const [filter, setFilter] = usePersistedState<string>("projects_filter", "all");
   const [sortBy, setSortBy] = usePersistedState<SortKey>("projects_sort", "date");
@@ -153,13 +155,13 @@ export default function Projects() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-2">
-        <h1 className="text-2xl font-bold">Projects</h1>
+        <h1 className="text-2xl font-bold">{t('projects.title')}</h1>
         <div className="flex gap-2">
-          <Button size="sm" variant="outline" onClick={exportCSV}><Download className="h-4 w-4 mr-1" />CSV</Button>
+          <Button size="sm" variant="outline" onClick={exportCSV}><Download className="h-4 w-4 mr-1" />{t('common.csv')}</Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button size="sm">
-                <Plus className="h-4 w-4 mr-1" />New Project
+                <Plus className="h-4 w-4 mr-1" />{t('projects.newProject')}
                 <ChevronDown className="h-3 w-3 ml-1 opacity-70" />
               </Button>
             </DropdownMenuTrigger>
@@ -167,23 +169,23 @@ export default function Projects() {
               <DropdownMenuItem onClick={() => setShowAdd(true)}>
                 <Plus className="h-4 w-4 mr-2" />
                 <div className="flex-1">
-                  <div className="text-sm font-medium">Manual Project</div>
-                  <div className="text-[11px] text-muted-foreground">Blank, fill in by hand</div>
+                  <div className="text-sm font-medium">{t('projects.manualProject')}</div>
+                  <div className="text-[11px] text-muted-foreground">{t('projects.manualProjectDesc')}</div>
                 </div>
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => setImportMode("full")}>
                 <Sparkles className="h-4 w-4 mr-2" />
                 <div className="flex-1">
-                  <div className="text-sm font-medium">Import Project (Full)</div>
-                  <div className="text-[11px] text-muted-foreground">Upload .3mf / .gcode → new project</div>
+                  <div className="text-sm font-medium">{t('projects.importFull')}</div>
+                  <div className="text-[11px] text-muted-foreground">{t('projects.importFullDesc')}</div>
                 </div>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => setImportMode("into")} disabled={projects.length === 0}>
                 <Upload className="h-4 w-4 mr-2" />
                 <div className="flex-1">
-                  <div className="text-sm font-medium">Import into Project</div>
-                  <div className="text-[11px] text-muted-foreground">Append plates to existing project</div>
+                  <div className="text-sm font-medium">{t('projects.importInto')}</div>
+                  <div className="text-[11px] text-muted-foreground">{t('projects.importIntoDesc')}</div>
                 </div>
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -194,18 +196,18 @@ export default function Projects() {
       <div className="flex gap-2 flex-wrap items-center">
         <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Search projects..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
+          <Input placeholder={t('projects.searchPlaceholder')} value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
         </div>
         <Select value={filter} onValueChange={setFilter}>
           <SelectTrigger className="w-[130px]"><SelectValue /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All</SelectItem>
-            <SelectItem value="paid">Paid</SelectItem>
-            <SelectItem value="unpaid">Unpaid</SelectItem>
-            <SelectItem value="sent">Shipped</SelectItem>
-            <SelectItem value="not-sent">Not Shipped</SelectItem>
-            <SelectItem value="recurring">Recurring</SelectItem>
-            <SelectItem value="new-customer">New Customer</SelectItem>
+            <SelectItem value="all">{t('projects.all')}</SelectItem>
+            <SelectItem value="paid">{t('projects.paid')}</SelectItem>
+            <SelectItem value="unpaid">{t('projects.unpaid')}</SelectItem>
+            <SelectItem value="sent">{t('projects.shipped')}</SelectItem>
+            <SelectItem value="not-sent">{t('projects.notShipped')}</SelectItem>
+            <SelectItem value="recurring">{t('projects.recurring')}</SelectItem>
+            <SelectItem value="new-customer">{t('projects.newCustomer')}</SelectItem>
           </SelectContent>
         </Select>
         <Select value={sortBy} onValueChange={v => setSortBy(v as SortKey)}>
@@ -214,23 +216,23 @@ export default function Projects() {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="date">Date</SelectItem>
-            <SelectItem value="price">Price</SelectItem>
-            <SelectItem value="paid">Paid</SelectItem>
-            <SelectItem value="shipped">Shipped</SelectItem>
+            <SelectItem value="date">{t('projects.sortDate')}</SelectItem>
+            <SelectItem value="price">{t('projects.sortPrice')}</SelectItem>
+            <SelectItem value="paid">{t('projects.sortPaid')}</SelectItem>
+            <SelectItem value="shipped">{t('projects.sortShipped')}</SelectItem>
           </SelectContent>
         </Select>
         {mode === 'month' && (
           <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer select-none">
             <Switch checked={showAll} onCheckedChange={setShowAll} className="h-5 w-9 [&>span]:h-4 [&>span]:w-4 data-[state=checked]:[&>span]:translate-x-4" />
-            Show All
+            {t('projects.showAll')}
           </label>
         )}
       </div>
 
       {filtered.length === 0 ? (
         <Card><CardContent className="p-8 text-center text-muted-foreground">
-          {mode === 'month' && !showAll ? "No projects for this month. Toggle 'Show All' or switch to All Time." : "No projects yet. Click \"New Project\" to get started."}
+          {mode === 'month' && !showAll ? t('projects.noProjectsMonth') : t('projects.noProjectsEmpty')}
         </CardContent></Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
@@ -281,7 +283,7 @@ export default function Projects() {
                     <span className="text-lg font-bold text-primary">€{effectivePrice.toFixed(2)}</span>
                     {effectivePrice > 0 && (
                       <span className={`text-xs font-medium ${margin >= 60 ? 'text-emerald-600' : margin >= 30 ? 'text-yellow-600' : 'text-red-600'}`}>
-                        {margin.toFixed(0)}% margin
+                        {margin.toFixed(0)}% {t('projects.margin')}
                       </span>
                     )}
                   </div>
@@ -291,7 +293,7 @@ export default function Projects() {
                     <div className="space-y-1">
                       <Progress value={prog.percent} className="h-1.5" />
                       <div className="flex justify-between text-[10px] text-muted-foreground">
-                        <span>{prog.completedPieces}/{prog.totalPieces} pieces</span>
+                        <span>{prog.completedPieces}/{prog.totalPieces} {t('projects.pieces')}</span>
                         <span>{prog.percent}%</span>
                       </div>
                     </div>
@@ -313,7 +315,7 @@ export default function Projects() {
                       );
                     })()}
                     {totalPieces > 0 && (
-                      <span className="flex items-center gap-0.5"><Package className="h-3 w-3" />{totalPieces} pcs</span>
+                      <span className="flex items-center gap-0.5"><Package className="h-3 w-3" />{totalPieces} {t('projects.pieces')}</span>
                     )}
                     {totalTime > 0 && (
                       <span className="flex items-center gap-0.5"><Clock className="h-3 w-3" />{totalTime.toFixed(0)}h</span>
@@ -343,19 +345,19 @@ export default function Projects() {
                       className={`flex items-center gap-1 text-[10px] px-2 py-1 rounded-md border transition-colors ${p.printed ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30' : 'bg-muted/50 text-muted-foreground border-border hover:bg-muted'}`}
                       onClick={() => toggleStatus(p.id, 'printed')}
                     >
-                      <Printer className="h-3 w-3" />{p.printed ? '✓' : ''} Printed
+                      <Printer className="h-3 w-3" />{p.printed ? '✓' : ''} {t('common.printed')}
                     </button>
                     <button
                       className={`flex items-center gap-1 text-[10px] px-2 py-1 rounded-md border transition-colors ${p.paid ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30' : 'bg-muted/50 text-muted-foreground border-border hover:bg-muted'}`}
                       onClick={() => toggleStatus(p.id, 'paid')}
                     >
-                      <CreditCard className="h-3 w-3" />{p.paid ? '✓' : ''} Paid
+                      <CreditCard className="h-3 w-3" />{p.paid ? '✓' : ''} {t('common.paid')}
                     </button>
                     <button
                       className={`flex items-center gap-1 text-[10px] px-2 py-1 rounded-md border transition-colors ${p.sent ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30' : 'bg-muted/50 text-muted-foreground border-border hover:bg-muted'}`}
                       onClick={() => toggleStatus(p.id, 'sent')}
                     >
-                      <Package className="h-3 w-3" />{p.sent ? '✓' : ''} Shipped
+                      <Package className="h-3 w-3" />{p.sent ? '✓' : ''} {t('common.shipped')}
                     </button>
                   </div>
                 </CardContent>
@@ -367,30 +369,30 @@ export default function Projects() {
 
       <Dialog open={showAdd} onOpenChange={setShowAdd}>
         <DialogContent>
-          <DialogHeader><DialogTitle>New Project</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{t('projects.dialogTitle')}</DialogTitle></DialogHeader>
           <div className="grid gap-3">
-            <div><Label>Project Name</Label><Input value={draft.name} onChange={e => setDraft({ ...draft, name: e.target.value })} /></div>
-            <div><Label>Customer Name</Label><Input value={draft.customerName} onChange={e => setDraft({ ...draft, customerName: e.target.value })} /></div>
-            <div><Label>Customer Source</Label>
+            <div><Label>{t('projects.projectName')}</Label><Input value={draft.name} onChange={e => setDraft({ ...draft, name: e.target.value })} /></div>
+            <div><Label>{t('projects.customerName')}</Label><Input value={draft.customerName} onChange={e => setDraft({ ...draft, customerName: e.target.value })} /></div>
+            <div><Label>{t('projects.customerSource')}</Label>
               <Select value={draft.customerSource} onValueChange={v => setDraft({ ...draft, customerSource: v as CustomerSource })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>{SOURCES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
               </Select>
             </div>
-            <div><Label>Payment Method</Label>
+            <div><Label>{t('projects.paymentMethod')}</Label>
               <Select value={draft.paymentMethod} onValueChange={v => setDraft({ ...draft, paymentMethod: v as PaymentMethod })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>{PAYMENT_METHODS.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent>
               </Select>
             </div>
-            <div><Label>Order Date</Label><Input type="date" value={draft.orderDate} onChange={e => setDraft({ ...draft, orderDate: e.target.value })} /></div>
+            <div><Label>{t('projects.orderDate')}</Label><Input type="date" value={draft.orderDate} onChange={e => setDraft({ ...draft, orderDate: e.target.value })} /></div>
             <label className="flex items-center gap-2 cursor-pointer">
               <Checkbox checked={draft.isRecurringCustomer || false} onCheckedChange={(v) => setDraft({ ...draft, isRecurringCustomer: !!v })} />
-              <span className="text-sm">Recurring Customer</span>
+              <span className="text-sm">{t('projects.recurringCustomer')}</span>
             </label>
-            <div><Label>Notes</Label><Textarea value={draft.notes} onChange={e => setDraft({ ...draft, notes: e.target.value })} /></div>
+            <div><Label>{t('common.notes')}</Label><Textarea value={draft.notes} onChange={e => setDraft({ ...draft, notes: e.target.value })} /></div>
           </div>
-          <DialogFooter><Button onClick={handleAdd}>Add Project</Button></DialogFooter>
+          <DialogFooter><Button onClick={handleAdd}>{t('projects.addProject')}</Button></DialogFooter>
         </DialogContent>
       </Dialog>
 
@@ -399,23 +401,21 @@ export default function Projects() {
         <ImportDialogContent className="max-w-xl">
           <ImportDialogHeader>
             <ImportDialogTitle className="flex items-center gap-2">
-              {importMode === "into" ? <><Upload className="h-4 w-4 text-primary" />Import into Existing Project</> : <><Sparkles className="h-4 w-4 text-primary" />Import Full Project</>}
+              {importMode === "into" ? <><Upload className="h-4 w-4 text-primary" />{t('projects.importIntoTitle')}</> : <><Sparkles className="h-4 w-4 text-primary" />{t('projects.importFullTitle')}</>}
             </ImportDialogTitle>
             <ImportDialogDescription>
-              {importMode === "into"
-                ? "Pick the target project, then drop a .3mf or .gcode file."
-                : "Drop a Bambu Studio .3mf or .gcode file to create a fully-structured new project."}
+              {importMode === "into" ? t('projects.importIntoDesc2') : t('projects.importFullDesc2')}
             </ImportDialogDescription>
           </ImportDialogHeader>
 
           {importMode === "into" && (
             <div className="space-y-2">
-              <Label className="text-xs">Target project</Label>
+              <Label className="text-xs">{t('projects.targetProject')}</Label>
               <Select value={appendTargetId ?? ""} onValueChange={setAppendTargetId}>
-                <SelectTrigger><SelectValue placeholder="Select project…" /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder={t('projects.selectProject')} /></SelectTrigger>
                 <SelectContent>
                   {projects.map(pr => (
-                    <SelectItem key={pr.id} value={pr.id}>{pr.name || "Untitled"} {pr.customerName && `· ${pr.customerName}`}</SelectItem>
+                    <SelectItem key={pr.id} value={pr.id}>{pr.name || t('projects.untitled')} {pr.customerName && `· ${pr.customerName}`}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -433,7 +433,7 @@ export default function Projects() {
               />
             )}
             {importMode === "into" && !appendTargetId && (
-              <p className="text-xs text-muted-foreground text-center py-6">Select a project above to enable the dropzone.</p>
+              <p className="text-xs text-muted-foreground text-center py-6">{t('projects.selectProjectAbove')}</p>
             )}
           </div>
         </ImportDialogContent>

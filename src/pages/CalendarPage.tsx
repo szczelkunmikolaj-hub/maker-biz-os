@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { usePersistedState } from "@/hooks/usePersistedState";
 import { useApp } from "@/context/AppContext";
 import { useMonth } from "@/context/MonthContext";
@@ -24,14 +25,7 @@ interface CalendarEvent {
   isNew: boolean;
 }
 
-const EVENT_CONFIG: Record<EventType, { label: string; color: string; bgClass: string; textClass: string; icon: React.ElementType }> = {
-  'order-created':        { label: 'Order Created',       color: 'hsl(220, 60%, 50%)',  bgClass: 'bg-blue-500/15 border-blue-500/30',      textClass: 'text-blue-700 dark:text-blue-400',    icon: Package },
-  'printing-scheduled':   { label: 'Printing Scheduled',  color: 'hsl(25, 90%, 50%)',   bgClass: 'bg-orange-500/15 border-orange-500/30',  textClass: 'text-orange-700 dark:text-orange-400', icon: Printer },
-  'printing-in-progress': { label: 'Printing',            color: 'hsl(45, 90%, 50%)',   bgClass: 'bg-yellow-500/15 border-yellow-500/30',  textClass: 'text-yellow-700 dark:text-yellow-400', icon: Clock },
-  'completed':            { label: 'Completed',           color: 'hsl(142, 60%, 40%)',  bgClass: 'bg-emerald-500/15 border-emerald-500/30', textClass: 'text-emerald-700 dark:text-emerald-400', icon: CheckCircle2 },
-  'late':                 { label: 'Overdue',             color: 'hsl(0, 72%, 51%)',    bgClass: 'bg-red-500/15 border-red-500/30',        textClass: 'text-red-700 dark:text-red-400',       icon: AlertTriangle },
-  'shipping-deadline':    { label: 'Shipping Deadline',   color: 'hsl(280, 60%, 50%)',  bgClass: 'bg-purple-500/15 border-purple-500/30',  textClass: 'text-purple-700 dark:text-purple-400', icon: Truck },
-};
+type EventConfig = Record<EventType, { label: string; color: string; bgClass: string; textClass: string; icon: React.ElementType }>;
 
 function isProjectCompleted(p: Project): boolean {
   return !!(p.printed || p.sent || p.paid);
@@ -62,6 +56,16 @@ export default function CalendarPage() {
   const { projects } = useApp();
   const { mode, selectedMonth: globalMonth } = useMonth();
   const navigate = useNavigate();
+  const { t } = useTranslation();
+
+  const EVENT_CONFIG: EventConfig = {
+    'order-created':        { label: t('calendar.orderCreated'),       color: 'hsl(220, 60%, 50%)',  bgClass: 'bg-blue-500/15 border-blue-500/30',      textClass: 'text-blue-700 dark:text-blue-400',    icon: Package },
+    'printing-scheduled':   { label: t('calendar.printingScheduled'),  color: 'hsl(25, 90%, 50%)',   bgClass: 'bg-orange-500/15 border-orange-500/30',  textClass: 'text-orange-700 dark:text-orange-400', icon: Printer },
+    'printing-in-progress': { label: t('calendar.printing'),           color: 'hsl(45, 90%, 50%)',   bgClass: 'bg-yellow-500/15 border-yellow-500/30',  textClass: 'text-yellow-700 dark:text-yellow-400', icon: Clock },
+    'completed':            { label: t('calendar.completed'),          color: 'hsl(142, 60%, 40%)',  bgClass: 'bg-emerald-500/15 border-emerald-500/30', textClass: 'text-emerald-700 dark:text-emerald-400', icon: CheckCircle2 },
+    'late':                 { label: t('calendar.overdue'),            color: 'hsl(0, 72%, 51%)',    bgClass: 'bg-red-500/15 border-red-500/30',        textClass: 'text-red-700 dark:text-red-400',       icon: AlertTriangle },
+    'shipping-deadline':    { label: t('calendar.shippingDeadline'),   color: 'hsl(280, 60%, 50%)',  bgClass: 'bg-purple-500/15 border-purple-500/30',  textClass: 'text-purple-700 dark:text-purple-400', icon: Truck },
+  };
 
   const initialDate = useMemo(() => {
     if (mode === 'month') {
@@ -156,15 +160,15 @@ export default function CalendarPage() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold flex items-center gap-2">
           <CalendarIcon className="h-6 w-6 text-primary" />
-          Print Calendar
+          {t('calendar.title')}
         </h1>
         <div className="text-sm text-muted-foreground">
-          {events.length} event{events.length !== 1 ? 's' : ''} from {projects.length} project{projects.length !== 1 ? 's' : ''}
+          {events.length} {events.length !== 1 ? t('calendar.events_other') : t('calendar.events_one')} {t('calendar.projectsFrom')} {projects.length} {projects.length !== 1 ? t('calendar.projectsWord_other') : t('calendar.projectsWord_one')}
         </div>
       </div>
 
       <div className="flex flex-wrap gap-2">
-        <Button size="sm" variant={typeFilter === 'all' ? 'default' : 'outline'} onClick={() => setTypeFilter('all')} className="h-7 text-xs">All</Button>
+        <Button size="sm" variant={typeFilter === 'all' ? 'default' : 'outline'} onClick={() => setTypeFilter('all')} className="h-7 text-xs">{t('calendar.all')}</Button>
         {(Object.entries(EVENT_CONFIG) as [EventType, typeof EVENT_CONFIG[EventType]][]).map(([type, cfg]) => (
           <Button key={type} size="sm" variant={typeFilter === type ? 'default' : 'outline'} onClick={() => setTypeFilter(typeFilter === type ? 'all' : type)} className="h-7 text-xs gap-1.5">
             <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: cfg.color }} />
@@ -187,7 +191,7 @@ export default function CalendarPage() {
         </CardHeader>
         <CardContent className="p-3">
           <div className="grid grid-cols-7 gap-1 mb-1">
-            {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map(d => (
+            {[t('calendar.mon'), t('calendar.tue'), t('calendar.wed'), t('calendar.thu'), t('calendar.fri'), t('calendar.sat'), t('calendar.sun')].map(d => (
               <div key={d} className="text-xs font-semibold text-muted-foreground text-center py-2">{d}</div>
             ))}
           </div>
@@ -237,7 +241,7 @@ export default function CalendarPage() {
               <div>
                 <div className="flex items-center gap-2 mb-1">
                   <h3 className="font-semibold text-base">{selectedEvent.projectName}</h3>
-                  {selectedEvent.isNew && <Badge className="bg-primary/15 text-primary border-primary/30 text-[10px]">NEW</Badge>}
+                  {selectedEvent.isNew && <Badge className="bg-primary/15 text-primary border-primary/30 text-[10px]">{t('calendar.newBadge')}</Badge>}
                 </div>
                 <p className="text-sm text-muted-foreground">{selectedEvent.customerName}</p>
               </div>
@@ -246,25 +250,25 @@ export default function CalendarPage() {
               </Badge>
             </div>
             <div className="grid grid-cols-3 gap-4 mt-3 text-sm">
-              <div><span className="text-muted-foreground text-xs">Date</span><p className="font-medium">{format(selectedEvent.date, "MMM d, yyyy")}</p></div>
-              <div><span className="text-muted-foreground text-xs">Est. Print Time</span><p className="font-medium">{selectedEvent.estimatedHours.toFixed(1)}h</p></div>
-              <div><span className="text-muted-foreground text-xs">Pieces</span><p className="font-medium">{selectedEvent.printCount}</p></div>
+              <div><span className="text-muted-foreground text-xs">{t('calendar.date')}</span><p className="font-medium">{format(selectedEvent.date, "MMM d, yyyy")}</p></div>
+              <div><span className="text-muted-foreground text-xs">{t('calendar.estPrintTime')}</span><p className="font-medium">{selectedEvent.estimatedHours.toFixed(1)}h</p></div>
+              <div><span className="text-muted-foreground text-xs">{t('calendar.pieces')}</span><p className="font-medium">{selectedEvent.printCount}</p></div>
             </div>
             <div className="flex gap-2 mt-2">
               <Button size="sm" variant="default" className="text-xs gap-1" onClick={() => openProject(selectedEvent.projectId)}>
-                <ExternalLink className="h-3 w-3" />Open Project
+                <ExternalLink className="h-3 w-3" />{t('calendar.openProject')}
               </Button>
-              <Button size="sm" variant="ghost" className="text-xs" onClick={() => setSelectedEvent(null)}>Dismiss</Button>
+              <Button size="sm" variant="ghost" className="text-xs" onClick={() => setSelectedEvent(null)}>{t('calendar.dismiss')}</Button>
             </div>
           </CardContent>
         </Card>
       )}
 
       <Card>
-        <CardHeader className="pb-2"><CardTitle className="text-base">Upcoming Events</CardTitle></CardHeader>
+        <CardHeader className="pb-2"><CardTitle className="text-base">{t('calendar.upcomingEvents')}</CardTitle></CardHeader>
         <CardContent>
           {upcomingEvents.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-6">No upcoming events.</p>
+            <p className="text-sm text-muted-foreground text-center py-6">{t('calendar.noUpcomingEvents')}</p>
           ) : (
             <div className="space-y-2">
               {upcomingEvents.map(event => {
@@ -282,7 +286,7 @@ export default function CalendarPage() {
                       <div>
                         <div className="flex items-center gap-2">
                           <span className="font-medium text-sm">{event.projectName}</span>
-                          {event.isNew && <Badge className="bg-primary/15 text-primary border-primary/30 text-[9px] px-1.5 py-0">NEW</Badge>}
+                          {event.isNew && <Badge className="bg-primary/15 text-primary border-primary/30 text-[9px] px-1.5 py-0">{t('calendar.newBadge')}</Badge>}
                         </div>
                         <div className="flex items-center gap-2 text-xs text-muted-foreground">
                           <Badge variant="outline" className={`text-[10px] ${cfg.bgClass} ${cfg.textClass}`}>{cfg.label}</Badge>
@@ -293,7 +297,7 @@ export default function CalendarPage() {
                     <div className="text-right">
                       <p className="text-sm font-medium">{format(event.date, "MMM d")}</p>
                       <p className="text-xs text-muted-foreground">
-                        {daysAway === 0 ? 'Today' : daysAway === 1 ? 'Tomorrow' : `${daysAway}d away`}
+                        {daysAway === 0 ? t('calendar.today') : daysAway === 1 ? t('calendar.tomorrow') : t('calendar.daysAway', { count: daysAway })}
                       </p>
                     </div>
                   </div>

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useApp } from "@/context/AppContext";
 import { Project, Print, ProjectExpense, getProjectTotalPrintTime, getProjectTotalMaterial, getProjectProgress, getProjectExpensesTotal, getProjectPiecesTotal, getProjectTotalPieces, getEstimatedMaterialCost, PaymentMethod } from "@/types";
 import { Button } from "@/components/ui/button";
@@ -42,6 +43,7 @@ interface Props { project: Project; onBack: () => void; }
 export default function ProjectDetail({ project, onBack }: Props) {
   const { updateProject, deleteProject, duplicateProject, settings, templates, addExpense, allPrintNames } = useApp();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [showTemplates, setShowTemplates] = useState(false);
 
   // Use project from props directly (always fresh from context) instead of local state copy
@@ -155,21 +157,21 @@ export default function ProjectDetail({ project, onBack }: Props) {
           noHover
         />
         <div className="flex items-center gap-2 flex-1 flex-wrap min-w-0">
-          <h1 className="text-2xl font-bold truncate">{p.name || "Untitled Project"}</h1>
+          <h1 className="text-2xl font-bold truncate">{p.name || t('projectDetail.untitled')}</h1>
           {p.isRecurringCustomer && <RecurringBadge size="md" />}
         </div>
         <div className="flex gap-1.5 flex-wrap">
           <Button size="sm" variant="outline" className="text-xs gap-1" onClick={() => navigate('/kanban')}>
-            <Kanban className="h-3.5 w-3.5" />Kanban
+            <Kanban className="h-3.5 w-3.5" />{t('projectDetail.kanban')}
           </Button>
           <Button size="sm" variant="outline" className="text-xs gap-1" onClick={() => navigate('/calendar')}>
-            <Calendar className="h-3.5 w-3.5" />Calendar
+            <Calendar className="h-3.5 w-3.5" />{t('projectDetail.calendar')}
           </Button>
           <Button size="sm" variant="outline" className="text-xs gap-1" onClick={() => navigate('/expenses')}>
-            <Receipt className="h-3.5 w-3.5" />Expenses
+            <Receipt className="h-3.5 w-3.5" />{t('projectDetail.expenses')}
           </Button>
           <Button size="sm" variant="outline" onClick={() => { duplicateProject(p.id); posthog.capture('project_duplicated', { customer_source: p.customerSource }); onBack(); }}>
-            <Copy className="h-4 w-4 mr-1" />Duplicate
+            <Copy className="h-4 w-4 mr-1" />{t('projectDetail.duplicate')}
           </Button>
         </div>
       </div>
@@ -178,8 +180,8 @@ export default function ProjectDetail({ project, onBack }: Props) {
       <Card>
         <CardContent className="p-3 space-y-1.5">
           <div className="flex justify-between text-xs text-muted-foreground">
-            <span>Project Progress</span>
-            <span>{progress.completedPieces}/{progress.totalPieces} pieces ({progress.percent}%)</span>
+            <span>{t('projectDetail.projectProgress')}</span>
+            <span>{progress.completedPieces}/{progress.totalPieces} {t('projects.pieces')} ({progress.percent}%)</span>
           </div>
           <Progress value={progress.percent} className="h-2" />
         </CardContent>
@@ -188,12 +190,12 @@ export default function ProjectDetail({ project, onBack }: Props) {
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
         {[
-          { label: "Pieces", value: `${totalPieces}` },
-          { label: "Print Time", value: `${totalTime.toFixed(1)}h` },
-          { label: "Material", value: `${totalMaterial.toFixed(0)}g` },
-          { label: "Est. Material Cost", value: `€${estimatedMatCost.toFixed(2)}`, subtitle: "estimate only" },
-          { label: "Expenses", value: `€${projectExpTotal.toFixed(2)}` },
-          { label: "Profit", value: `€${profit.toFixed(2)}`, highlight: true },
+          { label: t('projectDetail.piecesLabel'), value: `${totalPieces}` },
+          { label: t('projectDetail.printTime'), value: `${totalTime.toFixed(1)}h` },
+          { label: t('projectDetail.material'), value: `${totalMaterial.toFixed(0)}g` },
+          { label: t('projectDetail.estMaterialCost'), value: `€${estimatedMatCost.toFixed(2)}`, subtitle: t('projectDetail.estimateOnly') },
+          { label: t('projectDetail.expensesLabel'), value: `€${projectExpTotal.toFixed(2)}` },
+          { label: t('projectDetail.profit'), value: `€${profit.toFixed(2)}`, highlight: true },
         ].map(s => (
           <Card key={s.label}>
             <CardContent className="p-3">
@@ -210,7 +212,7 @@ export default function ProjectDetail({ project, onBack }: Props) {
         <Card>
           <CardContent className="p-3 space-y-1.5">
             <div className="flex justify-between text-xs">
-              <span className="text-muted-foreground">Profit Margin</span>
+              <span className="text-muted-foreground">{t('projectDetail.profitMargin')}</span>
               <span className={`font-bold ${marginColor}`}>{profitMargin.toFixed(1)}%</span>
             </div>
             <div className="w-full bg-secondary rounded-full h-2 overflow-hidden">
@@ -223,9 +225,9 @@ export default function ProjectDetail({ project, onBack }: Props) {
       {/* Project fields */}
       <Card>
         <CardContent className="p-4 grid gap-3 md:grid-cols-2">
-          <div><Label>Project Name</Label><Input value={p.name} onChange={e => set({ name: e.target.value })} /></div>
-          <div><Label>Customer</Label><Input value={p.customerName} onChange={e => set({ customerName: e.target.value })} /></div>
-          <div><Label>Source</Label>
+          <div><Label>{t('projectDetail.projectName')}</Label><Input value={p.name} onChange={e => set({ name: e.target.value })} /></div>
+          <div><Label>{t('projectDetail.customer')}</Label><Input value={p.customerName} onChange={e => set({ customerName: e.target.value })} /></div>
+          <div><Label>{t('projectDetail.source')}</Label>
             <Select value={p.customerSource} onValueChange={v => set({ customerSource: v as any })}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
@@ -233,7 +235,7 @@ export default function ProjectDetail({ project, onBack }: Props) {
               </SelectContent>
             </Select>
           </div>
-          <div><Label>Payment Method</Label>
+          <div><Label>{t('projectDetail.paymentMethod')}</Label>
             <Select value={p.paymentMethod || "Other"} onValueChange={v => set({ paymentMethod: v as PaymentMethod })}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
@@ -241,24 +243,24 @@ export default function ProjectDetail({ project, onBack }: Props) {
               </SelectContent>
             </Select>
           </div>
-          <div><Label>Order Date</Label><Input type="date" value={p.orderDate} onChange={e => set({ orderDate: e.target.value })} /></div>
-          <div><Label>Due Date</Label><Input type="date" value={p.dueDate || ""} onChange={e => set({ dueDate: e.target.value })} /></div>
+          <div><Label>{t('projectDetail.orderDate')}</Label><Input type="date" value={p.orderDate} onChange={e => set({ orderDate: e.target.value })} /></div>
+          <div><Label>{t('projectDetail.dueDate')}</Label><Input type="date" value={p.dueDate || ""} onChange={e => set({ dueDate: e.target.value })} /></div>
           <div>
-            <Label>Total Price (€) {autoCalcTotal && <span className="text-xs text-muted-foreground ml-1">auto from pieces</span>}</Label>
+            <Label>{t('projectDetail.totalPrice')} {autoCalcTotal && <span className="text-xs text-muted-foreground ml-1">{t('projectDetail.autoFromPieces')}</span>}</Label>
             <Input type="number" step="0.01" value={autoCalcTotal ? piecesTotal.toFixed(2) : (p.totalPrice || "")} onChange={e => set({ totalPrice: parseFloat(e.target.value) || 0 })} readOnly={autoCalcTotal} className={autoCalcTotal ? "bg-muted" : ""} />
           </div>
-          <div><Label>Shipping Date</Label><Input type="date" value={p.shippingDate} onChange={e => set({ shippingDate: e.target.value })} /></div>
-          <div className="md:col-span-2"><Label>Notes</Label><Textarea value={p.notes} onChange={e => set({ notes: e.target.value })} /></div>
+          <div><Label>{t('projectDetail.shippingDate')}</Label><Input type="date" value={p.shippingDate} onChange={e => set({ shippingDate: e.target.value })} /></div>
+          <div className="md:col-span-2"><Label>{t('projectDetail.notes')}</Label><Textarea value={p.notes} onChange={e => set({ notes: e.target.value })} /></div>
           <div className="flex gap-6 md:col-span-2 flex-wrap">
             {(["printed", "paid", "sent"] as const).map(field => (
               <label key={field} className="flex items-center gap-2 cursor-pointer">
                 <Checkbox checked={p[field]} onCheckedChange={v => set({ [field]: !!v })} />
-                <span className="text-sm capitalize">{field}</span>
+                <span className="text-sm">{field === 'printed' ? t('projectDetail.printedCheck') : field === 'paid' ? t('projectDetail.paidCheck') : t('projectDetail.sentCheck')}</span>
               </label>
             ))}
             <label className="flex items-center gap-2 cursor-pointer">
               <Checkbox checked={p.isRecurringCustomer || false} onCheckedChange={v => set({ isRecurringCustomer: !!v })} />
-              <span className="text-sm flex items-center gap-1"><RefreshCw className="h-3 w-3" />Recurring Customer</span>
+              <span className="text-sm flex items-center gap-1"><RefreshCw className="h-3 w-3" />{t('projectDetail.recurringCustomer')}</span>
             </label>
           </div>
         </CardContent>
@@ -269,7 +271,7 @@ export default function ProjectDetail({ project, onBack }: Props) {
         <CardHeader className="pb-2">
           <CardTitle className="text-base flex items-center gap-2">
             <Box className="h-4 w-4 text-primary" />
-            Add Plates / Models
+            {t('projectDetail.addPlatesModels')}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -280,18 +282,18 @@ export default function ProjectDetail({ project, onBack }: Props) {
       {/* Prints / Pieces */}
       <Card>
         <CardHeader className="flex-row items-center justify-between pb-2">
-          <CardTitle className="text-base">Plates / Pieces</CardTitle>
+          <CardTitle className="text-base">{t('projectDetail.platesTitle')}</CardTitle>
           <div className="flex gap-2">
             {templates.length > 0 && (
               <Button size="sm" variant="outline" onClick={() => setShowTemplates(true)}>
-                <BookTemplate className="h-4 w-4 mr-1" />From Template
+                <BookTemplate className="h-4 w-4 mr-1" />{t('projectDetail.fromTemplate')}
               </Button>
             )}
-            <Button size="sm" variant="outline" onClick={addPrint}><Plus className="h-4 w-4 mr-1" />Add Plate</Button>
+            <Button size="sm" variant="outline" onClick={addPrint}><Plus className="h-4 w-4 mr-1" />{t('projectDetail.addPlate')}</Button>
           </div>
         </CardHeader>
         <CardContent className="space-y-3">
-          {p.prints.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">No plates yet. Click "Add Plate" or import a .3mf above.</p>}
+          {p.prints.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">{t('projectDetail.noPlatesYet')}</p>}
           {p.prints.map((pr, idx) => {
             const pieceTotal = (pr.pricePerPiece || 0) * (pr.quantity || 1);
             const models = pr.models || [];
@@ -308,10 +310,10 @@ export default function ProjectDetail({ project, onBack }: Props) {
                   />
                   <div className="flex-1 min-w-0 space-y-1">
                     <div className="flex items-center gap-1 flex-wrap">
-                      <Button size="icon" variant="ghost" className="h-6 w-6" disabled={idx === 0} onClick={() => movePrint(pr.id, -1)} title="Move up">
+                      <Button size="icon" variant="ghost" className="h-6 w-6" disabled={idx === 0} onClick={() => movePrint(pr.id, -1)} title={t('projectDetail.moveUp')}>
                         <ArrowUp className="h-3 w-3" />
                       </Button>
-                      <Button size="icon" variant="ghost" className="h-6 w-6" disabled={idx === p.prints.length - 1} onClick={() => movePrint(pr.id, 1)} title="Move down">
+                      <Button size="icon" variant="ghost" className="h-6 w-6" disabled={idx === p.prints.length - 1} onClick={() => movePrint(pr.id, 1)} title={t('projectDetail.moveDown')}>
                         <ArrowDown className="h-3 w-3" />
                       </Button>
                       <span className="text-[10px] text-muted-foreground ml-1">#{idx + 1}</span>
@@ -331,28 +333,28 @@ export default function ProjectDetail({ project, onBack }: Props) {
                 </div>
                 <div className="grid gap-2 grid-cols-2 md:grid-cols-4">
                   <div className="col-span-2 md:col-span-1">
-                    <Label className="text-xs">Plate / Piece Name</Label>
+                    <Label className="text-xs">{t('projectDetail.platePieceName')}</Label>
                     <Input value={pr.name} onChange={e => updatePrint(pr.id, { name: e.target.value })} list={`names-${pr.id}`} placeholder="e.g. Plate 1 / Gear Housing" />
                     <datalist id={`names-${pr.id}`}>{allPrintNames.map(n => <option key={n} value={n} />)}</datalist>
                   </div>
-                  <div><Label className="text-xs">Material</Label><Input value={pr.material || ""} onChange={e => updatePrint(pr.id, { material: e.target.value })} placeholder="PLA, PETG..." /></div>
-                  <div><Label className="text-xs">Color</Label><Input value={pr.color || ""} onChange={e => updatePrint(pr.id, { color: e.target.value })} placeholder="Black, White..." /></div>
-                  <div><Label className="text-xs">Qty</Label><Input type="number" min="1" value={pr.quantity || 1} onChange={e => updatePrint(pr.id, { quantity: Math.max(1, parseInt(e.target.value) || 1) })} /></div>
+                  <div><Label className="text-xs">{t('projectDetail.materialField')}</Label><Input value={pr.material || ""} onChange={e => updatePrint(pr.id, { material: e.target.value })} placeholder="PLA, PETG..." /></div>
+                  <div><Label className="text-xs">{t('projectDetail.color')}</Label><Input value={pr.color || ""} onChange={e => updatePrint(pr.id, { color: e.target.value })} placeholder="Black, White..." /></div>
+                  <div><Label className="text-xs">{t('projectDetail.qty')}</Label><Input type="number" min="1" value={pr.quantity || 1} onChange={e => updatePrint(pr.id, { quantity: Math.max(1, parseInt(e.target.value) || 1) })} /></div>
                 </div>
                 <div className="grid gap-2 grid-cols-2 md:grid-cols-5 items-end">
-                  <div><Label className="text-xs">Print Time (h)</Label><Input type="number" step="0.1" value={pr.estimatedPrintTime || ""} onChange={e => updatePrint(pr.id, { estimatedPrintTime: parseFloat(e.target.value) || 0 })} /></div>
-                  <div><Label className="text-xs">Material (g)</Label><Input type="number" value={pr.materialUsed || ""} onChange={e => updatePrint(pr.id, { materialUsed: parseFloat(e.target.value) || 0 })} /></div>
-                  <div><Label className="text-xs">Price/Piece (€)</Label><Input type="number" step="0.01" value={pr.pricePerPiece || ""} onChange={e => updatePrint(pr.id, { pricePerPiece: parseFloat(e.target.value) || 0 })} /></div>
-                  <div><Label className="text-xs">Done</Label><Input type="number" min="0" max={pr.quantity || 1} value={pr.completedQuantity || 0} onChange={e => updatePrint(pr.id, { completedQuantity: Math.min(pr.quantity || 1, Math.max(0, parseInt(e.target.value) || 0)) })} /></div>
+                  <div><Label className="text-xs">{t('projectDetail.printTimeH')}</Label><Input type="number" step="0.1" value={pr.estimatedPrintTime || ""} onChange={e => updatePrint(pr.id, { estimatedPrintTime: parseFloat(e.target.value) || 0 })} /></div>
+                  <div><Label className="text-xs">{t('projectDetail.materialG')}</Label><Input type="number" value={pr.materialUsed || ""} onChange={e => updatePrint(pr.id, { materialUsed: parseFloat(e.target.value) || 0 })} /></div>
+                  <div><Label className="text-xs">{t('projectDetail.pricePerPiece')}</Label><Input type="number" step="0.01" value={pr.pricePerPiece || ""} onChange={e => updatePrint(pr.id, { pricePerPiece: parseFloat(e.target.value) || 0 })} /></div>
+                  <div><Label className="text-xs">{t('projectDetail.done')}</Label><Input type="number" min="0" max={pr.quantity || 1} value={pr.completedQuantity || 0} onChange={e => updatePrint(pr.id, { completedQuantity: Math.min(pr.quantity || 1, Math.max(0, parseInt(e.target.value) || 0)) })} /></div>
                   <div className="flex items-end gap-2">
                     <div className="flex-1">
-                      <Label className="text-xs">Status</Label>
+                      <Label className="text-xs">{t('common.status')}</Label>
                       <Select value={pr.status || 'not-printed'} onValueChange={v => updatePrint(pr.id, { status: v as any })}>
                         <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="not-printed">Not Printed</SelectItem>
-                          <SelectItem value="printing">Printing</SelectItem>
-                          <SelectItem value="completed">Completed</SelectItem>
+                          <SelectItem value="not-printed">{t('projectDetail.notPrinted')}</SelectItem>
+                          <SelectItem value="printing">{t('projectDetail.printingStatus')}</SelectItem>
+                          <SelectItem value="completed">{t('projectDetail.completedStatus')}</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -364,14 +366,14 @@ export default function ProjectDetail({ project, onBack }: Props) {
                 <div className="pt-2 border-t border-border/60">
                   <div className="flex items-center justify-between mb-1.5">
                     <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">
-                      Models ({models.length})
+                      {t('projectDetail.models')} ({models.length})
                     </span>
                     <Button size="sm" variant="ghost" className="h-6 text-[11px] gap-1" onClick={() => addModel(pr.id)}>
-                      <Plus className="h-3 w-3" />Add Model
+                      <Plus className="h-3 w-3" />{t('projectDetail.addModel')}
                     </Button>
                   </div>
                   {models.length === 0 ? (
-                    <p className="text-[11px] text-muted-foreground/70 italic">No individual models tracked.</p>
+                    <p className="text-[11px] text-muted-foreground/70 italic">{t('projectDetail.noModels')}</p>
                   ) : (
                     <div className="space-y-1">
                       {models.map(m => (
@@ -380,13 +382,13 @@ export default function ProjectDetail({ project, onBack }: Props) {
                           <Input
                             value={m.name}
                             onChange={e => updateModel(pr.id, m.id, { name: e.target.value })}
-                            placeholder="Model name"
+                            placeholder={t('projectDetail.modelName')}
                             className="h-7 text-xs"
                           />
                           <Input
                             value={m.material || ""}
                             onChange={e => updateModel(pr.id, m.id, { material: e.target.value })}
-                            placeholder="Mat."
+                            placeholder={t('projectDetail.modelMat')}
                             className="h-7 text-xs w-20"
                           />
                           <ColorPills color={m.color || pr.color} palette={pr.colorPalette} material={normalizeMaterial(m.material || pr.material)} size="xs" showLabel={false} className="shrink-0" />
@@ -400,7 +402,7 @@ export default function ProjectDetail({ project, onBack }: Props) {
                               <DropdownMenuContent align="end">
                                 {otherPlates.map(op => (
                                   <DropdownMenuItem key={op.id} onClick={() => moveModel(pr.id, m.id, op.id)}>
-                                    Move to {op.name || "plate"}
+                                    {t('projectDetail.moveToPlate', { name: op.name || 'plate' })}
                                   </DropdownMenuItem>
                                 ))}
                               </DropdownMenuContent>
@@ -417,7 +419,7 @@ export default function ProjectDetail({ project, onBack }: Props) {
 
                 {pieceTotal > 0 && (
                   <div className="text-xs text-muted-foreground text-right">
-                    Subtotal: <span className="font-medium text-foreground">€{pieceTotal.toFixed(2)}</span>
+                    {t('projectDetail.subtotal')} <span className="font-medium text-foreground">€{pieceTotal.toFixed(2)}</span>
                     {(pr.quantity || 1) > 1 && <span className="ml-1">({pr.quantity} × €{(pr.pricePerPiece || 0).toFixed(2)})</span>}
                   </div>
                 )}
@@ -430,19 +432,19 @@ export default function ProjectDetail({ project, onBack }: Props) {
       {/* Project Expenses */}
       <Card>
         <CardHeader className="flex-row items-center justify-between pb-2">
-          <CardTitle className="text-base">Project Expenses</CardTitle>
-          <Button size="sm" variant="outline" onClick={addProjectExpense}><Plus className="h-4 w-4 mr-1" />Add Expense</Button>
+          <CardTitle className="text-base">{t('projectDetail.projectExpenses')}</CardTitle>
+          <Button size="sm" variant="outline" onClick={addProjectExpense}><Plus className="h-4 w-4 mr-1" />{t('projectDetail.addExpense')}</Button>
         </CardHeader>
         <CardContent className="space-y-3">
-          {(p.projectExpenses || []).length === 0 && <p className="text-sm text-muted-foreground text-center py-4">No project expenses. Add LEDs, magnets, packaging, etc.</p>}
+          {(p.projectExpenses || []).length === 0 && <p className="text-sm text-muted-foreground text-center py-4">{t('projectDetail.noProjectExpenses')}</p>}
           {(p.projectExpenses || []).map(pe => (
             <div key={pe.id} className="grid gap-2 md:grid-cols-5 items-end p-3 rounded-lg border bg-muted/30">
-              <div><Label className="text-xs">Name</Label><Input value={pe.name} onChange={e => updateProjectExpense(pe.id, { name: e.target.value })} /></div>
-              <div><Label className="text-xs">Amount (€)</Label><Input type="number" step="0.01" value={pe.amount || ""} onChange={e => updateProjectExpense(pe.id, { amount: parseFloat(e.target.value) || 0 })} /></div>
-              <div><Label className="text-xs">Category</Label><Input value={pe.category} onChange={e => updateProjectExpense(pe.id, { category: e.target.value })} placeholder="e.g. Hardware" /></div>
-              <div><Label className="text-xs">Notes</Label><Input value={pe.notes} onChange={e => updateProjectExpense(pe.id, { notes: e.target.value })} /></div>
+              <div><Label className="text-xs">{t('projectDetail.expName')}</Label><Input value={pe.name} onChange={e => updateProjectExpense(pe.id, { name: e.target.value })} /></div>
+              <div><Label className="text-xs">{t('projectDetail.expAmount')}</Label><Input type="number" step="0.01" value={pe.amount || ""} onChange={e => updateProjectExpense(pe.id, { amount: parseFloat(e.target.value) || 0 })} /></div>
+              <div><Label className="text-xs">{t('projectDetail.expCategory')}</Label><Input value={pe.category} onChange={e => updateProjectExpense(pe.id, { category: e.target.value })} placeholder={t('projectDetail.hardwareCategory')} /></div>
+              <div><Label className="text-xs">{t('projectDetail.expNotes')}</Label><Input value={pe.notes} onChange={e => updateProjectExpense(pe.id, { notes: e.target.value })} /></div>
               <div className="flex gap-1">
-                <Button size="sm" variant="outline" className="text-xs" onClick={() => syncExpenseToGlobal(pe)}>Sync Global</Button>
+                <Button size="sm" variant="outline" className="text-xs" onClick={() => syncExpenseToGlobal(pe)}>{t('projectDetail.syncGlobal')}</Button>
                 <Button size="icon" variant="ghost" className="text-destructive h-8 w-8" onClick={() => removeProjectExpense(pe.id)}><Trash2 className="h-4 w-4" /></Button>
               </div>
             </div>
@@ -452,14 +454,14 @@ export default function ProjectDetail({ project, onBack }: Props) {
 
       <div className="flex justify-end">
         <Button variant="destructive" size="sm" onClick={() => { deleteProject(p.id); posthog.capture('project_deleted', { customer_source: p.customerSource, total_price: effectiveTotal }); onBack(); }}>
-          <Trash2 className="h-4 w-4 mr-1" />Delete Project
+          <Trash2 className="h-4 w-4 mr-1" />{t('projectDetail.deleteProject')}
         </Button>
       </div>
 
       {/* Template picker dialog */}
       <Dialog open={showTemplates} onOpenChange={setShowTemplates}>
         <DialogContent>
-          <DialogHeader><DialogTitle>Insert from Template</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{t('projectDetail.insertFromTemplate')}</DialogTitle></DialogHeader>
           <div className="space-y-2 max-h-[300px] overflow-y-auto">
             {templates.map(t => (
               <Card key={t.id} className="cursor-pointer hover:border-primary/50 transition-colors" onClick={() => addFromTemplate(t)}>

@@ -4,37 +4,39 @@ import { Button } from '@/components/ui/button';
 import { FolderKanban, TrendingUp, CalendarDays } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { supabase, supabaseConfigured } from '@/integrations/supabase/client';
+import { useTranslation } from 'react-i18next';
 
 const LS_KEY = 'pt_welcome_dismissed';
-
-const SLIDES = [
-  {
-    icon: FolderKanban,
-    color: 'text-primary',
-    bg: 'bg-primary/10',
-    title: 'Track your projects',
-    body: 'See all your 3D printing orders in one place — from new order to delivered.',
-  },
-  {
-    icon: TrendingUp,
-    color: 'text-emerald-600',
-    bg: 'bg-emerald-500/10',
-    title: 'Know your profit',
-    body: 'Revenue, expenses, and net profit are calculated automatically for every project.',
-  },
-  {
-    icon: CalendarDays,
-    color: 'text-orange-500',
-    bg: 'bg-orange-500/10',
-    title: 'Manage your workload',
-    body: 'Use the Kanban board and calendar to visualize deadlines and stay on schedule.',
-  },
-];
 
 export function WelcomeModal() {
   const { user, loading: authLoading } = useAuth();
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState(0);
+  const { t } = useTranslation();
+
+  const SLIDES = [
+    {
+      icon: FolderKanban,
+      color: 'text-primary',
+      bg: 'bg-primary/10',
+      title: t('onboarding.slide1Title'),
+      body: t('onboarding.slide1Body'),
+    },
+    {
+      icon: TrendingUp,
+      color: 'text-emerald-600',
+      bg: 'bg-emerald-500/10',
+      title: t('onboarding.slide2Title'),
+      body: t('onboarding.slide2Body'),
+    },
+    {
+      icon: CalendarDays,
+      color: 'text-orange-500',
+      bg: 'bg-orange-500/10',
+      title: t('onboarding.slide3Title'),
+      body: t('onboarding.slide3Body'),
+    },
+  ];
 
   useEffect(() => {
     if (authLoading || !user) return;
@@ -105,16 +107,16 @@ export function WelcomeModal() {
           <div className="flex gap-2 w-full">
             {step > 0 && (
               <Button variant="ghost" className="flex-1" onClick={() => setStep(s => s - 1)}>
-                Back
+                {t('onboarding.back')}
               </Button>
             )}
             {!isLast ? (
               <Button className={step === 0 ? 'w-full' : 'flex-1'} onClick={() => setStep(s => s + 1)}>
-                Next
+                {t('onboarding.next')}
               </Button>
             ) : (
               <Button className={step === 0 ? 'w-full' : 'flex-1'} onClick={dismiss}>
-                Let's go
+                {t('onboarding.letsGo')}
               </Button>
             )}
           </div>

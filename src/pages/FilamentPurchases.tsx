@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useApp } from "@/context/AppContext";
+import { useTranslation } from "react-i18next";
 import { FilamentPurchase } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,6 +26,7 @@ function newPurchase(): FilamentPurchase {
 
 export default function FilamentPurchases() {
   const { filamentPurchases, addFilamentPurchase, deleteFilamentPurchase, totalFilamentPurchasesCost } = useApp();
+  const { t } = useTranslation();
   const [showAdd, setShowAdd] = useState(false);
   const [draft, setDraft] = useState<FilamentPurchase>(newPurchase());
 
@@ -46,14 +48,14 @@ export default function FilamentPurchases() {
     <div className="space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div>
-          <h1 className="text-2xl font-bold">Filament Purchases</h1>
-          <p className="text-sm text-muted-foreground">Track real filament costs. These are used for profit calculations instead of per-print estimates.</p>
+          <h1 className="text-2xl font-bold">{t('filament.title')}</h1>
+          <p className="text-sm text-muted-foreground">{t('filament.description')}</p>
         </div>
-        <Button size="sm" onClick={() => setShowAdd(true)}><Plus className="h-4 w-4 mr-1" />Add Purchase</Button>
+        <Button size="sm" onClick={() => setShowAdd(true)}><Plus className="h-4 w-4 mr-1" />{t('filament.addPurchase')}</Button>
       </div>
 
       <div className="text-sm text-muted-foreground">
-        Total Filament Spend: <strong className="text-foreground">€{totalFilamentPurchasesCost.toFixed(2)}</strong>
+        {t('filament.totalSpend')}: <strong className="text-foreground">€{totalFilamentPurchasesCost.toFixed(2)}</strong>
       </div>
 
       <Card>
@@ -61,18 +63,18 @@ export default function FilamentPurchases() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Date</TableHead>
-                <TableHead>Material</TableHead>
-                <TableHead>Brand</TableHead>
-                <TableHead>Spools</TableHead>
-                <TableHead>Weight/Spool</TableHead>
-                <TableHead className="text-right">Total Cost</TableHead>
+                <TableHead>{t('filament.tableDate')}</TableHead>
+                <TableHead>{t('filament.tableMaterial')}</TableHead>
+                <TableHead>{t('filament.tableBrand')}</TableHead>
+                <TableHead>{t('filament.tableSpools')}</TableHead>
+                <TableHead>{t('filament.tableWeightSpool')}</TableHead>
+                <TableHead className="text-right">{t('filament.tableTotalCost')}</TableHead>
                 <TableHead></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filamentPurchases.length === 0 && (
-                <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">No filament purchases yet.</TableCell></TableRow>
+                <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">{t('filament.noFilament')}</TableCell></TableRow>
               )}
               {filamentPurchases.map(fp => (
                 <TableRow key={fp.id}>
@@ -96,19 +98,19 @@ export default function FilamentPurchases() {
 
       <Dialog open={showAdd} onOpenChange={setShowAdd}>
         <DialogContent>
-          <DialogHeader><DialogTitle>Add Filament Purchase</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{t('filament.dialogTitle')}</DialogTitle></DialogHeader>
           <div className="grid gap-3">
-            <div><Label>Purchase Date</Label><Input type="date" value={draft.purchaseDate} onChange={e => setDraft({ ...draft, purchaseDate: e.target.value })} /></div>
-            <div><Label>Material Type</Label><Input value={draft.materialType} onChange={e => setDraft({ ...draft, materialType: e.target.value })} placeholder="PLA, PETG, ABS..." /></div>
-            <div><Label>Brand</Label><Input value={draft.brand} onChange={e => setDraft({ ...draft, brand: e.target.value })} placeholder="e.g. Bambu, Sunlu..." /></div>
+            <div><Label>{t('filament.purchaseDate')}</Label><Input type="date" value={draft.purchaseDate} onChange={e => setDraft({ ...draft, purchaseDate: e.target.value })} /></div>
+            <div><Label>{t('filament.materialType')}</Label><Input value={draft.materialType} onChange={e => setDraft({ ...draft, materialType: e.target.value })} placeholder={t('filament.materialPlaceholder')} /></div>
+            <div><Label>{t('filament.brand')}</Label><Input value={draft.brand} onChange={e => setDraft({ ...draft, brand: e.target.value })} placeholder={t('filament.brandPlaceholder')} /></div>
             <div className="grid grid-cols-2 gap-3">
-              <div><Label>Weight per Spool (g)</Label><Input type="number" value={draft.spoolWeight || ""} onChange={e => setDraft({ ...draft, spoolWeight: parseInt(e.target.value) || 0 })} /></div>
-              <div><Label>Number of Spools</Label><Input type="number" min={1} value={draft.numberOfSpools} onChange={e => setDraft({ ...draft, numberOfSpools: Math.max(1, parseInt(e.target.value) || 1) })} /></div>
+              <div><Label>{t('filament.weightPerSpool')}</Label><Input type="number" value={draft.spoolWeight || ""} onChange={e => setDraft({ ...draft, spoolWeight: parseInt(e.target.value) || 0 })} /></div>
+              <div><Label>{t('filament.numberOfSpools')}</Label><Input type="number" min={1} value={draft.numberOfSpools} onChange={e => setDraft({ ...draft, numberOfSpools: Math.max(1, parseInt(e.target.value) || 1) })} /></div>
             </div>
-            <div><Label>Total Cost (€)</Label><Input type="number" step="0.01" value={draft.totalCost || ""} onChange={e => setDraft({ ...draft, totalCost: parseFloat(e.target.value) || 0 })} /></div>
-            <div><Label>Notes</Label><Input value={draft.notes} onChange={e => setDraft({ ...draft, notes: e.target.value })} /></div>
+            <div><Label>{t('filament.totalCost')}</Label><Input type="number" step="0.01" value={draft.totalCost || ""} onChange={e => setDraft({ ...draft, totalCost: parseFloat(e.target.value) || 0 })} /></div>
+            <div><Label>{t('common.notes')}</Label><Input value={draft.notes} onChange={e => setDraft({ ...draft, notes: e.target.value })} /></div>
           </div>
-          <DialogFooter><Button onClick={handleAdd}>Add Purchase</Button></DialogFooter>
+          <DialogFooter><Button onClick={handleAdd}>{t('filament.addPurchaseBtn')}</Button></DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
