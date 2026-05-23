@@ -136,6 +136,14 @@
   }
 }
 
+/* Mobile touch targets — ensure form inputs meet 44px minimum tap target */
+@media (max-width: 767px) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="hidden"]),
+  textarea {
+    min-height: 44px;
+  }
+}
+
 @layer utilities {
   .animate-fade-in {
     animation: fadeIn 0.3s ease-out;

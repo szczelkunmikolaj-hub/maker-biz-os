@@ -157,20 +157,20 @@ export default function CalendarPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-2">
         <h1 className="text-2xl font-bold flex items-center gap-2">
           <CalendarIcon className="h-6 w-6 text-primary" />
           {t('calendar.title')}
         </h1>
-        <div className="text-sm text-muted-foreground">
+        <div className="text-sm text-muted-foreground hidden sm:block shrink-0">
           {events.length} {events.length !== 1 ? t('calendar.events_other') : t('calendar.events_one')} {t('calendar.projectsFrom')} {projects.length} {projects.length !== 1 ? t('calendar.projectsWord_other') : t('calendar.projectsWord_one')}
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-2">
-        <Button size="sm" variant={typeFilter === 'all' ? 'default' : 'outline'} onClick={() => setTypeFilter('all')} className="h-7 text-xs">{t('calendar.all')}</Button>
+      <div className="flex flex-wrap gap-1.5 md:gap-2">
+        <Button size="sm" variant={typeFilter === 'all' ? 'default' : 'outline'} onClick={() => setTypeFilter('all')} className="h-8 text-xs">{t('calendar.all')}</Button>
         {(Object.entries(EVENT_CONFIG) as [EventType, typeof EVENT_CONFIG[EventType]][]).map(([type, cfg]) => (
-          <Button key={type} size="sm" variant={typeFilter === type ? 'default' : 'outline'} onClick={() => setTypeFilter(typeFilter === type ? 'all' : type)} className="h-7 text-xs gap-1.5">
+          <Button key={type} size="sm" variant={typeFilter === type ? 'default' : 'outline'} onClick={() => setTypeFilter(typeFilter === type ? 'all' : type)} className="h-8 text-xs gap-1.5">
             <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: cfg.color }} />
             {cfg.label}
           </Button>
@@ -201,7 +201,7 @@ export default function CalendarPage() {
               const isToday = isSameDay(day, today);
               const dayEvents = filteredEvents.filter(e => isSameDay(e.date, day));
               return (
-                <div key={i} className={`min-h-[90px] p-1.5 rounded-md text-xs transition-all ${
+                <div key={i} className={`min-h-[60px] sm:min-h-[90px] p-1 sm:p-1.5 rounded-md text-xs transition-all ${
                   isCurrentMonth ? "bg-card hover:bg-accent/20" : "bg-muted/20 opacity-50"
                 } ${isToday ? "ring-2 ring-primary ring-offset-1 ring-offset-background" : "border border-border/50"}`}>
                   <div className={`font-semibold mb-1 text-[11px] ${

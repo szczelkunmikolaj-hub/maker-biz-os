@@ -20,7 +20,7 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="space-y-6 max-w-lg">
+    <div className="space-y-6 w-full max-w-lg">
       <h1 className="text-2xl font-bold">{t('settings.title')}</h1>
 
       <Card>

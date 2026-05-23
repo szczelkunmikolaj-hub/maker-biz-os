@@ -68,9 +68,9 @@ export default function Expenses() {
         </div>
       </div>
 
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3 flex-wrap">
         <Select value={catFilter} onValueChange={setCatFilter}>
-          <SelectTrigger className="w-[170px]"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="w-[160px] min-h-[44px]"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">{t('expenses.allCategories')}</SelectItem>
             {CATS.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
@@ -80,8 +80,8 @@ export default function Expenses() {
       </div>
 
       <Card>
-        <CardContent className="p-0">
-          <Table>
+        <CardContent className="p-0 overflow-x-auto">
+          <Table className="min-w-[600px]">
             <TableHeader>
               <TableRow>
                 <TableHead>{t('expenses.tableDate')}</TableHead>

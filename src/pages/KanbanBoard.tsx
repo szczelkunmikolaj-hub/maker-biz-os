@@ -67,7 +67,8 @@ export default function KanbanBoard() {
           </label>
         )}
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4 min-h-[65vh]">
+      <div className="overflow-x-auto -mx-4 px-4 pb-2 touch-pan-x md:overflow-visible md:mx-0 md:px-0 md:pb-0">
+      <div className="grid grid-cols-5 gap-4 min-h-[65vh] w-[900px] md:w-auto">
         {COLUMNS.map(col => {
           const items = visibleProjects.filter(p => p.kanbanStatus === col.status);
           return (
@@ -169,6 +170,7 @@ export default function KanbanBoard() {
             </div>
           );
         })}
+      </div>
       </div>
     </div>
   );

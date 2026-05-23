@@ -146,8 +146,8 @@ export default function ProjectDetail({ project, onBack }: Props) {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-2 flex-wrap">
-        <Button variant="ghost" size="icon" onClick={onBack}><ArrowLeft className="h-4 w-4" /></Button>
+      <div className="flex items-start gap-2 flex-wrap">
+        <Button variant="ghost" size="icon" onClick={onBack} className="shrink-0 mt-0.5"><ArrowLeft className="h-4 w-4" /></Button>
         <PlatePreview
           thumbnail={p.coverThumbnail || p.prints?.[0]?.thumbnail}
           color={(p.prints || []).map(pr => pr.color).filter(Boolean).join(", ") || undefined}
@@ -156,21 +156,21 @@ export default function ProjectDetail({ project, onBack }: Props) {
           size="sm"
           noHover
         />
-        <div className="flex items-center gap-2 flex-1 flex-wrap min-w-0">
-          <h1 className="text-2xl font-bold truncate">{p.name || t('projectDetail.untitled')}</h1>
+        <div className="flex items-center gap-2 flex-1 min-w-0 flex-wrap">
+          <h1 className="text-xl md:text-2xl font-bold truncate max-w-full">{p.name || t('projectDetail.untitled')}</h1>
           {p.isRecurringCustomer && <RecurringBadge size="md" />}
         </div>
-        <div className="flex gap-1.5 flex-wrap">
-          <Button size="sm" variant="outline" className="text-xs gap-1" onClick={() => navigate('/kanban')}>
+        <div className="flex gap-1.5 flex-wrap w-full sm:w-auto">
+          <Button size="sm" variant="outline" className="text-xs gap-1 min-h-[36px]" onClick={() => navigate('/kanban')}>
             <Kanban className="h-3.5 w-3.5" />{t('projectDetail.kanban')}
           </Button>
-          <Button size="sm" variant="outline" className="text-xs gap-1" onClick={() => navigate('/calendar')}>
+          <Button size="sm" variant="outline" className="text-xs gap-1 min-h-[36px]" onClick={() => navigate('/calendar')}>
             <Calendar className="h-3.5 w-3.5" />{t('projectDetail.calendar')}
           </Button>
-          <Button size="sm" variant="outline" className="text-xs gap-1" onClick={() => navigate('/expenses')}>
+          <Button size="sm" variant="outline" className="text-xs gap-1 min-h-[36px]" onClick={() => navigate('/expenses')}>
             <Receipt className="h-3.5 w-3.5" />{t('projectDetail.expenses')}
           </Button>
-          <Button size="sm" variant="outline" onClick={() => { duplicateProject(p.id); posthog.capture('project_duplicated', { customer_source: p.customerSource }); onBack(); }}>
+          <Button size="sm" variant="outline" className="min-h-[36px]" onClick={() => { duplicateProject(p.id); posthog.capture('project_duplicated', { customer_source: p.customerSource }); onBack(); }}>
             <Copy className="h-4 w-4 mr-1" />{t('projectDetail.duplicate')}
           </Button>
         </div>
@@ -224,7 +224,7 @@ export default function ProjectDetail({ project, onBack }: Props) {
 
       {/* Project fields */}
       <Card>
-        <CardContent className="p-4 grid gap-3 md:grid-cols-2">
+        <CardContent className="p-4 grid gap-3 grid-cols-1 md:grid-cols-2">
           <div><Label>{t('projectDetail.projectName')}</Label><Input value={p.name} onChange={e => set({ name: e.target.value })} /></div>
           <div><Label>{t('projectDetail.customer')}</Label><Input value={p.customerName} onChange={e => set({ customerName: e.target.value })} /></div>
           <div><Label>{t('projectDetail.source')}</Label>
@@ -438,7 +438,7 @@ export default function ProjectDetail({ project, onBack }: Props) {
         <CardContent className="space-y-3">
           {(p.projectExpenses || []).length === 0 && <p className="text-sm text-muted-foreground text-center py-4">{t('projectDetail.noProjectExpenses')}</p>}
           {(p.projectExpenses || []).map(pe => (
-            <div key={pe.id} className="grid gap-2 md:grid-cols-5 items-end p-3 rounded-lg border bg-muted/30">
+            <div key={pe.id} className="grid gap-2 grid-cols-1 sm:grid-cols-2 md:grid-cols-5 items-end p-3 rounded-lg border bg-muted/30">
               <div><Label className="text-xs">{t('projectDetail.expName')}</Label><Input value={pe.name} onChange={e => updateProjectExpense(pe.id, { name: e.target.value })} /></div>
               <div><Label className="text-xs">{t('projectDetail.expAmount')}</Label><Input type="number" step="0.01" value={pe.amount || ""} onChange={e => updateProjectExpense(pe.id, { amount: parseFloat(e.target.value) || 0 })} /></div>
               <div><Label className="text-xs">{t('projectDetail.expCategory')}</Label><Input value={pe.category} onChange={e => updateProjectExpense(pe.id, { category: e.target.value })} placeholder={t('projectDetail.hardwareCategory')} /></div>

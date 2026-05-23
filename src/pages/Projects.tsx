@@ -196,10 +196,10 @@ export default function Projects() {
       <div className="flex gap-2 flex-wrap items-center">
         <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder={t('projects.searchPlaceholder')} value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
+          <Input placeholder={t('projects.searchPlaceholder')} value={search} onChange={e => setSearch(e.target.value)} className="pl-9 min-h-[44px] md:min-h-[36px]" />
         </div>
         <Select value={filter} onValueChange={setFilter}>
-          <SelectTrigger className="w-[130px]"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="w-[130px] min-h-[44px] md:min-h-[36px]"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">{t('projects.all')}</SelectItem>
             <SelectItem value="paid">{t('projects.paid')}</SelectItem>
@@ -211,7 +211,7 @@ export default function Projects() {
           </SelectContent>
         </Select>
         <Select value={sortBy} onValueChange={v => setSortBy(v as SortKey)}>
-          <SelectTrigger className="w-[130px]">
+          <SelectTrigger className="w-[130px] min-h-[44px] md:min-h-[36px]">
             <ArrowUpDown className="h-3 w-3 mr-1" />
             <SelectValue />
           </SelectTrigger>

@@ -283,7 +283,7 @@ export default function Dashboard() {
         <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t('dashboard.keyMetrics')}</span>
         <HelpTip text={t('dashboard.keyMetricsHint')} />
       </div>
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
         {kpis.map(k => (
           <Card key={k.label} className="hover:shadow-md transition-shadow border-border/60">
             <CardContent className="p-4">
@@ -300,7 +300,7 @@ export default function Dashboard() {
       </div>
 
       {/* Print Performance + Project Insights Row */}
-      <div className="grid md:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         <Card className="border-border/60">
           <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><Printer className="h-4 w-4 text-primary" />{t('dashboard.printPerformance')}</CardTitle></CardHeader>
           <CardContent className="space-y-2">
@@ -349,7 +349,7 @@ export default function Dashboard() {
         </CardContent>
       </Card>
 
-      <div className="grid md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <ProductionSummary />
         <MaterialUsageSummary />
       </div>
@@ -372,7 +372,7 @@ export default function Dashboard() {
       </Card>
 
       {/* Charts Row 1 */}
-      <div className="grid md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card className="border-border/60">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
@@ -425,7 +425,7 @@ export default function Dashboard() {
       </div>
 
       {/* Charts Row 2 */}
-      <div className="grid md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card className="border-border/60">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
@@ -471,7 +471,7 @@ export default function Dashboard() {
       </div>
 
       {/* Charts Row 3 */}
-      <div className="grid md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card className="border-border/60">
           <CardHeader className="pb-2"><CardTitle className="text-sm">{t('dashboard.statusDistribution')}</CardTitle></CardHeader>
           <CardContent>

@@ -38,15 +38,15 @@ export function Layout() {
       <div className="min-h-screen flex w-full">
         <AppSidebar />
         <div className="flex-1 flex flex-col min-w-0">
-          <header className="h-14 flex items-center border-b bg-card/80 backdrop-blur-sm px-4 shrink-0 sticky top-0 z-10">
-            <SidebarTrigger />
-            {title && <span className="ml-3 text-sm font-medium text-muted-foreground">{title}</span>}
+          <header className="h-14 flex items-center border-b bg-card/80 backdrop-blur-sm px-3 md:px-4 shrink-0 sticky top-0 z-10 gap-1 md:gap-2">
+            <SidebarTrigger className="shrink-0" />
+            {title && <span className="ml-1 md:ml-3 text-sm font-medium text-muted-foreground truncate max-w-[120px] sm:max-w-none">{title}</span>}
 
             {/* Global month selector */}
-            <div className="ml-auto flex items-center gap-2">
-              <div className="flex items-center gap-1.5">
-                <CalendarDays className="h-3.5 w-3.5 text-muted-foreground" />
-                <label className="text-xs text-muted-foreground cursor-pointer select-none" htmlFor="month-toggle">
+            <div className="ml-auto flex items-center gap-1.5 md:gap-2 shrink-0">
+              <div className="flex items-center gap-1 md:gap-1.5">
+                <CalendarDays className="h-3.5 w-3.5 text-muted-foreground hidden sm:block" />
+                <label className="text-xs text-muted-foreground cursor-pointer select-none hidden sm:block" htmlFor="month-toggle">
                   {mode === 'all' ? t('common.allTime') : t('common.monthly')}
                 </label>
                 <Switch
@@ -58,18 +58,18 @@ export function Layout() {
               </div>
 
               {mode === 'month' && (
-                <div className="flex items-center gap-1 ml-1">
+                <div className="flex items-center gap-0.5 md:gap-1 ml-0.5 md:ml-1">
                   <Button variant="ghost" size="icon" className="h-7 w-7" onClick={prevMonth}>
                     <ChevronLeft className="h-3.5 w-3.5" />
                   </Button>
-                  <span className="text-sm font-medium min-w-[120px] text-center">{label}</span>
+                  <span className="text-xs md:text-sm font-medium min-w-[80px] md:min-w-[120px] text-center">{label}</span>
                   <Button variant="ghost" size="icon" className="h-7 w-7" onClick={nextMonth}>
                     <ChevronRight className="h-3.5 w-3.5" />
                   </Button>
                 </div>
               )}
 
-              <div className="ml-1 pl-2 border-l">
+              <div className="ml-0.5 md:ml-1 pl-1.5 md:pl-2 border-l">
                 <NotificationBell />
               </div>
             </div>
