@@ -66,66 +66,89 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const migratedRef = useRef(false);
 
-  // Load from cloud on auth
+  // Load from cloud on auth — with localStorage fallback if Supabase fails
   useEffect(() => {
     if (authLoading) return;
     if (!userId) { setLoading(false); return; }
     let cancelled = false;
     (async () => {
       setLoading(true);
-      const [pjs, exs, tps, fps, st, profile] = await Promise.all([
-        supabase.from('projects').select('data').eq('user_id', userId),
-        supabase.from('expenses').select('data').eq('user_id', userId),
-        supabase.from('templates').select('data').eq('user_id', userId),
-        supabase.from('filament_purchases').select('data').eq('user_id', userId),
-        supabase.from('user_settings').select('data').eq('user_id', userId).maybeSingle(),
-        supabase.from('profiles').select('migrated_at, language').eq('user_id', userId).maybeSingle(),
-      ]);
-      if (cancelled) return;
+      try {
+        const [pjs, exs, tps, fps, st, profile] = await Promise.all([
+          supabase.from('projects').select('data').eq('user_id', userId),
+          supabase.from('expenses').select('data').eq('user_id', userId),
+          supabase.from('templates').select('data').eq('user_id', userId),
+          supabase.from('filament_purchases').select('data').eq('user_id', userId),
+          supabase.from('user_settings').select('data').eq('user_id', userId).maybeSingle(),
+          supabase.from('profiles').select('migrated_at, language').eq('user_id', userId).maybeSingle(),
+        ]);
+        if (cancelled) return;
 
-      let nextProjects = (pjs.data || []).map(r => normalizeProject(r.data as any));
-      let nextExpenses = (exs.data || []).map(r => r.data as unknown as Expense);
-      let nextTemplates = (tps.data || []).map(r => r.data as unknown as PrintTemplate);
-      let nextFilament = (fps.data || []).map(r => r.data as unknown as FilamentPurchase);
-      let nextSettings: AppSettings = (st.data?.data as unknown as AppSettings) || DEFAULT_SETTINGS;
+        // Log any Supabase query errors for debugging
+        if (pjs.error) console.error('[sync] projects query:', pjs.error);
+        if (exs.error) console.error('[sync] expenses query:', exs.error);
+        if (tps.error) console.error('[sync] templates query:', tps.error);
+        if (fps.error) console.error('[sync] filament query:', fps.error);
 
-      // Sync language preference from profile
-      if (profile.data?.language) {
-        i18n.changeLanguage(profile.data.language);
-        localStorage.setItem('pt_language', profile.data.language);
-      }
+        let nextProjects = (pjs.data || []).map(r => normalizeProject(r.data as any));
+        let nextExpenses = (exs.data || []).map(r => r.data as unknown as Expense);
+        let nextTemplates = (tps.data || []).map(r => r.data as unknown as PrintTemplate);
+        let nextFilament = (fps.data || []).map(r => r.data as unknown as FilamentPurchase);
+        let nextSettings: AppSettings = (st.data?.data as unknown as AppSettings) || DEFAULT_SETTINGS;
 
-      // One-time localStorage migration
-      const alreadyMigrated = profile.data?.migrated_at != null;
-      if (!alreadyMigrated && !migratedRef.current) {
-        migratedRef.current = true;
-        const lsProjects = (loadJSON<any[]>('pt_projects', []) || []).map(normalizeProject);
-        const lsExpenses = loadJSON<Expense[]>('pt_expenses', []);
-        const lsTemplates = loadJSON<PrintTemplate[]>('pt_templates', []);
-        const lsFilament = loadJSON<FilamentPurchase[]>('pt_filament_purchases', []);
-        const lsSettings = loadJSON<AppSettings | null>('pt_settings', null);
-        const hasLocal = lsProjects.length || lsExpenses.length || lsTemplates.length || lsFilament.length || lsSettings;
-        if (hasLocal) {
-          if (lsProjects.length) await supabase.from('projects').upsert(lsProjects.map(p => ({ id: p.id, user_id: userId, data: p as any })));
-          if (lsExpenses.length) await supabase.from('expenses').upsert(lsExpenses.map(e => ({ id: e.id, user_id: userId, data: e as any })));
-          if (lsTemplates.length) await supabase.from('templates').upsert(lsTemplates.map(t => ({ id: t.id, user_id: userId, data: t as any })));
-          if (lsFilament.length) await supabase.from('filament_purchases').upsert(lsFilament.map(f => ({ id: f.id, user_id: userId, data: f as any })));
-          if (lsSettings) await supabase.from('user_settings').upsert({ user_id: userId, data: lsSettings as any });
-          nextProjects = lsProjects.length ? lsProjects : nextProjects;
-          nextExpenses = lsExpenses.length ? lsExpenses : nextExpenses;
-          nextTemplates = lsTemplates.length ? lsTemplates : nextTemplates;
-          nextFilament = lsFilament.length ? lsFilament : nextFilament;
-          if (lsSettings) nextSettings = lsSettings;
+        // Sync language preference from profile
+        if (profile.data?.language) {
+          i18n.changeLanguage(profile.data.language);
+          localStorage.setItem('pt_language', profile.data.language);
         }
-        await supabase.from('profiles').update({ migrated_at: new Date().toISOString() }).eq('user_id', userId);
-      }
 
-      setProjects(nextProjects);
-      setExpenses(nextExpenses);
-      setTemplates(nextTemplates);
-      setFilamentPurchases(nextFilament);
-      setSettings(nextSettings);
-      setLoading(false);
+        // One-time localStorage migration (runs only if cloud is empty and localStorage has data)
+        const alreadyMigrated = profile.data?.migrated_at != null;
+        if (!alreadyMigrated && !migratedRef.current) {
+          migratedRef.current = true;
+          const lsProjects = (loadJSON<any[]>('pt_projects', []) || []).map(normalizeProject);
+          const lsExpenses = loadJSON<Expense[]>('pt_expenses', []);
+          const lsTemplates = loadJSON<PrintTemplate[]>('pt_templates', []);
+          const lsFilament = loadJSON<FilamentPurchase[]>('pt_filament_purchases', []);
+          const lsSettings = loadJSON<AppSettings | null>('pt_settings', null);
+          // Only migrate if cloud is empty — don't overwrite existing cloud data
+          const cloudIsEmpty = nextProjects.length === 0 && nextExpenses.length === 0;
+          const hasLocal = lsProjects.length || lsExpenses.length || lsTemplates.length || lsFilament.length || lsSettings;
+          if (hasLocal && cloudIsEmpty) {
+            if (lsProjects.length) await supabase.from('projects').upsert(lsProjects.map(p => ({ id: p.id, user_id: userId, data: p as any })));
+            if (lsExpenses.length) await supabase.from('expenses').upsert(lsExpenses.map(e => ({ id: e.id, user_id: userId, data: e as any })));
+            if (lsTemplates.length) await supabase.from('templates').upsert(lsTemplates.map(t => ({ id: t.id, user_id: userId, data: t as any })));
+            if (lsFilament.length) await supabase.from('filament_purchases').upsert(lsFilament.map(f => ({ id: f.id, user_id: userId, data: f as any })));
+            if (lsSettings) await supabase.from('user_settings').upsert({ user_id: userId, data: lsSettings as any });
+            nextProjects = lsProjects.length ? lsProjects : nextProjects;
+            nextExpenses = lsExpenses.length ? lsExpenses : nextExpenses;
+            nextTemplates = lsTemplates.length ? lsTemplates : nextTemplates;
+            nextFilament = lsFilament.length ? lsFilament : nextFilament;
+            if (lsSettings) nextSettings = lsSettings;
+          }
+          // Use upsert so this works even if no profile row exists yet
+          await supabase.from('profiles').upsert({ user_id: userId, migrated_at: new Date().toISOString() });
+        }
+
+        setProjects(nextProjects);
+        setExpenses(nextExpenses);
+        setTemplates(nextTemplates);
+        setFilamentPurchases(nextFilament);
+        setSettings(nextSettings);
+      } catch (err) {
+        // Unexpected error (e.g. network down) — fall back to localStorage
+        console.error('[sync] unexpected error, falling back to localStorage:', err);
+        if (!cancelled) {
+          setProjects((loadJSON<any[]>('pt_projects', []) || []).map(normalizeProject));
+          setExpenses(loadJSON<Expense[]>('pt_expenses', []));
+          setTemplates(loadJSON<PrintTemplate[]>('pt_templates', []));
+          setFilamentPurchases(loadJSON<FilamentPurchase[]>('pt_filament_purchases', []));
+          const lsSettings = loadJSON<AppSettings | null>('pt_settings', null);
+          if (lsSettings) setSettings(lsSettings);
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
     })();
     return () => { cancelled = true; };
   }, [userId, authLoading]);

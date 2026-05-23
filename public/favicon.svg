@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <rect width="32" height="32" rx="7" fill="#2d9e82"/>
+  <!-- Isometric cube representing 3D printing -->
+  <polygon points="16,5 27,11 16,17 5,11" fill="rgba(255,255,255,0.95)"/>
+  <polygon points="5,11 16,17 16,27 5,21" fill="rgba(255,255,255,0.6)"/>
+  <polygon points="27,11 16,17 16,27 27,21" fill="rgba(255,255,255,0.78)"/>
+</svg>
