@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Box, Clock, TrendingUp, Sparkles } from 'lucide-react';
+import { DollarSign, LayoutGrid, TrendingUp, Sparkles } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import i18n from '@/i18n';
 
@@ -20,9 +20,6 @@ export default function Landing() {
   const { t } = useTranslation();
   const navigate = useNavigate();
 
-  // Fallback session detection: if Supabase already established a session
-  // (e.g., hash processed before this component mounted), redirect immediately.
-  // Also catches SIGNED_IN events fired while Landing is visible.
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) navigate('/', { replace: true });
@@ -40,12 +37,17 @@ export default function Landing() {
     localStorage.setItem('pt_language', lang);
   };
 
+  const handleGuest = () => {
+    localStorage.setItem('pt_guest_mode', 'true');
+    navigate('/', { replace: true });
+  };
+
   const currentLang = LANGUAGES.find(l => l.code === i18n.language) || LANGUAGES[0];
 
   const features = [
-    { icon: Box, title: t('landing.feature1Title'), desc: t('landing.feature1Desc') },
-    { icon: Clock, title: t('landing.feature2Title'), desc: t('landing.feature2Desc') },
-    { icon: TrendingUp, title: t('landing.feature3Title'), desc: t('landing.feature3Desc') },
+    { icon: DollarSign, title: t('landing.feature1Title'), desc: t('landing.feature1Desc') },
+    { icon: TrendingUp, title: t('landing.feature2Title'), desc: t('landing.feature2Desc') },
+    { icon: LayoutGrid, title: t('landing.feature3Title'), desc: t('landing.feature3Desc') },
   ];
 
   const mockupStats = [
@@ -53,6 +55,12 @@ export default function Landing() {
     { l: t('landing.mockupProfit'), v: '€1,612' },
     { l: t('landing.mockupActivePrints'), v: '7' },
     { l: t('landing.mockupFilamentLeft'), v: '1.2 kg' },
+  ];
+
+  const steps = [
+    { num: '1', title: t('landing.step1Title'), desc: t('landing.step1Desc') },
+    { num: '2', title: t('landing.step2Title'), desc: t('landing.step2Desc') },
+    { num: '3', title: t('landing.step3Title'), desc: t('landing.step3Desc') },
   ];
 
   return (
@@ -100,6 +108,14 @@ export default function Landing() {
           <Button size="lg" asChild><Link to="/auth?mode=signup">{t('landing.cta1')}</Link></Button>
           <Button size="lg" variant="outline" asChild><Link to="/auth?mode=signin">{t('landing.cta2')}</Link></Button>
         </div>
+        <button
+          type="button"
+          onClick={handleGuest}
+          className="mt-4 text-sm text-muted-foreground underline underline-offset-4 hover:text-foreground transition-colors"
+        >
+          {t('landing.continueGuest')}
+        </button>
+        <p className="mt-2 text-xs text-muted-foreground/70">{t('landing.guestNote')}</p>
       </section>
 
       {/* Benefits */}
@@ -138,6 +154,29 @@ export default function Landing() {
             </div>
           </div>
         </div>
+      </section>
+
+      {/* How it works */}
+      <section className="max-w-4xl mx-auto px-4 py-16">
+        <h2 className="text-2xl md:text-3xl font-bold text-center mb-12" style={{ fontFamily: 'Space Grotesk' }}>
+          {t('landing.howItWorksTitle')}
+        </h2>
+        <div className="grid md:grid-cols-3 gap-8">
+          {steps.map((step) => (
+            <div key={step.num} className="flex flex-col items-center text-center">
+              <div className="h-12 w-12 rounded-full bg-primary flex items-center justify-center mb-4 shrink-0">
+                <span className="text-primary-foreground font-bold text-lg" style={{ fontFamily: 'Space Grotesk' }}>{step.num}</span>
+              </div>
+              <h3 className="font-semibold mb-2" style={{ fontFamily: 'Space Grotesk' }}>{step.title}</h3>
+              <p className="text-sm text-muted-foreground">{step.desc}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Social proof */}
+      <section className="max-w-3xl mx-auto px-4 py-4 text-center">
+        <p className="text-sm text-muted-foreground italic">{t('landing.socialProof')}</p>
       </section>
 
       {/* CTA */}

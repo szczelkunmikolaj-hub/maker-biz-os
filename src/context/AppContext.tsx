@@ -69,7 +69,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // Load from cloud on auth — with localStorage fallback if Supabase fails
   useEffect(() => {
     if (authLoading) return;
-    if (!userId) { setLoading(false); return; }
+    if (!userId) {
+      if (localStorage.getItem('pt_guest_mode') === 'true') {
+        setProjects((loadJSON<any[]>('pt_projects', []) || []).map(normalizeProject));
+        setExpenses(loadJSON<Expense[]>('pt_expenses', []));
+        setTemplates(loadJSON<PrintTemplate[]>('pt_templates', []));
+        setFilamentPurchases(loadJSON<FilamentPurchase[]>('pt_filament_purchases', []));
+        const lsSettings = loadJSON<AppSettings | null>('pt_settings', null);
+        if (lsSettings) setSettings(lsSettings);
+      }
+      setLoading(false);
+      return;
+    }
     let cancelled = false;
     (async () => {
       setLoading(true);
@@ -154,14 +165,37 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [userId, authLoading]);
 
   // ---- helpers
+  const LS_TABLE_KEYS: Record<string, string> = {
+    projects: 'pt_projects',
+    expenses: 'pt_expenses',
+    templates: 'pt_templates',
+    filament_purchases: 'pt_filament_purchases',
+  };
+
   const up = (table: 'projects'|'expenses'|'templates'|'filament_purchases', id: string, data: any) => {
-    if (!userId) return;
+    if (!userId) {
+      const key = LS_TABLE_KEYS[table];
+      if (key) {
+        const items = loadJSON<any[]>(key, []);
+        const idx = items.findIndex((x: any) => x.id === id);
+        if (idx >= 0) items[idx] = data; else items.unshift(data);
+        localStorage.setItem(key, JSON.stringify(items));
+      }
+      return;
+    }
     supabase.from(table).upsert({ id, user_id: userId, data }).then(({ error }) => {
       if (error) console.error(`[sync] ${table} upsert`, error);
     });
   };
   const del = (table: 'projects'|'expenses'|'templates'|'filament_purchases', id: string) => {
-    if (!userId) return;
+    if (!userId) {
+      const key = LS_TABLE_KEYS[table];
+      if (key) {
+        const items = loadJSON<any[]>(key, []).filter((x: any) => x.id !== id);
+        localStorage.setItem(key, JSON.stringify(items));
+      }
+      return;
+    }
     supabase.from(table).delete().eq('id', id).then(({ error }) => {
       if (error) console.error(`[sync] ${table} delete`, error);
     });
@@ -238,7 +272,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const updateSettings = useCallback((s: AppSettings) => {
     if (isDemoRef.current) return;
     setSettings(s);
-    if (userId) supabase.from('user_settings').upsert({ user_id: userId, data: s as any }).then(({ error }) => error && console.error(error));
+    if (userId) {
+      supabase.from('user_settings').upsert({ user_id: userId, data: s as any }).then(({ error }) => error && console.error(error));
+    } else {
+      localStorage.setItem('pt_settings', JSON.stringify(s));
+    }
   }, [userId]);
 
   const addTemplate = useCallback((t: PrintTemplate) => { if (isDemoRef.current) return; setTemplates(prev => [t, ...prev]); up('templates', t.id, t); }, [userId]);
@@ -260,7 +298,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setTemplates(data.templates);
     setFilamentPurchases(data.filamentPurchases);
     setSettings(data.settings);
-    if (!userId) return;
+    if (!userId) {
+      localStorage.setItem('pt_projects', JSON.stringify(data.projects));
+      localStorage.setItem('pt_expenses', JSON.stringify(data.expenses));
+      localStorage.setItem('pt_templates', JSON.stringify(data.templates));
+      localStorage.setItem('pt_filament_purchases', JSON.stringify(data.filamentPurchases));
+      localStorage.setItem('pt_settings', JSON.stringify(data.settings));
+      return;
+    }
     await Promise.all([
       supabase.from('projects').delete().eq('user_id', userId),
       supabase.from('expenses').delete().eq('user_id', userId),

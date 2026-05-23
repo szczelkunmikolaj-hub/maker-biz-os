@@ -1,6 +1,6 @@
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
-import { Outlet, useLocation } from "react-router-dom";
+import { Outlet, Link, useLocation } from "react-router-dom";
 import { useMonth } from "@/context/MonthContext";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, CalendarDays } from "lucide-react";
@@ -79,6 +79,12 @@ export function Layout() {
             <div className="bg-yellow-500/10 border-b border-yellow-500/25 px-4 py-2 flex items-center justify-between shrink-0">
               <span className="text-sm font-medium text-yellow-700 dark:text-yellow-400">{t('demo.banner')}</span>
               <button onClick={toggleDemoMode} className="text-xs text-yellow-700 dark:text-yellow-400 underline hover:no-underline">{t('demo.turnOff')}</button>
+            </div>
+          )}
+          {!isDemoMode && localStorage.getItem('pt_guest_mode') === 'true' && (
+            <div className="bg-blue-500/10 border-b border-blue-500/25 px-4 py-2 flex items-center justify-between shrink-0">
+              <span className="text-sm font-medium text-blue-700 dark:text-blue-400">{t('guest.banner')}</span>
+              <Link to="/auth?mode=signup" className="text-xs text-blue-700 dark:text-blue-400 underline hover:no-underline">{t('guest.signUp')}</Link>
             </div>
           )}
           <main className="flex-1 overflow-auto p-4 md:p-6 animate-fade-in">

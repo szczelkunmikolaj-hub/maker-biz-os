@@ -23,8 +23,12 @@ export function ProtectedRoute({ children, allowLanding = false }: { children: R
     return <div className="min-h-screen flex items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
   }
   if (!session) {
+    const isGuest = localStorage.getItem('pt_guest_mode') === 'true';
+    if (isGuest) return <>{children}</>;
     if (allowLanding) return <Landing />;
     return <Navigate to="/auth" state={{ from: location }} replace />;
   }
+  // Authenticated — clear any lingering guest flag synchronously before children render
+  localStorage.removeItem('pt_guest_mode');
   return <>{children}</>;
 }
