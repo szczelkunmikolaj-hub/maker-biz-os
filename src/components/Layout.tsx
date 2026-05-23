@@ -8,6 +8,8 @@ import { Switch } from "@/components/ui/switch";
 import { NotificationBell } from "@/components/NotificationBell";
 import { GlobalStatusBar } from "@/components/GlobalStatusBar";
 import { CommandPalette } from "@/components/CommandPalette";
+import { WelcomeModal } from "@/components/WelcomeModal";
+import { useDemo } from "@/context/DemoContext";
 
 const PAGE_TITLES: Record<string, string> = {
   "/": "Dashboard",
@@ -26,6 +28,7 @@ export function Layout() {
   const location = useLocation();
   const title = PAGE_TITLES[location.pathname] || "";
   const { mode, setMode, label, prevMonth, nextMonth } = useMonth();
+  const { isDemoMode, toggleDemoMode } = useDemo();
 
   return (
     <SidebarProvider>
@@ -69,9 +72,16 @@ export function Layout() {
             </div>
           </header>
           <GlobalStatusBar />
+          {isDemoMode && (
+            <div className="bg-yellow-500/10 border-b border-yellow-500/25 px-4 py-2 flex items-center justify-between shrink-0">
+              <span className="text-sm font-medium text-yellow-700 dark:text-yellow-400">Demo mode — viewing sample data.</span>
+              <button onClick={toggleDemoMode} className="text-xs text-yellow-700 dark:text-yellow-400 underline hover:no-underline">Turn off</button>
+            </div>
+          )}
           <main className="flex-1 overflow-auto p-4 md:p-6 animate-fade-in">
             <Outlet />
           </main>
+          <WelcomeModal />
           <CommandPalette />
         </div>
       </div>

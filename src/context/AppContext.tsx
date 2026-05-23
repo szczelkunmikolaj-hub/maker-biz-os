@@ -4,6 +4,8 @@ import { Project, Expense, AppSettings, KanbanStatus, PrintTemplate, FilamentPur
 import { deriveKanbanStatus, applyKanbanStatus } from '@/types/sync';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
+import { useDemo } from '@/context/DemoContext';
+import { DEMO_PROJECTS, DEMO_EXPENSES, DEMO_FILAMENT, DEMO_FILAMENT_COST } from '@/lib/demoData';
 
 interface AppContextType {
   projects: Project[];
@@ -50,6 +52,9 @@ function loadJSON<T>(key: string, fallback: T): T {
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const { user, loading: authLoading } = useAuth();
+  const { isDemoMode } = useDemo();
+  const isDemoRef = useRef(false);
+  isDemoRef.current = isDemoMode;
   const userId = user?.id;
 
   const [projects, setProjects] = useState<Project[]>([]);
@@ -133,12 +138,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const addProject = useCallback((p: Project) => {
+    if (isDemoRef.current) return;
     const n = normalizeProject(p);
     setProjects(prev => [n, ...prev]);
     up('projects', n.id, n);
   }, [userId]);
 
   const updateProject = useCallback((p: Project) => {
+    if (isDemoRef.current) return;
     const normalized = normalizeProject(p);
     if (normalized.printed) {
       normalized.prints = normalized.prints.map(pr => ({ ...pr, completedQuantity: pr.quantity, status: 'completed' as const }));
@@ -152,11 +159,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [userId]);
 
   const deleteProject = useCallback((id: string) => {
+    if (isDemoRef.current) return;
     setProjects(prev => prev.filter(x => x.id !== id));
     del('projects', id);
   }, [userId]);
 
   const moveProject = useCallback((id: string, status: KanbanStatus) => {
+    if (isDemoRef.current) return;
     setProjects(prev => {
       const next = prev.map(x => x.id === id ? { ...x, ...applyKanbanStatus(status, x) } : x);
       const updated = next.find(x => x.id === id);
@@ -166,6 +175,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [userId]);
 
   const duplicateProject = useCallback((id: string) => {
+    if (isDemoRef.current) return;
     setProjects(prev => {
       const original = prev.find(x => x.id === id);
       if (!original) return prev;
@@ -191,21 +201,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     });
   }, [userId]);
 
-  const addExpense = useCallback((e: Expense) => { setExpenses(prev => [e, ...prev]); up('expenses', e.id, e); }, [userId]);
-  const updateExpense = useCallback((e: Expense) => { setExpenses(prev => prev.map(x => x.id === e.id ? e : x)); up('expenses', e.id, e); }, [userId]);
-  const deleteExpense = useCallback((id: string) => { setExpenses(prev => prev.filter(x => x.id !== id)); del('expenses', id); }, [userId]);
+  const addExpense = useCallback((e: Expense) => { if (isDemoRef.current) return; setExpenses(prev => [e, ...prev]); up('expenses', e.id, e); }, [userId]);
+  const updateExpense = useCallback((e: Expense) => { if (isDemoRef.current) return; setExpenses(prev => prev.map(x => x.id === e.id ? e : x)); up('expenses', e.id, e); }, [userId]);
+  const deleteExpense = useCallback((id: string) => { if (isDemoRef.current) return; setExpenses(prev => prev.filter(x => x.id !== id)); del('expenses', id); }, [userId]);
 
   const updateSettings = useCallback((s: AppSettings) => {
+    if (isDemoRef.current) return;
     setSettings(s);
     if (userId) supabase.from('user_settings').upsert({ user_id: userId, data: s as any }).then(({ error }) => error && console.error(error));
   }, [userId]);
 
-  const addTemplate = useCallback((t: PrintTemplate) => { setTemplates(prev => [t, ...prev]); up('templates', t.id, t); }, [userId]);
-  const deleteTemplate = useCallback((id: string) => { setTemplates(prev => prev.filter(x => x.id !== id)); del('templates', id); }, [userId]);
+  const addTemplate = useCallback((t: PrintTemplate) => { if (isDemoRef.current) return; setTemplates(prev => [t, ...prev]); up('templates', t.id, t); }, [userId]);
+  const deleteTemplate = useCallback((id: string) => { if (isDemoRef.current) return; setTemplates(prev => prev.filter(x => x.id !== id)); del('templates', id); }, [userId]);
 
-  const addFilamentPurchase = useCallback((fp: FilamentPurchase) => { setFilamentPurchases(prev => [fp, ...prev]); up('filament_purchases', fp.id, fp); }, [userId]);
-  const updateFilamentPurchase = useCallback((fp: FilamentPurchase) => { setFilamentPurchases(prev => prev.map(x => x.id === fp.id ? fp : x)); up('filament_purchases', fp.id, fp); }, [userId]);
-  const deleteFilamentPurchase = useCallback((id: string) => { setFilamentPurchases(prev => prev.filter(x => x.id !== id)); del('filament_purchases', id); }, [userId]);
+  const addFilamentPurchase = useCallback((fp: FilamentPurchase) => { if (isDemoRef.current) return; setFilamentPurchases(prev => [fp, ...prev]); up('filament_purchases', fp.id, fp); }, [userId]);
+  const updateFilamentPurchase = useCallback((fp: FilamentPurchase) => { if (isDemoRef.current) return; setFilamentPurchases(prev => prev.map(x => x.id === fp.id ? fp : x)); up('filament_purchases', fp.id, fp); }, [userId]);
+  const deleteFilamentPurchase = useCallback((id: string) => { if (isDemoRef.current) return; setFilamentPurchases(prev => prev.filter(x => x.id !== id)); del('filament_purchases', id); }, [userId]);
 
   const totalFilamentPurchasesCost = React.useMemo(() =>
     filamentPurchases.reduce((s, fp) => s + (fp.totalCost || 0), 0),
@@ -213,6 +224,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   );
 
   const replaceAllData = useCallback(async (data: { projects: Project[]; expenses: Expense[]; templates: PrintTemplate[]; filamentPurchases: FilamentPurchase[]; settings: AppSettings }) => {
+    if (isDemoRef.current) return;
     setProjects(data.projects);
     setExpenses(data.expenses);
     setTemplates(data.templates);
@@ -241,12 +253,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <AppContext.Provider value={{
-      projects, expenses, settings, templates, filamentPurchases, loading,
+      projects: isDemoMode ? DEMO_PROJECTS : projects,
+      expenses: isDemoMode ? DEMO_EXPENSES : expenses,
+      filamentPurchases: isDemoMode ? DEMO_FILAMENT : filamentPurchases,
+      settings, templates,
+      loading: isDemoMode ? false : loading,
+      totalFilamentPurchasesCost: isDemoMode ? DEMO_FILAMENT_COST : totalFilamentPurchasesCost,
+      allPrintNames: isDemoMode
+        ? Array.from(new Set(DEMO_PROJECTS.flatMap(p => p.prints.map(pr => pr.name)))).sort()
+        : allPrintNames,
       addProject, updateProject, deleteProject, duplicateProject, moveProject,
       addExpense, updateExpense, deleteExpense, updateSettings,
       addTemplate, deleteTemplate,
       addFilamentPurchase, updateFilamentPurchase, deleteFilamentPurchase,
-      totalFilamentPurchasesCost, allPrintNames, replaceAllData,
+      replaceAllData,
     }}>
       {children}
     </AppContext.Provider>

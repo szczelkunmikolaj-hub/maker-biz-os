@@ -26,6 +26,7 @@ import ProductionSummary from "@/components/ProductionSummary";
 import MaterialUsageSummary from "@/components/MaterialUsageSummary";
 import ChartGroupingSelect, { type ChartGrouping } from "@/components/ChartGroupingSelect";
 import { usePersistedState } from "@/hooks/usePersistedState";
+import { HelpTip } from "@/components/HelpTip";
 
 const COLORS = [
   "hsl(168,60%,38%)", "hsl(220,60%,50%)", "hsl(38,92%,50%)",
@@ -260,7 +261,10 @@ export default function Dashboard() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
+        <div className="flex items-center gap-2">
+          <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
+          <HelpTip text="Your business at a glance — revenue, profit, print hours, and active orders." />
+        </div>
         <p className="text-xs text-muted-foreground hidden lg:block">
           {new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
         </p>
@@ -273,6 +277,10 @@ export default function Dashboard() {
       )}
 
       {/* KPI Grid */}
+      <div className="flex items-center gap-1.5 -mb-1">
+        <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Key Metrics</span>
+        <HelpTip text="Calculated from paid & shipped orders for the selected time period." />
+      </div>
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
         {kpis.map(k => (
           <Card key={k.label} className="hover:shadow-md transition-shadow border-border/60">

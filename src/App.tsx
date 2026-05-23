@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/context/AuthContext";
 import { AppProvider } from "@/context/AppContext";
+import { DemoProvider } from "@/context/DemoContext";
 import { MonthProvider } from "@/context/MonthContext";
 import { NotificationProvider } from "@/context/NotificationContext";
 import { Layout } from "@/components/Layout";
@@ -30,6 +31,7 @@ const App = () => (
     <TooltipProvider>
       <BrowserRouter>
         <AuthProvider>
+          <DemoProvider>
           <AppProvider>
             <MonthProvider>
               <NotificationProvider>
@@ -57,6 +59,7 @@ const App = () => (
               </NotificationProvider>
             </MonthProvider>
           </AppProvider>
+          </DemoProvider>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>

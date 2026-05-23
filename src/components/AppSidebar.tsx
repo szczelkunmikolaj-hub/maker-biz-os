@@ -1,22 +1,25 @@
 import {
-  LayoutDashboard, FolderKanban, Columns3, Receipt, Calculator, Settings, BookTemplate, Upload, Calendar, Package, Database, Truck, ExternalLink, LogOut,
+  LayoutDashboard, FolderKanban, Columns3, Receipt, Calculator, Settings, BookTemplate, Upload, Calendar, Package, Database, Truck, ExternalLink, LogOut, FlaskConical,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
+import { useDemo } from "@/context/DemoContext";
+import { HelpTip } from "@/components/HelpTip";
+import { Switch } from "@/components/ui/switch";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent,
   SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader, SidebarFooter, useSidebar,
 } from "@/components/ui/sidebar";
 
 const items = [
-  { title: "Dashboard", url: "/", icon: LayoutDashboard },
-  { title: "Projects", url: "/projects", icon: FolderKanban },
+  { title: "Dashboard", url: "/", icon: LayoutDashboard, hint: "Overview of your revenue, profit, material usage, and print performance." },
+  { title: "Projects", url: "/projects", icon: FolderKanban, hint: "Create and manage all your 3D printing orders from start to delivery." },
   { title: "Customer Orders", url: "https://prints-barcelona-pro.lovable.app/admin-orders", icon: Truck, external: true },
-  { title: "Kanban Board", url: "/kanban", icon: Columns3 },
-  { title: "Calendar", url: "/calendar", icon: Calendar },
-  { title: "Expenses", url: "/expenses", icon: Receipt },
-  { title: "Filament", url: "/filament", icon: Package },
+  { title: "Kanban Board", url: "/kanban", icon: Columns3, hint: "Drag projects through status columns to track their progress visually." },
+  { title: "Calendar", url: "/calendar", icon: Calendar, hint: "See your project deadlines laid out on a monthly calendar." },
+  { title: "Expenses", url: "/expenses", icon: Receipt, hint: "Log costs like filament and shipping to track your real net profit." },
+  { title: "Filament", url: "/filament", icon: Package, hint: "Record filament purchases to calculate accurate material costs per project." },
   { title: "Templates", url: "/templates", icon: BookTemplate },
   { title: "Import Queue", url: "/import", icon: Upload },
   { title: "Quote Generator", url: "/quote", icon: Calculator },
@@ -29,6 +32,7 @@ export function AppSidebar() {
   const collapsed = state === "collapsed";
   const location = useLocation();
   const { user, signOut } = useAuth();
+  const { isDemoMode, toggleDemoMode } = useDemo();
 
   return (
     <Sidebar collapsible="icon">
@@ -52,7 +56,7 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               {items.map((item) => (
-                <SidebarMenuItem key={item.title}>
+                <SidebarMenuItem key={item.title} className="relative">
                   <SidebarMenuButton asChild>
                     {item.external ? (
                       <a
@@ -82,6 +86,11 @@ export function AppSidebar() {
                       </NavLink>
                     )}
                   </SidebarMenuButton>
+                  {!collapsed && item.hint && (
+                    <span className="absolute right-2 top-1/2 -translate-y-1/2 z-10">
+                      <HelpTip text={item.hint} side="right" />
+                    </span>
+                  )}
                 </SidebarMenuItem>
               ))}
             </SidebarMenu>
@@ -93,6 +102,25 @@ export function AppSidebar() {
           <div className="px-2 py-1.5 text-xs text-sidebar-foreground/70 truncate">{user.email}</div>
         )}
         <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              onClick={toggleDemoMode}
+              className={`hover:bg-sidebar-accent ${isDemoMode ? 'text-yellow-600 dark:text-yellow-400' : ''}`}
+              title="Demo mode"
+            >
+              <FlaskConical className="h-4 w-4" />
+              {!collapsed && (
+                <>
+                  <span className="flex-1">Demo mode</span>
+                  <Switch
+                    checked={isDemoMode}
+                    className="h-4 w-7 pointer-events-none [&>span]:h-3 [&>span]:w-3 data-[state=checked]:[&>span]:translate-x-3"
+                    tabIndex={-1}
+                  />
+                </>
+              )}
+            </SidebarMenuButton>
+          </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton onClick={() => signOut()} className="hover:bg-sidebar-accent" title="Sign out">
               <LogOut className="h-4 w-4" />
