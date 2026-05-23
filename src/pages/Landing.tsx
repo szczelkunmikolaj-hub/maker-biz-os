@@ -1,4 +1,6 @@
-import { Link } from 'react-router-dom';
+import { useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Box, Clock, TrendingUp, Sparkles } from 'lucide-react';
@@ -16,6 +18,22 @@ const LANGUAGES = [
 
 export default function Landing() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
+
+  // Fallback session detection: if Supabase already established a session
+  // (e.g., hash processed before this component mounted), redirect immediately.
+  // Also catches SIGNED_IN events fired while Landing is visible.
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) navigate('/', { replace: true });
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' && session) navigate('/', { replace: true });
+    });
+
+    return () => subscription.unsubscribe();
+  }, [navigate]);
 
   const handleLanguageChange = (lang: string) => {
     i18n.changeLanguage(lang);
