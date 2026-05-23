@@ -10,7 +10,9 @@ import { MonthProvider } from "@/context/MonthContext";
 import { NotificationProvider } from "@/context/NotificationContext";
 import { Layout } from "@/components/Layout";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { AdminRoute } from "@/components/AdminRoute";
 import Dashboard from "@/pages/Dashboard";
+import CustomerOrdersPage from "@/pages/CustomerOrdersPage";
 import Projects from "@/pages/Projects";
 import KanbanBoard from "@/pages/KanbanBoard";
 import Expenses from "@/pages/Expenses";
@@ -40,6 +42,7 @@ const App = () => (
                 <Routes>
                   <Route path="/auth" element={<AuthPage />} />
                   <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
+                    <Route path="/customer-orders" element={<AdminRoute><CustomerOrdersPage /></AdminRoute>} />
                     <Route path="/projects" element={<Projects />} />
                     <Route path="/kanban" element={<KanbanBoard />} />
                     <Route path="/calendar" element={<CalendarPage />} />

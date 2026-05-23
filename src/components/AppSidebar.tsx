@@ -5,6 +5,7 @@ import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { useDemo } from "@/context/DemoContext";
+import { isAdmin } from "@/lib/admin";
 import { HelpTip } from "@/components/HelpTip";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -33,10 +34,10 @@ export function AppSidebar() {
   const { isDemoMode, toggleDemoMode } = useDemo();
   const { t } = useTranslation();
 
-  const items = [
+  const allItems = [
     { title: t('nav.dashboard'), url: "/", icon: LayoutDashboard, hint: t('helpTips.dashboard') },
     { title: t('nav.projects'), url: "/projects", icon: FolderKanban, hint: t('helpTips.projects') },
-    { title: t('nav.customerOrders'), url: "https://prints-barcelona-pro.lovable.app/admin-orders", icon: Truck, external: true },
+    { title: t('nav.customerOrders'), url: "/customer-orders", icon: Truck, adminOnly: true },
     { title: t('nav.kanban'), url: "/kanban", icon: Columns3, hint: t('helpTips.kanban') },
     { title: t('nav.calendar'), url: "/calendar", icon: Calendar, hint: t('helpTips.calendar') },
     { title: t('nav.expenses'), url: "/expenses", icon: Receipt, hint: t('helpTips.expenses') },
@@ -47,6 +48,8 @@ export function AppSidebar() {
     { title: t('nav.data'), url: "/data", icon: Database },
     { title: t('nav.settings'), url: "/settings", icon: Settings },
   ];
+
+  const items = allItems.filter(item => !item.adminOnly || isAdmin(user?.email));
 
   const handleLanguageChange = (lang: string) => {
     i18n.changeLanguage(lang);
