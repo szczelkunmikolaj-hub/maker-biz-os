@@ -7,27 +7,49 @@ export default function AuthCallback() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // With detectSessionInUrl: true, Supabase auto-exchanges the auth code.
-    // onAuthStateChange fires SIGNED_IN once the session is established.
+    let done = false;
+    const go = (dest: '/' | '/auth') => {
+      if (!done) { done = true; navigate(dest, { replace: true }); }
+    };
+
+    // Subscribe first so we don't miss the SIGNED_IN event that fires
+    // once detectSessionInUrl (implicit) parses the hash.
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_IN' && session) {
-        navigate('/', { replace: true });
-      } else if (event === 'SIGNED_OUT') {
-        navigate('/auth', { replace: true });
+      if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session) go('/');
+    });
+
+    // Primary: check if Supabase already established a session from the hash.
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) { go('/'); return; }
+
+      // Fallback: manually parse #access_token=... from the URL hash and call setSession.
+      // This handles the case where flowType or timing prevents auto-detection.
+      const hash = window.location.hash.substring(1); // strip leading '#'
+      const params = new URLSearchParams(hash);
+      const accessToken = params.get('access_token');
+      const refreshToken = params.get('refresh_token') ?? '';
+
+      if (accessToken) {
+        supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken })
+          .then(({ data, error }) => {
+            if (!error && data.session) go('/');
+          });
       }
     });
 
-    // Catch the case where the session was already resolved before we subscribed
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) navigate('/', { replace: true });
-    });
+    // Retry getSession after 1 s — Supabase may need a tick to finish processing the hash.
+    const retry = setTimeout(async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) go('/');
+    }, 1000);
 
-    // Fallback: if nothing happens in 10 s, bail to auth
-    const timeout = setTimeout(() => navigate('/auth', { replace: true }), 10_000);
+    // Give up and return to /auth after 5 s (satisfies ≥ 2 s requirement).
+    const giveUp = setTimeout(() => go('/auth'), 5000);
 
     return () => {
       subscription.unsubscribe();
-      clearTimeout(timeout);
+      clearTimeout(retry);
+      clearTimeout(giveUp);
     };
   }, [navigate]);
 
