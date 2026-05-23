@@ -188,7 +188,10 @@ export default function Projects() {
         </TabsList>
         {activeTab === 'projects' && (
         <div className="flex gap-2">
-          <Button size="sm" variant="outline" onClick={exportCSV}><Download className="h-4 w-4 mr-1" />{t('common.csv')}</Button>
+          <Button size="sm" variant="outline" onClick={exportCSV} className="hidden sm:flex"><Download className="h-4 w-4 mr-1" />{t('common.csv')}</Button>
+          <Button size="sm" variant="outline" onClick={() => setShowSpreadsheetImport(true)}>
+            <Upload className="h-4 w-4 mr-1" />{t('projects.importData')}
+          </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button size="sm">
@@ -246,6 +249,22 @@ export default function Projects() {
       </div>
 
       <TabsContent value="projects" className="space-y-4">
+      {projects.length < 5 && projects.length > 0 && (
+        <div className="flex items-center justify-between gap-3 rounded-lg border border-primary/20 bg-primary/5 px-4 py-3">
+          <div className="flex items-center gap-2 min-w-0">
+            <Upload className="h-4 w-4 text-primary shrink-0" />
+            <span className="text-sm text-primary font-medium">{t('projects.importBanner')}</span>
+          </div>
+          <div className="flex gap-2 shrink-0">
+            <Button size="sm" variant="outline" className="text-xs h-7" onClick={() => setShowSpreadsheetImport(true)}>
+              <FileSpreadsheet className="h-3 w-3 mr-1" />Excel / CSV
+            </Button>
+            <Button size="sm" variant="outline" className="text-xs h-7" onClick={() => setShowAIImport(true)}>
+              <Wand2 className="h-3 w-3 mr-1" />AI
+            </Button>
+          </div>
+        </div>
+      )}
       <div className="flex gap-2 flex-wrap items-center">
         <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />

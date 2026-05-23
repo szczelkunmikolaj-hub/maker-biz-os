@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { Outlet, Link, useLocation } from "react-router-dom";
@@ -25,13 +26,15 @@ export function Layout() {
     "/calendar": t('nav.calendar'),
     "/expenses": t('nav.expenses'),
     "/filament": t('nav.filament'),
-    "/templates": t('nav.templates'),
-    "/import": t('nav.importQueue'),
-    "/quote": t('nav.quote'),
+    "/data": t('nav.data'),
     "/settings": t('nav.settings'),
   };
 
   const title = PAGE_TITLES[location.pathname] || "";
+
+  useEffect(() => {
+    document.title = title ? `${title} — Maker Biz OS` : 'Maker Biz OS';
+  }, [title]);
 
   return (
     <SidebarProvider>

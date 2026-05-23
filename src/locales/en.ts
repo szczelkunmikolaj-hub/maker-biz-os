@@ -184,6 +184,8 @@ const en = {
     orderDate: "Order Date",
     recurringCustomer: "Recurring Customer",
     addProject: "Add Project",
+    importData: "Import",
+    importBanner: "Already have orders? Import them from Excel or paste your data",
     importFromSpreadsheet: "Import from Excel / CSV",
     importFromSpreadsheetDesc: "Upload .xlsx, .xls or .csv file",
     importFromAI: "Import from Text / AI",
