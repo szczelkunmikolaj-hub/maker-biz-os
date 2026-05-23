@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import * as XLSX from 'xlsx';
-import { Project, normalizeProject, normalizePrint } from '@/types';
+import { Project, KanbanStatus, normalizeProject, normalizePrint } from '@/types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -10,21 +10,32 @@ import { Loader2, Upload, FileSpreadsheet, CheckCircle2 } from 'lucide-react';
 import { useToast } from '@/hooks/useToast';
 import { useTranslation } from 'react-i18next';
 
-type FieldKey = 'name' | 'customerName' | 'totalPrice' | 'orderDate' | 'dueDate' | 'notes' | 'printed' | 'paid' | 'sent' | 'printHours' | 'material' | 'color';
+type FieldKey =
+  | 'name' | 'customerName' | 'totalPrice' | 'orderDate' | 'dueDate' | 'notes'
+  | 'printed' | 'paid' | 'sent'
+  | 'printHours' | 'materialGrams' | 'materialName' | 'color'
+  | 'quantity' | 'completedQuantity' | 'pricePerPiece'
+  | 'expenseName' | 'expenseAmount';
 
 const FIELD_PATTERNS: Record<FieldKey, RegExp> = {
-  name:         /^(project[_ ]?name|name|title|order[_ ]?name|item|product)$/i,
-  customerName: /^(customer[_ ]?name|customer|client|buyer|contact)$/i,
-  totalPrice:   /^(price|total|amount|revenue|value|€|\$|£|eur|usd|total[_ ]?price|sale|order[_ ]?value)$/i,
-  orderDate:    /^(date|order[_ ]?date|created|order[_ ]?created)$/i,
-  dueDate:      /^(due|deadline|due[_ ]?date|delivery[_ ]?date|ship[_ ]?date)$/i,
-  notes:        /^(note|notes|description|comments?|details?)$/i,
-  printed:      /^(print(ed)?|completed?|done|finished)$/i,
-  paid:         /^(paid|payment|payment[_ ]?received)$/i,
-  sent:         /^(sent|ship(ped)?|deliver(ed)?|dispatched?)$/i,
-  printHours:   /^(hours?|print[_ ]?time|time[_ ]?h(ours?)?|h$|duration)$/i,
-  material:     /^(material|filament|grams?|weight|g$)$/i,
-  color:        /^(colou?rs?)$/i,
+  name:              /^(project[_ ]?name|name|title|order[_ ]?name|item|product)$/i,
+  customerName:      /^(customer[_ ]?name|customer|client|buyer|contact)$/i,
+  totalPrice:        /^(price|total|amount|revenue|value|€|\$|£|eur|usd|total[_ ]?price|sale|order[_ ]?value)$/i,
+  orderDate:         /^(date|order[_ ]?date|created|order[_ ]?created|created[_ ]?at)$/i,
+  dueDate:           /^(due|deadline|due[_ ]?date|delivery[_ ]?date|ship[_ ]?date|expected[_ ]?date)$/i,
+  notes:             /^(note|notes|description|comments?|details?)$/i,
+  printed:           /^(print(ed)?|completed?|done|finished)$/i,
+  paid:              /^(paid|payment|payment[_ ]?received)$/i,
+  sent:              /^(sent|ship(ped)?|deliver(ed)?|dispatched?)$/i,
+  printHours:        /^(hours?|print[_ ]?time|time[_ ]?h(ours?)?|h$|duration|print[_ ]?hours?)$/i,
+  materialGrams:     /^(grams?|weight|g$|material[_ ]?used|used[_ ]?grams?|filament[_ ]?grams?|material[_ ]?g)$/i,
+  materialName:      /^(material[_ ]?type|filament[_ ]?type|material$|filament$|pla|petg|abs|resin|nylon)$/i,
+  color:             /^(colou?rs?|color[_ ]?name)$/i,
+  quantity:          /^(qty|quantity|count|pieces?|num[_ ]?pieces?|amount[_ ]?pieces?|copies|number)$/i,
+  completedQuantity: /^(completed?[_ ]?qty|done[_ ]?qty|printed[_ ]?qty|finished[_ ]?qty|completed?[_ ]?pieces?)$/i,
+  pricePerPiece:     /^(price[_ ]?per[_ ]?piece|unit[_ ]?price|piece[_ ]?price|per[_ ]?unit|each)$/i,
+  expenseName:       /^(expense[_ ]?name|extra[_ ]?cost[_ ]?name|cost[_ ]?name|expense[_ ]?desc)$/i,
+  expenseAmount:     /^(expense[_ ]?amount|extra[_ ]?cost|extra[_ ]?expense|additional[_ ]?cost|overhead)$/i,
 };
 
 function autoDetect(headers: string[]): Partial<Record<FieldKey, string>> {
@@ -51,9 +62,42 @@ function parseBool(v: any): boolean {
 function parseDate(v: any): string {
   if (!v) return '';
   if (v instanceof Date) return isNaN(v.getTime()) ? '' : v.toISOString().slice(0, 10);
+
   const s = String(v).trim();
+
+  // DD/MM/YYYY
+  const ddmmyyyy = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (ddmmyyyy) {
+    const d = new Date(+ddmmyyyy[3], +ddmmyyyy[2] - 1, +ddmmyyyy[1]);
+    if (!isNaN(d.getTime())) return d.toISOString().slice(0, 10);
+  }
+
+  // DD-MM-YYYY
+  const ddmmyyyy2 = s.match(/^(\d{1,2})-(\d{1,2})-(\d{4})$/);
+  if (ddmmyyyy2) {
+    const d = new Date(+ddmmyyyy2[3], +ddmmyyyy2[2] - 1, +ddmmyyyy2[1]);
+    if (!isNaN(d.getTime())) return d.toISOString().slice(0, 10);
+  }
+
+  // DD.MM.YYYY
+  const ddmmyyyy3 = s.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
+  if (ddmmyyyy3) {
+    const d = new Date(+ddmmyyyy3[3], +ddmmyyyy3[2] - 1, +ddmmyyyy3[1]);
+    if (!isNaN(d.getTime())) return d.toISOString().slice(0, 10);
+  }
+
+  // Standard parsing (YYYY-MM-DD, MM/DD/YYYY, etc.)
   const d = new Date(s);
-  return isNaN(d.getTime()) ? s : d.toISOString().slice(0, 10);
+  if (!isNaN(d.getTime())) return d.toISOString().slice(0, 10);
+
+  return s;
+}
+
+function deriveKanbanStatus(printed: boolean, paid: boolean, sent: boolean): KanbanStatus {
+  if (sent) return 'shipped';
+  if (paid) return 'paid';
+  if (printed) return 'finished';
+  return 'new-order';
 }
 
 function buildProjects(rows: Record<string, any>[], mapping: Partial<Record<FieldKey, string>>): Project[] {
@@ -67,16 +111,42 @@ function buildProjects(rows: Record<string, any>[], mapping: Partial<Record<Fiel
     })
     .map(row => {
       const printHours = parseFloat(String(get(row, 'printHours') ?? '')) || 0;
-      const material = parseFloat(String(get(row, 'material') ?? '')) || 0;
-      const color = String(get(row, 'color') ?? '');
+      const materialGrams = parseFloat(String(get(row, 'materialGrams') ?? '')) || 0;
+      const materialName = String(get(row, 'materialName') ?? '').trim();
+      const color = String(get(row, 'color') ?? '').trim();
+      const quantity = Math.max(1, parseInt(String(get(row, 'quantity') ?? '1')) || 1);
+      const completedQty = parseInt(String(get(row, 'completedQuantity') ?? '0')) || 0;
+      const pricePerPiece = parseFloat(String(get(row, 'pricePerPiece') ?? '')) || 0;
 
-      const prints = (printHours > 0 || material > 0) ? [normalizePrint({
+      const printed = parseBool(get(row, 'printed'));
+      const paid = parseBool(get(row, 'paid'));
+      const sent = parseBool(get(row, 'sent'));
+
+      const hasPrintData = printHours > 0 || materialGrams > 0 || materialName || color || quantity > 1 || pricePerPiece > 0;
+      const prints = hasPrintData ? [normalizePrint({
         id: crypto.randomUUID(),
         name: String(get(row, 'name') ?? 'Print').trim(),
         estimatedPrintTime: printHours,
-        materialUsed: material,
+        materialUsed: materialGrams,
+        material: materialName,
         color,
+        quantity,
+        completedQuantity: completedQty,
+        pricePerPiece,
+        status: sent || paid || printed ? 'completed' : 'not-printed',
       })] : [];
+
+      const expName = String(get(row, 'expenseName') ?? '').trim();
+      const expAmt = parseFloat(String(get(row, 'expenseAmount') ?? '')) || 0;
+      const projectExpenses = (expName || expAmt > 0) ? [{
+        id: crypto.randomUUID(),
+        name: expName || 'Expense',
+        amount: expAmt,
+        category: 'Other',
+        notes: '',
+      }] : [];
+
+      const kanbanStatus = deriveKanbanStatus(printed, paid, sent);
 
       return normalizeProject({
         id: crypto.randomUUID(),
@@ -88,13 +158,13 @@ function buildProjects(rows: Record<string, any>[], mapping: Partial<Record<Fiel
         orderDate: parseDate(get(row, 'orderDate')) || today,
         dueDate: parseDate(get(row, 'dueDate')),
         notes: String(get(row, 'notes') ?? '').trim(),
-        printed: parseBool(get(row, 'printed')),
-        paid: parseBool(get(row, 'paid')),
-        sent: parseBool(get(row, 'sent')),
+        printed,
+        paid,
+        sent,
         shippingDate: '',
         prints,
-        projectExpenses: [],
-        kanbanStatus: 'new-order',
+        projectExpenses,
+        kanbanStatus,
       });
     });
 }
@@ -116,18 +186,24 @@ export function ImportFromSpreadsheet({ open, onClose, onImport }: Props) {
   const [loading, setLoading] = useState(false);
 
   const FIELD_LABELS: Record<FieldKey, string> = {
-    name: t('importSpreadsheet.fieldName'),
-    customerName: t('importSpreadsheet.fieldCustomer'),
-    totalPrice: t('importSpreadsheet.fieldPrice'),
-    orderDate: t('importSpreadsheet.fieldOrderDate'),
-    dueDate: t('importSpreadsheet.fieldDueDate'),
-    notes: t('importSpreadsheet.fieldNotes'),
-    printed: t('importSpreadsheet.fieldPrinted'),
-    paid: t('importSpreadsheet.fieldPaid'),
-    sent: t('importSpreadsheet.fieldSent'),
-    printHours: t('importSpreadsheet.fieldPrintHours'),
-    material: t('importSpreadsheet.fieldMaterial'),
-    color: t('importSpreadsheet.fieldColor'),
+    name:              t('importSpreadsheet.fieldName'),
+    customerName:      t('importSpreadsheet.fieldCustomer'),
+    totalPrice:        t('importSpreadsheet.fieldPrice'),
+    orderDate:         t('importSpreadsheet.fieldOrderDate'),
+    dueDate:           t('importSpreadsheet.fieldDueDate'),
+    notes:             t('importSpreadsheet.fieldNotes'),
+    printed:           t('importSpreadsheet.fieldPrinted'),
+    paid:              t('importSpreadsheet.fieldPaid'),
+    sent:              t('importSpreadsheet.fieldSent'),
+    printHours:        t('importSpreadsheet.fieldPrintHours'),
+    materialGrams:     t('importSpreadsheet.fieldMaterial'),
+    materialName:      t('importSpreadsheet.fieldMaterialName'),
+    color:             t('importSpreadsheet.fieldColor'),
+    quantity:          t('importSpreadsheet.fieldQuantity'),
+    completedQuantity: t('importSpreadsheet.fieldCompletedQuantity'),
+    pricePerPiece:     t('importSpreadsheet.fieldPricePerPiece'),
+    expenseName:       t('importSpreadsheet.fieldExpenseName'),
+    expenseAmount:     t('importSpreadsheet.fieldExpenseAmount'),
   };
 
   const reset = () => { setStep('upload'); setHeaders([]); setRows([]); setMapping({}); };
