@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { ArrowLeft, Plus, Trash2, Copy, BookTemplate, Calendar, Kanban, Receipt, RefreshCw, ArrowUp, ArrowDown, Box, X, MoveRight } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Copy, BookTemplate, Calendar, Kanban, Receipt, RefreshCw, ArrowUp, ArrowDown, Box, X, MoveRight, FileText } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { PlateImporter } from "@/components/PlateImporter";
 import { RecurringBadge } from "@/components/RecurringBadge";
@@ -27,6 +27,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import type { PrintModel } from "@/types";
+import { InvoiceModal } from "@/components/InvoicePDF";
 
 function newPrint(): Print {
   return { id: crypto.randomUUID(), name: "", estimatedPrintTime: 0, materialUsed: 0, printer: "", status: "not-printed", quantity: 1, completedQuantity: 0, color: "", material: "", pricePerPiece: 0 };
@@ -45,6 +46,7 @@ export default function ProjectDetail({ project, onBack }: Props) {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const [showTemplates, setShowTemplates] = useState(false);
+  const [showInvoice, setShowInvoice] = useState(false);
 
   // Use project from props directly (always fresh from context) instead of local state copy
   const p = project;
@@ -172,6 +174,9 @@ export default function ProjectDetail({ project, onBack }: Props) {
           </Button>
           <Button size="sm" variant="outline" className="min-h-[36px]" onClick={() => { duplicateProject(p.id); posthog.capture('project_duplicated', { customer_source: p.customerSource }); onBack(); }}>
             <Copy className="h-4 w-4 mr-1" />{t('projectDetail.duplicate')}
+          </Button>
+          <Button size="sm" variant="outline" className="text-xs gap-1 min-h-[36px]" onClick={() => { setShowInvoice(true); posthog.capture('invoice_generated', { customer_source: p.customerSource }); }}>
+            <FileText className="h-3.5 w-3.5" />{t('invoice.generateBtn')}
           </Button>
         </div>
       </div>
@@ -457,6 +462,8 @@ export default function ProjectDetail({ project, onBack }: Props) {
           <Trash2 className="h-4 w-4 mr-1" />{t('projectDetail.deleteProject')}
         </Button>
       </div>
+
+      <InvoiceModal open={showInvoice} onClose={() => setShowInvoice(false)} project={p} settings={settings} />
 
       {/* Template picker dialog */}
       <Dialog open={showTemplates} onOpenChange={setShowTemplates}>

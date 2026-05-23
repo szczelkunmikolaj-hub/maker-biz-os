@@ -40,6 +40,10 @@ const DEFAULT_SETTINGS: AppSettings = {
   bufferMinutes: 15,
   lowLoadThreshold: 24,
   moderateLoadThreshold: 72,
+  businessName: '',
+  businessAddress: '',
+  invoicePrefix: 'INV',
+  currency: 'EUR',
 };
 
 const AppContext = createContext<AppContextType | null>(null);

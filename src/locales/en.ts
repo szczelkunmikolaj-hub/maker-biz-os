@@ -273,6 +273,14 @@ const en = {
     aiApiKeyPlaceholder: "sk-ant-...",
     aiApiKeyUpdate: "Update key",
     aiApiKeySet: "Key configured",
+    invoiceSettings: "Invoice & Business",
+    businessName: "Business Name",
+    businessNamePlaceholder: "Your business or your name",
+    businessAddress: "Business Address",
+    businessAddressPlaceholder: "Street, City, Country",
+    invoicePrefix: "Invoice Number Prefix",
+    invoicePrefixHint: "e.g. INV → INV-202506-XXXX",
+    currency: "Currency",
   },
   templates: {
     title: "Print Templates",
@@ -544,6 +552,12 @@ const en = {
     noProjectsFound: "No projects found in the text. Try adding more details like names, customer, price.",
     parseError: "AI did not return valid JSON. Try again.",
     importSuccess: "Imported {{count}} projects",
+  },
+  invoice: {
+    generateBtn: "Generate Invoice",
+    previewTitle: "Invoice Preview",
+    downloadBtn: "Download PDF",
+    preparing: "Preparing PDF…",
   },
   language: {
     label: "Language",

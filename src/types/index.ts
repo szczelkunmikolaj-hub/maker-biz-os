@@ -108,6 +108,34 @@ export interface AppSettings {
   bufferMinutes: number;
   lowLoadThreshold: number;
   moderateLoadThreshold: number;
+  // Business / invoice
+  businessName?: string;
+  businessAddress?: string;
+  invoicePrefix?: string;
+  currency?: string;
+}
+
+export const CURRENCIES = [
+  { code: 'EUR', symbol: '€',   label: 'Euro' },
+  { code: 'USD', symbol: '$',   label: 'US Dollar' },
+  { code: 'GBP', symbol: '£',   label: 'British Pound' },
+  { code: 'PLN', symbol: 'zl',  label: 'Polish Zloty' },
+  { code: 'BRL', symbol: 'R$',  label: 'Brazilian Real' },
+  { code: 'CHF', symbol: 'Fr.', label: 'Swiss Franc' },
+  { code: 'CAD', symbol: 'CA$', label: 'Canadian Dollar' },
+  { code: 'AUD', symbol: 'A$',  label: 'Australian Dollar' },
+  { code: 'SEK', symbol: 'kr',  label: 'Swedish Krona' },
+  { code: 'NOK', symbol: 'kr',  label: 'Norwegian Krone' },
+  { code: 'DKK', symbol: 'kr',  label: 'Danish Krone' },
+  { code: 'JPY', symbol: '¥',   label: 'Japanese Yen' },
+  { code: 'CZK', symbol: 'Kc',  label: 'Czech Koruna' },
+  { code: 'HUF', symbol: 'Ft',  label: 'Hungarian Forint' },
+  { code: 'MXN', symbol: '$',   label: 'Mexican Peso' },
+] as const;
+
+export function getCurrencySymbol(currency?: string): string {
+  const found = CURRENCIES.find(c => c.code === (currency || 'EUR'));
+  return found ? found.symbol : (currency || '€');
 }
 
 export type WorkloadLevel = 'low' | 'moderate' | 'high';

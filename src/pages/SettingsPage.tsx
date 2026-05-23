@@ -4,12 +4,15 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import posthog from "@/lib/posthog";
 import { useTranslation } from "react-i18next";
 import { FileSpreadsheet, Wand2 } from "lucide-react";
 import { ImportFromSpreadsheet } from "@/components/ImportFromSpreadsheet";
 import { ImportFromAI } from "@/components/ImportFromAI";
 import { useToast } from "@/hooks/useToast";
+import { CURRENCIES } from "@/types";
 import type { Project } from "@/types";
 
 const API_KEY_LS = 'pt_anthropic_key';
@@ -43,6 +46,10 @@ export default function SettingsPage() {
     captureTimerRef.current = setTimeout(() => {
       posthog.capture('settings_updated', { setting_key: key, new_value: value });
     }, 1500);
+  };
+
+  const updateStr = (key: string, value: string) => {
+    updateSettings({ ...settings, [key]: value });
   };
 
   return (
@@ -93,6 +100,51 @@ export default function SettingsPage() {
             <Input type="number" min="1" value={settings.moderateLoadThreshold}
               onChange={e => update('moderateLoadThreshold', Math.max(1, parseInt(e.target.value) || 72))} />
             <p className="text-xs text-muted-foreground mt-1">{t('settings.moderateHighDesc')}</p>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader><CardTitle className="text-base">{t('settings.invoiceSettings')}</CardTitle></CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <Label>{t('settings.businessName')}</Label>
+            <Input
+              value={settings.businessName || ''}
+              onChange={e => updateStr('businessName', e.target.value)}
+              placeholder={t('settings.businessNamePlaceholder')}
+            />
+          </div>
+          <div>
+            <Label>{t('settings.businessAddress')}</Label>
+            <Textarea
+              value={settings.businessAddress || ''}
+              onChange={e => updateStr('businessAddress', e.target.value)}
+              placeholder={t('settings.businessAddressPlaceholder')}
+              rows={2}
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label>{t('settings.invoicePrefix')}</Label>
+              <Input
+                value={settings.invoicePrefix || 'INV'}
+                onChange={e => updateStr('invoicePrefix', e.target.value)}
+                placeholder="INV"
+              />
+              <p className="text-xs text-muted-foreground mt-1">{t('settings.invoicePrefixHint')}</p>
+            </div>
+            <div>
+              <Label>{t('settings.currency')}</Label>
+              <Select value={settings.currency || 'EUR'} onValueChange={v => updateStr('currency', v)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {CURRENCIES.map(c => (
+                    <SelectItem key={c.code} value={c.code}>{c.code} — {c.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </CardContent>
       </Card>
