@@ -1,15 +1,41 @@
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { useApp } from "@/context/AppContext";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 import posthog from "@/lib/posthog";
 import { useTranslation } from "react-i18next";
+import { FileSpreadsheet, Wand2 } from "lucide-react";
+import { ImportFromSpreadsheet } from "@/components/ImportFromSpreadsheet";
+import { ImportFromAI } from "@/components/ImportFromAI";
+import { useToast } from "@/hooks/useToast";
+import type { Project } from "@/types";
+
+const API_KEY_LS = 'pt_anthropic_key';
 
 export default function SettingsPage() {
-  const { settings, updateSettings } = useApp();
+  const { settings, updateSettings, addProject } = useApp();
   const { t } = useTranslation();
+  const toast = useToast();
   const captureTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [showSpreadsheetImport, setShowSpreadsheetImport] = useState(false);
+  const [showAIImport, setShowAIImport] = useState(false);
+  const [apiKeyInput, setApiKeyInput] = useState('');
+  const storedKey = localStorage.getItem(API_KEY_LS);
+
+  const handleBulkImport = (projects: Project[]) => {
+    projects.forEach(p => addProject(p));
+    posthog.capture('projects_bulk_imported', { count: projects.length, source: 'settings' });
+  };
+
+  const saveApiKey = () => {
+    const trimmed = apiKeyInput.trim();
+    if (!trimmed) return;
+    localStorage.setItem(API_KEY_LS, trimmed);
+    setApiKeyInput('');
+    toast.success(t('importAI.keySaved'));
+  };
 
   const update = (key: string, value: number) => {
     updateSettings({ ...settings, [key]: value });
@@ -70,6 +96,61 @@ export default function SettingsPage() {
           </div>
         </CardContent>
       </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">{t('settings.importData')}</CardTitle>
+          <CardDescription>{t('settings.importDataDesc')}</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-1">
+            <Label>{t('settings.aiApiKey')}</Label>
+            {storedKey ? (
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground flex-1">
+                  {t('settings.aiApiKeySet')} ({storedKey.slice(0, 10)}…)
+                </span>
+                <Button size="sm" variant="outline" onClick={() => { localStorage.removeItem(API_KEY_LS); setApiKeyInput(''); window.location.reload(); }}>
+                  {t('settings.aiApiKeyUpdate')}
+                </Button>
+              </div>
+            ) : (
+              <div className="flex gap-2">
+                <Input
+                  type="password"
+                  placeholder={t('settings.aiApiKeyPlaceholder')}
+                  value={apiKeyInput}
+                  onChange={e => setApiKeyInput(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && saveApiKey()}
+                  className="text-sm"
+                />
+                <Button onClick={saveApiKey} disabled={!apiKeyInput.trim()}>{t('importAI.saveKey')}</Button>
+              </div>
+            )}
+            <p className="text-xs text-muted-foreground">{t('settings.aiApiKeyDesc')}</p>
+          </div>
+
+          <div className="flex gap-2 flex-wrap pt-1">
+            <Button variant="outline" onClick={() => setShowSpreadsheetImport(true)}>
+              <FileSpreadsheet className="h-4 w-4 mr-1" />{t('settings.importFromSpreadsheet')}
+            </Button>
+            <Button variant="outline" onClick={() => setShowAIImport(true)}>
+              <Wand2 className="h-4 w-4 mr-1" />{t('settings.importFromAI')}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      <ImportFromSpreadsheet
+        open={showSpreadsheetImport}
+        onClose={() => setShowSpreadsheetImport(false)}
+        onImport={handleBulkImport}
+      />
+      <ImportFromAI
+        open={showAIImport}
+        onClose={() => setShowAIImport(false)}
+        onImport={handleBulkImport}
+      />
     </div>
   );
 }

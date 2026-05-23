@@ -15,7 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
-import { Plus, Search, Download, ArrowUpDown, RefreshCw, Printer, Package, Clock, Calendar, CreditCard, Sparkles, Upload, ChevronDown } from "lucide-react";
+import { Plus, Search, Download, ArrowUpDown, Printer, Package, Clock, Calendar, CreditCard, Sparkles, Upload, ChevronDown, FileSpreadsheet, Wand2 } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import ProjectDetail from "@/components/ProjectDetail";
 import { parseISO, isBefore } from "date-fns";
@@ -29,6 +29,8 @@ import { PlatePreview } from "@/components/PlatePreview";
 import { deriveProjectStatus, getStatusMeta } from "@/lib/projectStatus";
 import { normalizeMaterial } from "@/lib/normalize";
 import posthog from "@/lib/posthog";
+import { ImportFromSpreadsheet } from "@/components/ImportFromSpreadsheet";
+import { ImportFromAI } from "@/components/ImportFromAI";
 
 const SOURCES: CustomerSource[] = ["Wallapop", "Instagram", "Website", "Other"];
 const PAYMENT_METHODS: PaymentMethod[] = ["Cash", "PayPal", "Bank Transfer", "Bizum", "Other"];
@@ -59,6 +61,8 @@ export default function Projects() {
   const [selectedId, setSelectedId] = useState<string | null>(searchParams.get('id'));
   const [importMode, setImportMode] = useState<null | "full" | "into">(null);
   const [appendTargetId, setAppendTargetId] = useState<string | null>(null);
+  const [showSpreadsheetImport, setShowSpreadsheetImport] = useState(false);
+  const [showAIImport, setShowAIImport] = useState(false);
 
   // Sync URL param to selectedId
   useEffect(() => {
@@ -121,6 +125,11 @@ export default function Projects() {
     });
     setDraft(newProject());
     setShowAdd(false);
+  };
+
+  const handleBulkImport = (imported: Project[]) => {
+    imported.forEach(p => addProject(p));
+    posthog.capture('projects_bulk_imported', { count: imported.length });
   };
 
   const toggleStatus = (id: string, field: 'printed' | 'paid' | 'sent') => {
@@ -188,6 +197,21 @@ export default function Projects() {
                   <div className="text-[11px] text-muted-foreground">{t('projects.importIntoDesc')}</div>
                 </div>
               </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => setShowSpreadsheetImport(true)}>
+                <FileSpreadsheet className="h-4 w-4 mr-2" />
+                <div className="flex-1">
+                  <div className="text-sm font-medium">{t('projects.importFromSpreadsheet')}</div>
+                  <div className="text-[11px] text-muted-foreground">{t('projects.importFromSpreadsheetDesc')}</div>
+                </div>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setShowAIImport(true)}>
+                <Wand2 className="h-4 w-4 mr-2" />
+                <div className="flex-1">
+                  <div className="text-sm font-medium">{t('projects.importFromAI')}</div>
+                  <div className="text-[11px] text-muted-foreground">{t('projects.importFromAIDesc')}</div>
+                </div>
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -231,8 +255,18 @@ export default function Projects() {
       </div>
 
       {filtered.length === 0 ? (
-        <Card><CardContent className="p-8 text-center text-muted-foreground">
-          {mode === 'month' && !showAll ? t('projects.noProjectsMonth') : t('projects.noProjectsEmpty')}
+        <Card><CardContent className="p-8 text-center text-muted-foreground space-y-4">
+          <p>{mode === 'month' && !showAll ? t('projects.noProjectsMonth') : t('projects.noProjectsEmpty')}</p>
+          {projects.length === 0 && (
+            <div className="flex gap-2 justify-center flex-wrap">
+              <Button variant="outline" size="sm" onClick={() => setShowSpreadsheetImport(true)}>
+                <FileSpreadsheet className="h-4 w-4 mr-1" />{t('projects.importFromSpreadsheet')}
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => setShowAIImport(true)}>
+                <Wand2 className="h-4 w-4 mr-1" />{t('projects.importFromAI')}
+              </Button>
+            </div>
+          )}
         </CardContent></Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
@@ -395,6 +429,17 @@ export default function Projects() {
           <DialogFooter><Button onClick={handleAdd}>{t('projects.addProject')}</Button></DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <ImportFromSpreadsheet
+        open={showSpreadsheetImport}
+        onClose={() => setShowSpreadsheetImport(false)}
+        onImport={handleBulkImport}
+      />
+      <ImportFromAI
+        open={showAIImport}
+        onClose={() => setShowAIImport(false)}
+        onImport={handleBulkImport}
+      />
 
       {/* Smart Import dialog (full new project OR append-into-existing) */}
       <ImportDialog open={importMode !== null} onOpenChange={(open) => { if (!open) { setImportMode(null); setAppendTargetId(null); } }}>
