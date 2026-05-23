@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { lovable } from '@/integrations/lovable';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -50,12 +49,12 @@ export default function AuthPage() {
 
   const onGoogle = async () => {
     setBusy(true);
-    const result = await lovable.auth.signInWithOAuth('google', {
-      redirect_uri: 'https://maker-biz-os.lovable.app/auth/callback',
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: 'https://maker-biz-os.lovable.app' },
     });
-    if (result.error) { toast.error(t('auth.googleSignInFailed')); setBusy(false); return; }
-    if (result.redirected) return;
-    navigate('/');
+    if (error) { toast.error(t('auth.googleSignInFailed')); setBusy(false); }
+    // On success, browser is redirected by Supabase — nothing more to do
   };
 
   return (
