@@ -32,6 +32,9 @@ import posthog from "@/lib/posthog";
 import { ImportFromSpreadsheet } from "@/components/ImportFromSpreadsheet";
 import { ImportFromAI } from "@/components/ImportFromAI";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { UpgradeModal, ProjectLimitModal } from "@/components/UpgradeModal";
+import { useTier } from "@/context/TierContext";
+import { Lock } from "lucide-react";
 
 const SOURCES: CustomerSource[] = ["Wallapop", "Instagram", "Website", "Other"];
 const PAYMENT_METHODS: PaymentMethod[] = ["Cash", "PayPal", "Bank Transfer", "Bizum", "Other"];
@@ -56,6 +59,7 @@ export default function Projects() {
   const { projects, addProject, updateProject, templates, addTemplate, deleteTemplate } = useApp();
   const { filterProjectsForWorkflow, mode } = useMonth();
   const { t } = useTranslation();
+  const { isPro, canAddProject } = useTier();
   const [activeTab, setActiveTab] = useState<"projects" | "templates">("projects");
   const [search, setSearch] = useState("");
   const [filter, setFilter] = usePersistedState<string>("projects_filter", "all");
@@ -69,6 +73,8 @@ export default function Projects() {
   const [appendTargetId, setAppendTargetId] = useState<string | null>(null);
   const [showSpreadsheetImport, setShowSpreadsheetImport] = useState(false);
   const [showAIImport, setShowAIImport] = useState(false);
+  const [showUpgrade, setShowUpgrade] = useState(false);
+  const [showProjectLimit, setShowProjectLimit] = useState(false);
   const [showAddTemplate, setShowAddTemplate] = useState(false);
   const [templateDraft, setTemplateDraft] = useState<PrintTemplate>(newTemplate());
 
@@ -122,6 +128,7 @@ export default function Projects() {
 
   const handleAdd = () => {
     if (!draft.name) return;
+    if (!canAddProject(projects.length)) { setShowAdd(false); setShowProjectLimit(true); return; }
     // Auto-detect recurring customer
     const isRecurring = draft.customerName.trim() !== '' &&
       projects.some(p => p.customerName.toLowerCase().trim() === draft.customerName.toLowerCase().trim());
@@ -189,7 +196,8 @@ export default function Projects() {
         {activeTab === 'projects' && (
         <div className="flex gap-2">
           <Button size="sm" variant="outline" onClick={exportCSV} className="hidden sm:flex"><Download className="h-4 w-4 mr-1" />{t('common.csv')}</Button>
-          <Button size="sm" variant="outline" onClick={() => setShowSpreadsheetImport(true)}>
+          <Button size="sm" variant="outline" onClick={() => { if (!isPro) { setShowUpgrade(true); return; } setShowSpreadsheetImport(true); }}>
+            {!isPro && <Lock className="h-3.5 w-3.5 mr-1" />}
             <Upload className="h-4 w-4 mr-1" />{t('projects.importData')}
           </Button>
           <DropdownMenu>
@@ -200,7 +208,7 @@ export default function Projects() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuItem onClick={() => setShowAdd(true)}>
+              <DropdownMenuItem onClick={() => { if (!canAddProject(projects.length)) { setShowProjectLimit(true); return; } setShowAdd(true); }}>
                 <Plus className="h-4 w-4 mr-2" />
                 <div className="flex-1">
                   <div className="text-sm font-medium">{t('projects.manualProject')}</div>
@@ -223,15 +231,15 @@ export default function Projects() {
                 </div>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => setShowSpreadsheetImport(true)}>
-                <FileSpreadsheet className="h-4 w-4 mr-2" />
+              <DropdownMenuItem onClick={() => { if (!isPro) { setShowUpgrade(true); return; } setShowSpreadsheetImport(true); }}>
+                {!isPro ? <Lock className="h-4 w-4 mr-2" /> : <FileSpreadsheet className="h-4 w-4 mr-2" />}
                 <div className="flex-1">
                   <div className="text-sm font-medium">{t('projects.importFromSpreadsheet')}</div>
                   <div className="text-[11px] text-muted-foreground">{t('projects.importFromSpreadsheetDesc')}</div>
                 </div>
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setShowAIImport(true)}>
-                <Wand2 className="h-4 w-4 mr-2" />
+              <DropdownMenuItem onClick={() => { if (!isPro) { setShowUpgrade(true); return; } setShowAIImport(true); }}>
+                {!isPro ? <Lock className="h-4 w-4 mr-2" /> : <Wand2 className="h-4 w-4 mr-2" />}
                 <div className="flex-1">
                   <div className="text-sm font-medium">{t('projects.importFromAI')}</div>
                   <div className="text-[11px] text-muted-foreground">{t('projects.importFromAIDesc')}</div>
@@ -520,6 +528,8 @@ export default function Projects() {
         onClose={() => setShowAIImport(false)}
         onImport={handleBulkImport}
       />
+      <UpgradeModal open={showUpgrade} onClose={() => setShowUpgrade(false)} feature="excel_csv_import" />
+      <ProjectLimitModal open={showProjectLimit} onClose={() => setShowProjectLimit(false)} />
 
       {/* Smart Import dialog (full new project OR append-into-existing) */}
       <ImportDialog open={importMode !== null} onOpenChange={(open) => { if (!open) { setImportMode(null); setAppendTargetId(null); } }}>

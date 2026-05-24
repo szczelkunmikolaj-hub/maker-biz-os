@@ -28,6 +28,10 @@ import MaterialUsageSummary from "@/components/MaterialUsageSummary";
 import ChartGroupingSelect, { type ChartGrouping } from "@/components/ChartGroupingSelect";
 import { usePersistedState } from "@/hooks/usePersistedState";
 import { HelpTip } from "@/components/HelpTip";
+import { UpgradeModal } from "@/components/UpgradeModal";
+import { useTier } from "@/context/TierContext";
+import { useState } from "react";
+import { Lock } from "lucide-react";
 
 const COLORS = [
   "hsl(168,60%,38%)", "hsl(220,60%,50%)", "hsl(38,92%,50%)",
@@ -72,6 +76,8 @@ export default function Dashboard() {
   const { filterProjects, filterExpenses, interval, mode } = useMonth();
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const { isPro } = useTier();
+  const [showUpgrade, setShowUpgrade] = useState(false);
 
   // Per-chart independent grouping — persisted
   const [revenueGrouping, setRevenueGrouping] = usePersistedState<ChartGrouping>("dash_chart_revenue", "month");
@@ -350,9 +356,26 @@ export default function Dashboard() {
       </Card>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <ProductionSummary />
-        <MaterialUsageSummary />
+        {isPro ? <ProductionSummary /> : (
+          <div className="rounded-xl border bg-card p-6 flex flex-col items-center justify-center gap-3 min-h-[180px] cursor-pointer hover:border-primary/50 transition-colors" onClick={() => setShowUpgrade(true)}>
+            <Lock className="h-6 w-6 text-muted-foreground" />
+            <div className="text-center">
+              <div className="font-medium text-sm">{t('tier.featureProductionSummaryTitle')}</div>
+              <div className="text-xs text-muted-foreground mt-1">{t('tier.upgradeCta')}</div>
+            </div>
+          </div>
+        )}
+        {isPro ? <MaterialUsageSummary /> : (
+          <div className="rounded-xl border bg-card p-6 flex flex-col items-center justify-center gap-3 min-h-[180px] cursor-pointer hover:border-primary/50 transition-colors" onClick={() => setShowUpgrade(true)}>
+            <Lock className="h-6 w-6 text-muted-foreground" />
+            <div className="text-center">
+              <div className="font-medium text-sm">{t('tier.featureMaterialSummaryTitle')}</div>
+              <div className="text-xs text-muted-foreground mt-1">{t('tier.upgradeCta')}</div>
+            </div>
+          </div>
+        )}
       </div>
+      <UpgradeModal open={showUpgrade} onClose={() => setShowUpgrade(false)} feature="production_summary" />
 
       {/* Smart Insight Cards */}
       <Card className="border-border/60">

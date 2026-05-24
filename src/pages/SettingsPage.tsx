@@ -8,10 +8,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import posthog from "@/lib/posthog";
 import { useTranslation } from "react-i18next";
-import { FileSpreadsheet, Wand2, MessageSquare, Share2, Check } from "lucide-react";
+import { FileSpreadsheet, Wand2, MessageSquare, Share2, Check, Zap } from "lucide-react";
+import { Link } from "react-router-dom";
+import { useTier } from "@/context/TierContext";
+import { Badge } from "@/components/ui/badge";
 import { ImportFromSpreadsheet } from "@/components/ImportFromSpreadsheet";
 import { ImportFromAI } from "@/components/ImportFromAI";
 import { FeedbackModal } from "@/components/FeedbackModal";
+import { UpgradeModal } from "@/components/UpgradeModal";
 import { useToast } from "@/hooks/useToast";
 import { CURRENCIES } from "@/types";
 import type { Project } from "@/types";
@@ -21,10 +25,12 @@ const API_KEY_LS = 'pt_anthropic_key';
 export default function SettingsPage() {
   const { settings, updateSettings, addProject } = useApp();
   const { t } = useTranslation();
+  const { effectiveTier, trialDaysLeft, isTrialActive, trialExpired, trialStartedAt, isPro } = useTier();
   const toast = useToast();
   const captureTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [showSpreadsheetImport, setShowSpreadsheetImport] = useState(false);
   const [showAIImport, setShowAIImport] = useState(false);
+  const [showUpgrade, setShowUpgrade] = useState(false);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
   const [apiKeyInput, setApiKeyInput] = useState('');
@@ -66,6 +72,42 @@ export default function SettingsPage() {
   return (
     <div className="space-y-6 w-full max-w-lg">
       <h1 className="text-2xl font-bold">{t('settings.title')}</h1>
+
+      {/* Subscription card */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Zap className="h-4 w-4 text-primary" />
+            {t('tier.settingsSubscriptionTitle')}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium">{t('tier.settingsCurrentPlan')}:</span>
+            <Badge variant={effectiveTier === 'free' ? 'secondary' : 'default'}>
+              {effectiveTier === 'free' ? t('tier.tierFree') :
+               effectiveTier === 'pro_trial' ? t('tier.tierProTrial') :
+               effectiveTier === 'pro' ? t('tier.tierPro') : t('tier.tierBusiness')}
+            </Badge>
+          </div>
+          {isTrialActive && (
+            <p className="text-sm text-muted-foreground">
+              {t('tier.settingsTrialDaysLeft', { days: trialDaysLeft })}
+              {trialStartedAt && (
+                <> · {t('tier.settingsTrialEndsOn', { date: new Date(new Date(trialStartedAt).getTime() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString() })}</>
+              )}
+            </p>
+          )}
+          {trialExpired && (
+            <p className="text-sm text-orange-600 dark:text-orange-400">{t('tier.trialEndedBanner')}</p>
+          )}
+          {(effectiveTier === 'free' || isTrialActive || trialExpired) && (
+            <Button size="sm" asChild className="gap-1">
+              <Link to="/pricing"><Zap className="h-3.5 w-3.5" />{t('tier.settingsUpgradeToPro')}</Link>
+            </Button>
+          )}
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader><CardTitle className="text-base">{t('settings.materialPricing')}</CardTitle></CardHeader>
@@ -194,11 +236,11 @@ export default function SettingsPage() {
           </div>
 
           <div className="flex gap-2 flex-wrap pt-1">
-            <Button variant="outline" onClick={() => setShowSpreadsheetImport(true)}>
-              <FileSpreadsheet className="h-4 w-4 mr-1" />{t('settings.importFromSpreadsheet')}
+            <Button variant="outline" onClick={() => { if (!isPro) { setShowUpgrade(true); return; } setShowSpreadsheetImport(true); }}>
+              {!isPro ? <Zap className="h-4 w-4 mr-1" /> : <FileSpreadsheet className="h-4 w-4 mr-1" />}{t('settings.importFromSpreadsheet')}
             </Button>
-            <Button variant="outline" onClick={() => setShowAIImport(true)}>
-              <Wand2 className="h-4 w-4 mr-1" />{t('settings.importFromAI')}
+            <Button variant="outline" onClick={() => { if (!isPro) { setShowUpgrade(true); return; } setShowAIImport(true); }}>
+              {!isPro ? <Zap className="h-4 w-4 mr-1" /> : <Wand2 className="h-4 w-4 mr-1" />}{t('settings.importFromAI')}
             </Button>
           </div>
         </CardContent>
@@ -245,6 +287,7 @@ export default function SettingsPage() {
         onImport={handleBulkImport}
       />
       <FeedbackModal open={feedbackOpen} onClose={() => setFeedbackOpen(false)} />
+      <UpgradeModal open={showUpgrade} onClose={() => setShowUpgrade(false)} feature="excel_csv_import" />
     </div>
   );
 }

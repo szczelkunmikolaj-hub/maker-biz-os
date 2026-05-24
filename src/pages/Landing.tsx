@@ -87,6 +87,7 @@ export default function Landing() {
                 ))}
               </SelectContent>
             </Select>
+            <Button variant="ghost" asChild><Link to="/pricing">{t('tier.pricingNav')}</Link></Button>
             <Button variant="ghost" asChild><Link to="/auth?mode=signin">{t('auth.logIn')}</Link></Button>
             <Button asChild><Link to="/auth?mode=signup">{t('auth.signUp')}</Link></Button>
           </div>
@@ -187,8 +188,13 @@ export default function Landing() {
       </section>
 
       <footer className="border-t mt-12">
-        <div className="max-w-6xl mx-auto px-4 py-6 text-center text-sm text-muted-foreground">
-          {t('landing.footer')}
+        <div className="max-w-6xl mx-auto px-4 py-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
+          <span>{t('landing.footer')}</span>
+          <div className="flex items-center gap-4">
+            <Link to="/pricing" className="hover:text-foreground transition-colors">{t('tier.pricingNav')}</Link>
+            <Link to="/auth?mode=signup" className="hover:text-foreground transition-colors">{t('auth.signUpLink')}</Link>
+            <Link to="/auth?mode=signin" className="hover:text-foreground transition-colors">{t('auth.logIn')}</Link>
+          </div>
         </div>
       </footer>
     </div>

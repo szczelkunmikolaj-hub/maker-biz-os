@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/context/AuthContext";
 import { AppProvider } from "@/context/AppContext";
 import { DemoProvider } from "@/context/DemoContext";
+import { TierProvider } from "@/context/TierContext";
 import { MonthProvider } from "@/context/MonthContext";
 import { NotificationProvider } from "@/context/NotificationContext";
 import { Layout } from "@/components/Layout";
@@ -34,6 +35,7 @@ const App = () => (
     <TooltipProvider>
       <BrowserRouter>
         <AuthProvider>
+          <TierProvider>
           <DemoProvider>
           <AppProvider>
             <MonthProvider>
@@ -65,6 +67,7 @@ const App = () => (
             </MonthProvider>
           </AppProvider>
           </DemoProvider>
+          </TierProvider>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
