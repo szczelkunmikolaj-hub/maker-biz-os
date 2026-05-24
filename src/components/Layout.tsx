@@ -11,6 +11,7 @@ import { GlobalStatusBar } from "@/components/GlobalStatusBar";
 import { CommandPalette } from "@/components/CommandPalette";
 import { WelcomeModal } from "@/components/WelcomeModal";
 import { TrialBanner } from "@/components/TrialBanner";
+import { TrialOptInModal } from "@/components/TrialOptInModal";
 import { useDemo } from "@/context/DemoContext";
 import { useTranslation } from "react-i18next";
 
@@ -99,6 +100,7 @@ export function Layout() {
             <Outlet />
           </main>
           <WelcomeModal />
+          <TrialOptInModal />
           <CommandPalette />
         </div>
       </div>

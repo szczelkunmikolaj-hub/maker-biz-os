@@ -675,6 +675,9 @@ const pl = {
     sidebarTrialDays: "🔥 {{days}} dni pozostało",
     sidebarProBadge: "✓ Plan Pro",
     viewPlans: "Zobacz plany",
+    trialNoCreditCard: "Bez karty kredytowej · 30 dni za darmo",
+    trialStartedToast: "Twój 30-dniowy okres próbny Pro rozpoczął się! Ciesz się wszystkimi funkcjami.",
+    decideLaterId: "Zdecyduję później",
   },
 };
 

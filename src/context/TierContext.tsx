@@ -73,26 +73,8 @@ export function TierProvider({ children }: { children: React.ReactNode }) {
       .single()
       .then(({ data }) => {
         if (data) {
-          const loadedTier = (data.tier as TierName) ?? 'free';
-          const loadedTrialAt = (data as any).trial_started_at ?? null;
-          setTier(loadedTier);
-          setTrialStartedAt(loadedTrialAt);
-
-          // Apply pending trial opt-in from signup welcome screen
-          if (loadedTier === 'free' && localStorage.getItem('pt_pending_trial') === 'true') {
-            localStorage.removeItem('pt_pending_trial');
-            const now = new Date().toISOString();
-            supabase
-              .from('profiles')
-              .update({ tier: 'pro_trial', trial_started_at: now })
-              .eq('id', user.id)
-              .then(({ error }) => {
-                if (!error) {
-                  setTier('pro_trial');
-                  setTrialStartedAt(now);
-                }
-              });
-          }
+          setTier((data.tier as TierName) ?? 'free');
+          setTrialStartedAt((data as any).trial_started_at ?? null);
         }
         setLoading(false);
       })

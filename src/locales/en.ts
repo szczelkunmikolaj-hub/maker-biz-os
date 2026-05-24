@@ -682,6 +682,9 @@ const en = {
     sidebarTrialDays: "🔥 {{days}} days left",
     sidebarProBadge: "✓ Pro plan",
     viewPlans: "View plans",
+    trialNoCreditCard: "No credit card needed · 30 days free",
+    trialStartedToast: "Your 30-day Pro trial has started! Enjoy all features.",
+    decideLaterId: "I'll decide later",
   },
 };
 

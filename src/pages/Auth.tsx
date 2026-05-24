@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/useToast';
-import { Loader2, Mail, Zap } from 'lucide-react';
+import { Loader2, Mail } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 export default function AuthPage() {
@@ -22,7 +22,6 @@ export default function AuthPage() {
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
   const [signUpDone, setSignUpDone] = useState(false);
-  const [trialOptIn, setTrialOptIn] = useState<boolean | null>(null);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [resetSent, setResetSent] = useState(false);
 
@@ -102,7 +101,7 @@ export default function AuthPage() {
           <p className="text-sm text-muted-foreground">{t('auth.tagline')}</p>
         </div>
 
-        <Tabs value={tab} onValueChange={v => { setTab(v); setSignUpDone(false); setTrialOptIn(null); setShowForgotPassword(false); setResetSent(false); }}>
+        <Tabs value={tab} onValueChange={v => { setTab(v); setSignUpDone(false); setShowForgotPassword(false); setResetSent(false); }}>
           <TabsList className="grid grid-cols-2 w-full">
             <TabsTrigger value="signin">{t('auth.logIn')}</TabsTrigger>
             <TabsTrigger value="signup">{t('auth.signUp')}</TabsTrigger>
@@ -159,49 +158,16 @@ export default function AuthPage() {
 
           <TabsContent value="signup">
             {signUpDone ? (
-              trialOptIn === null ? (
-                /* Step 2: Welcome screen — choose trial or free */
-                <div className="mt-4 space-y-4">
-                  <div className="text-center space-y-1">
-                    <p className="text-lg font-bold">{t('tier.welcomeTitle')}</p>
-                    <p className="text-sm text-muted-foreground">{t('tier.welcomeDesc')}</p>
-                  </div>
-                  <div className="rounded-xl border-2 border-primary/40 bg-primary/5 p-4 space-y-3">
-                    <Button className="w-full gap-2" onClick={() => {
-                      localStorage.setItem('pt_pending_trial', 'true');
-                      setTrialOptIn(true);
-                    }}>
-                      <Zap className="h-4 w-4" />
-                      {t('tier.startTrialBtn')}
-                    </Button>
-                    <p className="text-xs text-muted-foreground text-center">{t('tier.startTrialDesc')}</p>
-                  </div>
-                  <button
-                    type="button"
-                    className="block w-full text-center text-sm text-muted-foreground underline hover:no-underline"
-                    onClick={() => {
-                      localStorage.removeItem('pt_pending_trial');
-                      setTrialOptIn(false);
-                    }}
-                  >
-                    {t('tier.continueFreePlan')}
+              <div className="mt-4 rounded-lg bg-primary/10 border border-primary/25 p-4 flex items-start gap-3">
+                <Mail className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm font-medium text-primary">{t('auth.confirmEmailMsg')}</p>
+                  <button type="button" className="text-xs text-primary/70 underline hover:no-underline mt-2"
+                    onClick={() => { setSignUpDone(false); setTab('signin'); }}>
+                    {t('auth.backToSignIn')}
                   </button>
                 </div>
-              ) : (
-                /* Step 3: Check email */
-                <div className="mt-4 rounded-lg bg-primary/10 border border-primary/25 p-4 flex items-start gap-3">
-                  <Mail className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-                  <div>
-                    <p className="text-sm font-medium text-primary">
-                      {trialOptIn ? t('tier.trialPendingMsg') : t('auth.confirmEmailMsg')}
-                    </p>
-                    <button type="button" className="text-xs text-primary/70 underline hover:no-underline mt-2"
-                      onClick={() => { setSignUpDone(false); setTrialOptIn(null); setTab('signin'); }}>
-                      {t('auth.backToSignIn')}
-                    </button>
-                  </div>
-                </div>
-              )
+              </div>
             ) : (
               <>
                 <form onSubmit={onSignUp} className="space-y-3 mt-4">
