@@ -10,10 +10,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Upload, FileText, Check, AlertTriangle, Clock, Weight, Box,
-  Plus, Trash2, Layers, Eye, Clipboard, File, Grid3X3, Sparkles,
+  Plus, Trash2, Layers, Eye, Clipboard, File, Grid3X3, Sparkles, Lock,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { SmartImporter } from "@/components/SmartImporter";
+import { useTier } from "@/context/TierContext";
+import { UpgradeModal } from "@/components/UpgradeModal";
 import React from "react";
 
 // Lazy load the 3D viewer
@@ -84,11 +86,13 @@ interface ImportedJsonProject {
 export default function ImportQueue() {
   const { projects, addProject, updateProject } = useApp();
   const { toast } = useToast();
+  const { isPro } = useTier();
   const [files, setFiles] = useState<ImportedFileEntry[]>([]);
   const [buildPlates, setBuildPlates] = useState<BuildPlate[]>([]);
   const [importLog, setImportLog] = useState<string[]>([]);
   const [previewFileId, setPreviewFileId] = useState<string | null>(null);
   const [pasteText, setPasteText] = useState("");
+  const [showUpgrade, setShowUpgrade] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Process uploaded files
@@ -610,8 +614,8 @@ export default function ImportQueue() {
                       </Select>
                     )}
                     {f.stlGeometry && (
-                      <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => setPreviewFileId(f.id)}>
-                        <Eye className="h-3 w-3" />
+                      <Button size="icon" variant="ghost" className="h-6 w-6" title={!isPro ? "Pro feature" : "3D Preview"} onClick={() => { if (!isPro) { setShowUpgrade(true); return; } setPreviewFileId(f.id); }}>
+                        {!isPro ? <Lock className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
                       </Button>
                     )}
                     <Button size="icon" variant="ghost" className="h-6 w-6 text-destructive" onClick={() => removeFile(f.id)}>
@@ -666,6 +670,7 @@ export default function ImportQueue() {
           </CardContent>
         </Card>
       )}
+      <UpgradeModal open={showUpgrade} onClose={() => setShowUpgrade(false)} feature="stl_viewer" />
     </div>
   );
 }

@@ -48,6 +48,7 @@ export function AppSidebar() {
     { title: t('nav.expenses'), url: "/expenses", icon: Receipt, hint: t('helpTips.expenses') },
     { title: t('nav.filament'), url: "/filament", icon: Package, hint: t('helpTips.filament') },
     { title: t('nav.data'), url: "/data", icon: Database },
+    { title: t('tier.pricingNav'), url: "/pricing", icon: Zap },
     { title: t('nav.settings'), url: "/settings", icon: Settings },
   ];
 

@@ -15,7 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
-import { Plus, Search, Download, ArrowUpDown, Printer, Package, Clock, Calendar, CreditCard, Sparkles, Upload, ChevronDown, FileSpreadsheet, Wand2, BookTemplate, Trash2 } from "lucide-react";
+import { Plus, Search, Download, ArrowUpDown, Printer, Package, Clock, Calendar, CreditCard, Sparkles, Upload, ChevronDown, FileSpreadsheet, Wand2, BookTemplate, Trash2, Zap } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import ProjectDetail from "@/components/ProjectDetail";
 import { parseISO, isBefore } from "date-fns";
@@ -74,6 +74,7 @@ export default function Projects() {
   const [showSpreadsheetImport, setShowSpreadsheetImport] = useState(false);
   const [showAIImport, setShowAIImport] = useState(false);
   const [showUpgrade, setShowUpgrade] = useState(false);
+  const [upgradeFeature, setUpgradeFeature] = useState<'excel_csv_import' | 'templates'>('excel_csv_import');
   const [showProjectLimit, setShowProjectLimit] = useState(false);
   const [showAddTemplate, setShowAddTemplate] = useState(false);
   const [templateDraft, setTemplateDraft] = useState<PrintTemplate>(newTemplate());
@@ -196,7 +197,7 @@ export default function Projects() {
         {activeTab === 'projects' && (
         <div className="flex gap-2">
           <Button size="sm" variant="outline" onClick={exportCSV} className="hidden sm:flex"><Download className="h-4 w-4 mr-1" />{t('common.csv')}</Button>
-          <Button size="sm" variant="outline" onClick={() => { if (!isPro) { setShowUpgrade(true); return; } setShowSpreadsheetImport(true); }}>
+          <Button size="sm" variant="outline" onClick={() => { if (!isPro) { setUpgradeFeature('excel_csv_import'); setShowUpgrade(true); return; } setShowSpreadsheetImport(true); }}>
             {!isPro && <Lock className="h-3.5 w-3.5 mr-1" />}
             <Upload className="h-4 w-4 mr-1" />{t('projects.importData')}
           </Button>
@@ -231,14 +232,14 @@ export default function Projects() {
                 </div>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => { if (!isPro) { setShowUpgrade(true); return; } setShowSpreadsheetImport(true); }}>
+              <DropdownMenuItem onClick={() => { if (!isPro) { setUpgradeFeature('excel_csv_import'); setShowUpgrade(true); return; } setShowSpreadsheetImport(true); }}>
                 {!isPro ? <Lock className="h-4 w-4 mr-2" /> : <FileSpreadsheet className="h-4 w-4 mr-2" />}
                 <div className="flex-1">
                   <div className="text-sm font-medium">{t('projects.importFromSpreadsheet')}</div>
                   <div className="text-[11px] text-muted-foreground">{t('projects.importFromSpreadsheetDesc')}</div>
                 </div>
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => { if (!isPro) { setShowUpgrade(true); return; } setShowAIImport(true); }}>
+              <DropdownMenuItem onClick={() => { if (!isPro) { setUpgradeFeature('excel_csv_import'); setShowUpgrade(true); return; } setShowAIImport(true); }}>
                 {!isPro ? <Lock className="h-4 w-4 mr-2" /> : <Wand2 className="h-4 w-4 mr-2" />}
                 <div className="flex-1">
                   <div className="text-sm font-medium">{t('projects.importFromAI')}</div>
@@ -249,7 +250,7 @@ export default function Projects() {
           </DropdownMenu>
         </div>
         )}
-        {activeTab === 'templates' && (
+        {activeTab === 'templates' && isPro && (
           <Button size="sm" onClick={() => setShowAddTemplate(true)}>
             <Plus className="h-4 w-4 mr-1" />{t('templates.newTemplate')}
           </Button>
@@ -264,11 +265,11 @@ export default function Projects() {
             <span className="text-sm text-primary font-medium">{t('projects.importBanner')}</span>
           </div>
           <div className="flex gap-2 shrink-0">
-            <Button size="sm" variant="outline" className="text-xs h-7" onClick={() => setShowSpreadsheetImport(true)}>
-              <FileSpreadsheet className="h-3 w-3 mr-1" />Excel / CSV
+            <Button size="sm" variant="outline" className="text-xs h-7" onClick={() => { if (!isPro) { setUpgradeFeature('excel_csv_import'); setShowUpgrade(true); return; } setShowSpreadsheetImport(true); }}>
+              {!isPro ? <Lock className="h-3 w-3 mr-1" /> : <FileSpreadsheet className="h-3 w-3 mr-1" />}Excel / CSV
             </Button>
-            <Button size="sm" variant="outline" className="text-xs h-7" onClick={() => setShowAIImport(true)}>
-              <Wand2 className="h-3 w-3 mr-1" />AI
+            <Button size="sm" variant="outline" className="text-xs h-7" onClick={() => { if (!isPro) { setUpgradeFeature('excel_csv_import'); setShowUpgrade(true); return; } setShowAIImport(true); }}>
+              {!isPro ? <Lock className="h-3 w-3 mr-1" /> : <Wand2 className="h-3 w-3 mr-1" />}AI
             </Button>
           </div>
         </div>
@@ -315,11 +316,11 @@ export default function Projects() {
           <p>{mode === 'month' && !showAll ? t('projects.noProjectsMonth') : t('projects.noProjectsEmpty')}</p>
           {projects.length === 0 && (
             <div className="flex gap-2 justify-center flex-wrap">
-              <Button variant="outline" size="sm" onClick={() => setShowSpreadsheetImport(true)}>
-                <FileSpreadsheet className="h-4 w-4 mr-1" />{t('projects.importFromSpreadsheet')}
+              <Button variant="outline" size="sm" onClick={() => { if (!isPro) { setUpgradeFeature('excel_csv_import'); setShowUpgrade(true); return; } setShowSpreadsheetImport(true); }}>
+                {!isPro ? <Lock className="h-4 w-4 mr-1" /> : <FileSpreadsheet className="h-4 w-4 mr-1" />}{t('projects.importFromSpreadsheet')}
               </Button>
-              <Button variant="outline" size="sm" onClick={() => setShowAIImport(true)}>
-                <Wand2 className="h-4 w-4 mr-1" />{t('projects.importFromAI')}
+              <Button variant="outline" size="sm" onClick={() => { if (!isPro) { setUpgradeFeature('excel_csv_import'); setShowUpgrade(true); return; } setShowAIImport(true); }}>
+                {!isPro ? <Lock className="h-4 w-4 mr-1" /> : <Wand2 className="h-4 w-4 mr-1" />}{t('projects.importFromAI')}
               </Button>
             </div>
           )}
@@ -459,6 +460,19 @@ export default function Projects() {
       </TabsContent>
 
       <TabsContent value="templates" className="space-y-4">
+        {!isPro ? (
+          <div className="rounded-xl border-2 border-dashed border-muted-foreground/25 bg-muted/20 p-12 text-center space-y-4">
+            <Lock className="h-8 w-8 mx-auto text-muted-foreground" />
+            <div>
+              <p className="font-semibold text-sm">{t('tier.featureTemplatesDesc')}</p>
+              <p className="text-xs text-muted-foreground mt-1">{t('tier.upgradeModalSub')}</p>
+            </div>
+            <Button onClick={() => { setUpgradeFeature('templates'); setShowUpgrade(true); }} className="gap-2">
+              <Zap className="h-4 w-4" />{t('tier.settingsUpgradeToPro')}
+            </Button>
+          </div>
+        ) : (
+        <>
         <p className="text-sm text-muted-foreground">{t('templates.description')}</p>
         {templates.length === 0 ? (
           <Card><CardContent className="p-8 text-center text-muted-foreground">{t('templates.noTemplates')}</CardContent></Card>
@@ -486,6 +500,8 @@ export default function Projects() {
               </Card>
             ))}
           </div>
+        )}
+        </>
         )}
       </TabsContent>
 
@@ -528,7 +544,7 @@ export default function Projects() {
         onClose={() => setShowAIImport(false)}
         onImport={handleBulkImport}
       />
-      <UpgradeModal open={showUpgrade} onClose={() => setShowUpgrade(false)} feature="excel_csv_import" />
+      <UpgradeModal open={showUpgrade} onClose={() => setShowUpgrade(false)} feature={upgradeFeature} />
       <ProjectLimitModal open={showProjectLimit} onClose={() => setShowProjectLimit(false)} />
 
       {/* Smart Import dialog (full new project OR append-into-existing) */}
