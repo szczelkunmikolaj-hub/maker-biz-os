@@ -10,8 +10,9 @@ import { NotificationBell } from "@/components/NotificationBell";
 import { GlobalStatusBar } from "@/components/GlobalStatusBar";
 import { CommandPalette } from "@/components/CommandPalette";
 import { WelcomeModal } from "@/components/WelcomeModal";
-import { TrialBanner } from "@/components/TrialBanner";
-import { TrialOptInModal } from "@/components/TrialOptInModal";
+// PAYMENTS_TODO: re-enable when payments are ready
+// import { TrialBanner } from "@/components/TrialBanner";
+// import { TrialOptInModal } from "@/components/TrialOptInModal";
 import { useDemo } from "@/context/DemoContext";
 import { useTranslation } from "react-i18next";
 
@@ -83,7 +84,7 @@ export function Layout() {
             </div>
           </header>
           <GlobalStatusBar />
-          <TrialBanner />
+          {/* PAYMENTS_TODO: <TrialBanner /> */}
           {isDemoMode && (
             <div className="bg-yellow-500/10 border-b border-yellow-500/25 px-4 py-2 flex items-center justify-between shrink-0">
               <span className="text-sm font-medium text-yellow-700 dark:text-yellow-400">{t('demo.banner')}</span>
@@ -100,7 +101,7 @@ export function Layout() {
             <Outlet />
           </main>
           <WelcomeModal />
-          <TrialOptInModal />
+          {/* PAYMENTS_TODO: <TrialOptInModal /> */}
           <CommandPalette />
         </div>
       </div>

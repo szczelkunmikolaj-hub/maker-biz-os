@@ -202,6 +202,12 @@ export default function AuthPage() {
           </svg>
           {t('auth.continueWithGoogle')}
         </Button>
+
+        <p className="text-center text-xs text-muted-foreground">
+          <Link to="/trust" className="underline underline-offset-4 hover:no-underline hover:text-foreground transition-colors">
+            Trust &amp; Privacy
+          </Link>
+        </p>
       </Card>
     </div>
   );

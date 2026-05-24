@@ -16,7 +16,7 @@ import { Switch } from "@/components/ui/switch";
 import { ImportFromSpreadsheet } from "@/components/ImportFromSpreadsheet";
 import { ImportFromAI } from "@/components/ImportFromAI";
 import { FeedbackModal } from "@/components/FeedbackModal";
-import { UpgradeModal } from "@/components/UpgradeModal";
+// PAYMENTS_TODO: import { UpgradeModal } from "@/components/UpgradeModal";
 import { useToast } from "@/hooks/useToast";
 import { CURRENCIES } from "@/types";
 import type { Project } from "@/types";
@@ -26,12 +26,13 @@ const API_KEY_LS = 'pt_anthropic_key';
 export default function SettingsPage() {
   const { settings, updateSettings, addProject } = useApp();
   const { t } = useTranslation();
-  const { effectiveTier, trialDaysLeft, isTrialActive, trialExpired, trialStartedAt, isPro, isAdmin, adminPreviewFree, setAdminPreviewFree } = useTier();
+  const { isAdmin, adminPreviewFree, setAdminPreviewFree } = useTier();
+  // PAYMENTS_TODO: const { effectiveTier, trialDaysLeft, isTrialActive, trialExpired, trialStartedAt, isPro } = useTier();
   const toast = useToast();
   const captureTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [showSpreadsheetImport, setShowSpreadsheetImport] = useState(false);
   const [showAIImport, setShowAIImport] = useState(false);
-  const [showUpgrade, setShowUpgrade] = useState(false);
+  // PAYMENTS_TODO: const [showUpgrade, setShowUpgrade] = useState(false);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
   const [apiKeyInput, setApiKeyInput] = useState('');
@@ -74,7 +75,7 @@ export default function SettingsPage() {
     <div className="space-y-6 w-full max-w-lg">
       <h1 className="text-2xl font-bold">{t('settings.title')}</h1>
 
-      {/* Subscription card */}
+      {/* PAYMENTS_TODO: subscription card removed — re-enable when payments are ready
       <Card>
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
@@ -109,6 +110,7 @@ export default function SettingsPage() {
           )}
         </CardContent>
       </Card>
+      */}
 
       <Card>
         <CardHeader><CardTitle className="text-base">{t('settings.materialPricing')}</CardTitle></CardHeader>
@@ -237,11 +239,11 @@ export default function SettingsPage() {
           </div>
 
           <div className="flex gap-2 flex-wrap pt-1">
-            <Button variant="outline" onClick={() => { if (!isPro) { setShowUpgrade(true); return; } setShowSpreadsheetImport(true); }}>
-              {!isPro ? <Zap className="h-4 w-4 mr-1" /> : <FileSpreadsheet className="h-4 w-4 mr-1" />}{t('settings.importFromSpreadsheet')}
+            <Button variant="outline" onClick={() => setShowSpreadsheetImport(true)}>
+              <FileSpreadsheet className="h-4 w-4 mr-1" />{t('settings.importFromSpreadsheet')}
             </Button>
-            <Button variant="outline" onClick={() => { if (!isPro) { setShowUpgrade(true); return; } setShowAIImport(true); }}>
-              {!isPro ? <Zap className="h-4 w-4 mr-1" /> : <Wand2 className="h-4 w-4 mr-1" />}{t('settings.importFromAI')}
+            <Button variant="outline" onClick={() => setShowAIImport(true)}>
+              <Wand2 className="h-4 w-4 mr-1" />{t('settings.importFromAI')}
             </Button>
           </div>
         </CardContent>
@@ -310,7 +312,7 @@ export default function SettingsPage() {
       )}
 
       <FeedbackModal open={feedbackOpen} onClose={() => setFeedbackOpen(false)} />
-      <UpgradeModal open={showUpgrade} onClose={() => setShowUpgrade(false)} feature="excel_csv_import" />
+      {/* PAYMENTS_TODO: <UpgradeModal open={showUpgrade} onClose={() => setShowUpgrade(false)} feature="excel_csv_import" /> */}
     </div>
   );
 }

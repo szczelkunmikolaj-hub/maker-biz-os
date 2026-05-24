@@ -9,10 +9,10 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Trash2, Lock } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 import posthog from "@/lib/posthog";
-import { useTier } from "@/context/TierContext";
-import { UpgradeModal } from "@/components/UpgradeModal";
+// PAYMENTS_TODO: import { useTier } from "@/context/TierContext";
+// PAYMENTS_TODO: import { UpgradeModal } from "@/components/UpgradeModal";
 
 function newTemplate(): PrintTemplate {
   return { id: crypto.randomUUID(), name: "", estimatedPrintTime: 0, materialUsed: 0, notes: "" };
@@ -21,9 +21,9 @@ function newTemplate(): PrintTemplate {
 export default function TemplatesPage() {
   const { templates, addTemplate, deleteTemplate } = useApp();
   const { t } = useTranslation();
-  const { isPro } = useTier();
+  // PAYMENTS_TODO: const { isPro } = useTier();
   const [showAdd, setShowAdd] = useState(false);
-  const [showUpgrade, setShowUpgrade] = useState(false);
+  // PAYMENTS_TODO: const [showUpgrade, setShowUpgrade] = useState(false);
   const [draft, setDraft] = useState<PrintTemplate>(newTemplate());
 
   const handleAdd = () => {
@@ -42,8 +42,7 @@ export default function TemplatesPage() {
     <div className="space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-2">
         <h1 className="text-2xl font-bold">{t('templates.title')}</h1>
-        <Button size="sm" onClick={() => { if (!isPro) { setShowUpgrade(true); return; } setShowAdd(true); }}>
-          {!isPro && <Lock className="h-3.5 w-3.5 mr-1" />}
+        <Button size="sm" onClick={() => setShowAdd(true)}>
           <Plus className="h-4 w-4 mr-1" />{t('templates.newTemplate')}
         </Button>
       </div>
@@ -98,7 +97,7 @@ export default function TemplatesPage() {
           <DialogFooter><Button onClick={handleAdd}>{t('templates.saveTemplate')}</Button></DialogFooter>
         </DialogContent>
       </Dialog>
-      <UpgradeModal open={showUpgrade} onClose={() => setShowUpgrade(false)} feature="templates" />
+      {/* PAYMENTS_TODO: <UpgradeModal open={showUpgrade} onClose={() => setShowUpgrade(false)} feature="templates" /> */}
     </div>
   );
 }

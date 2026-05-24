@@ -48,7 +48,7 @@ export function AppSidebar() {
     { title: t('nav.expenses'), url: "/expenses", icon: Receipt, hint: t('helpTips.expenses') },
     { title: t('nav.filament'), url: "/filament", icon: Package, hint: t('helpTips.filament') },
     { title: t('nav.data'), url: "/data", icon: Database },
-    { title: t('tier.pricingNav'), url: "/pricing", icon: Zap },
+    // PAYMENTS_TODO: { title: t('tier.pricingNav'), url: "/pricing", icon: Zap },
     { title: t('nav.settings'), url: "/settings", icon: Settings },
   ];
 
@@ -132,7 +132,7 @@ export function AppSidebar() {
           <div className="px-2 py-1.5 text-xs text-sidebar-foreground/70 truncate">{user.email}</div>
         )}
         <SidebarMenu>
-          {/* Upgrade CTA / Plan status */}
+          {/* PAYMENTS_TODO: restore upgrade CTA / plan status when payments are ready
           {!isAdminUser && !isDemoMode && (
             <SidebarMenuItem>
               {isTrialActive ? (
@@ -157,6 +157,7 @@ export function AppSidebar() {
               ) : null}
             </SidebarMenuItem>
           )}
+          */}
 
           {/* Language switcher */}
           <SidebarMenuItem>

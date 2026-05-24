@@ -26,6 +26,7 @@ import FilamentPurchases from "@/pages/FilamentPurchases";
 import DataManagement from "@/pages/DataManagement";
 import AuthPage from "@/pages/Auth";
 import PricingPage from "@/pages/PricingPage";
+import TrustPage from "@/pages/TrustPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -45,6 +46,7 @@ const App = () => (
                 <Routes>
                   <Route path="/auth" element={<AuthPage />} />
                   <Route path="/pricing" element={<PricingPage />} />
+                  <Route path="/trust" element={<TrustPage />} />
                   <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
                     <Route path="/customer-orders" element={<AdminRoute><CustomerOrdersPage /></AdminRoute>} />
                     <Route path="/projects" element={<Projects />} />

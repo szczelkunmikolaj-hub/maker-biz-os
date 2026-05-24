@@ -87,9 +87,8 @@ export default function Landing() {
                 ))}
               </SelectContent>
             </Select>
-            <Button variant="ghost" asChild><Link to="/pricing">{t('tier.pricingNav')}</Link></Button>
             <Button variant="ghost" asChild><Link to="/auth?mode=signin">{t('auth.logIn')}</Link></Button>
-            <Button asChild><Link to="/auth?mode=signup">{t('auth.signUp')}</Link></Button>
+            <Button variant="outline" asChild><Link to="/auth?mode=signup">{t('auth.signUp')}</Link></Button>
           </div>
         </div>
       </nav>
@@ -105,18 +104,15 @@ export default function Landing() {
         <p className="text-lg md:text-xl text-muted-foreground mt-6 max-w-2xl mx-auto">
           {t('landing.heroSub')}
         </p>
-        <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
-          <Button size="lg" asChild><Link to="/auth?mode=signup">{t('landing.cta1')}</Link></Button>
-          <Button size="lg" variant="outline" asChild><Link to="/auth?mode=signin">{t('landing.cta2')}</Link></Button>
+        <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center items-center">
+          <Button size="lg" className="text-base px-8 py-6 h-auto" onClick={handleGuest}>
+            {t('landing.continueGuest')}
+          </Button>
+          <Button size="default" variant="outline" asChild>
+            <Link to="/auth?mode=signup">{t('landing.cta1')}</Link>
+          </Button>
         </div>
-        <button
-          type="button"
-          onClick={handleGuest}
-          className="mt-4 text-sm text-muted-foreground underline underline-offset-4 hover:text-foreground transition-colors"
-        >
-          {t('landing.continueGuest')}
-        </button>
-        <p className="mt-2 text-xs text-muted-foreground/70">{t('landing.guestNote')}</p>
+        <p className="mt-3 text-xs text-muted-foreground/70">{t('landing.guestNote')}</p>
       </section>
 
       {/* Benefits */}
@@ -184,14 +180,21 @@ export default function Landing() {
       <section className="max-w-3xl mx-auto px-4 py-16 text-center">
         <h2 className="text-3xl font-bold" style={{ fontFamily: 'Space Grotesk' }}>{t('landing.ctaTitle')}</h2>
         <p className="text-muted-foreground mt-3">{t('landing.ctaSub')}</p>
-        <Button size="lg" className="mt-6" asChild><Link to="/auth?mode=signup">{t('landing.ctaButton')}</Link></Button>
+        <div className="mt-6 flex flex-col sm:flex-row gap-3 justify-center items-center">
+          <Button size="lg" className="text-base px-8 py-6 h-auto" onClick={handleGuest}>
+            {t('landing.continueGuest')}
+          </Button>
+          <Button size="default" variant="outline" asChild>
+            <Link to="/auth?mode=signup">{t('landing.cta1')}</Link>
+          </Button>
+        </div>
       </section>
 
       <footer className="border-t mt-12">
         <div className="max-w-6xl mx-auto px-4 py-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
           <span>{t('landing.footer')}</span>
           <div className="flex items-center gap-4">
-            <Link to="/pricing" className="hover:text-foreground transition-colors">{t('tier.pricingNav')}</Link>
+            <Link to="/trust" className="hover:text-foreground transition-colors">Trust &amp; Privacy</Link>
             <Link to="/auth?mode=signup" className="hover:text-foreground transition-colors">{t('auth.signUpLink')}</Link>
             <Link to="/auth?mode=signin" className="hover:text-foreground transition-colors">{t('auth.logIn')}</Link>
           </div>

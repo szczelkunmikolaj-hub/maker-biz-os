@@ -28,9 +28,9 @@ import {
 } from "@/components/ui/dropdown-menu";
 import type { PrintModel } from "@/types";
 import { InvoiceModal } from "@/components/InvoicePDF";
-import { UpgradeModal } from "@/components/UpgradeModal";
-import { useTier } from "@/context/TierContext";
-import { Lock } from "lucide-react";
+// PAYMENTS_TODO: import { UpgradeModal } from "@/components/UpgradeModal";
+// PAYMENTS_TODO: import { useTier } from "@/context/TierContext";
+// PAYMENTS_TODO: import { Lock } from "lucide-react";
 
 function newPrint(): Print {
   return { id: crypto.randomUUID(), name: "", estimatedPrintTime: 0, materialUsed: 0, printer: "", status: "not-printed", quantity: 1, completedQuantity: 0, color: "", material: "", pricePerPiece: 0 };
@@ -50,8 +50,8 @@ export default function ProjectDetail({ project, onBack }: Props) {
   const { t } = useTranslation();
   const [showTemplates, setShowTemplates] = useState(false);
   const [showInvoice, setShowInvoice] = useState(false);
-  const [showUpgrade, setShowUpgrade] = useState(false);
-  const { isPro } = useTier();
+  // PAYMENTS_TODO: const [showUpgrade, setShowUpgrade] = useState(false);
+  // PAYMENTS_TODO: const { isPro } = useTier();
 
   // Use project from props directly (always fresh from context) instead of local state copy
   const p = project;
@@ -181,10 +181,8 @@ export default function ProjectDetail({ project, onBack }: Props) {
             <Copy className="h-4 w-4 mr-1" />{t('projectDetail.duplicate')}
           </Button>
           <Button size="sm" variant="outline" className="text-xs gap-1 min-h-[36px]" onClick={() => {
-            if (!isPro) { setShowUpgrade(true); return; }
             setShowInvoice(true); posthog.capture('invoice_generated', { customer_source: p.customerSource });
           }}>
-            {!isPro && <Lock className="h-3 w-3" />}
             <FileText className="h-3.5 w-3.5" />{t('invoice.generateBtn')}
           </Button>
         </div>
@@ -272,10 +270,9 @@ export default function ProjectDetail({ project, onBack }: Props) {
                 <span className="text-sm">{field === 'printed' ? t('projectDetail.printedCheck') : field === 'paid' ? t('projectDetail.paidCheck') : t('projectDetail.sentCheck')}</span>
               </label>
             ))}
-            <label className="flex items-center gap-2 cursor-pointer" onClick={!isPro ? (e) => { e.preventDefault(); setShowUpgrade(true); } : undefined}>
-              <Checkbox checked={p.isRecurringCustomer || false} onCheckedChange={v => { if (!isPro) { setShowUpgrade(true); return; } set({ isRecurringCustomer: !!v }); }} disabled={!isPro} />
+            <label className="flex items-center gap-2 cursor-pointer">
+              <Checkbox checked={p.isRecurringCustomer || false} onCheckedChange={v => set({ isRecurringCustomer: !!v })} />
               <span className="text-sm flex items-center gap-1">
-                {!isPro && <Lock className="h-3 w-3 text-muted-foreground" />}
                 <RefreshCw className="h-3 w-3" />{t('projectDetail.recurringCustomer')}
               </span>
             </label>
@@ -476,7 +473,7 @@ export default function ProjectDetail({ project, onBack }: Props) {
       </div>
 
       <InvoiceModal open={showInvoice} onClose={() => setShowInvoice(false)} project={p} settings={settings} />
-      <UpgradeModal open={showUpgrade} onClose={() => setShowUpgrade(false)} feature="pdf_invoice" />
+      {/* PAYMENTS_TODO: <UpgradeModal open={showUpgrade} onClose={() => setShowUpgrade(false)} feature="pdf_invoice" /> */}
 
       {/* Template picker dialog */}
       <Dialog open={showTemplates} onOpenChange={setShowTemplates}>

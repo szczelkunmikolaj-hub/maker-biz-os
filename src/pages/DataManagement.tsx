@@ -3,13 +3,13 @@ import { useApp } from '@/context/AppContext';
 import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Download, FileSpreadsheet, Wand2, Archive, RotateCcw, Lock } from 'lucide-react';
+import { Download, FileSpreadsheet, Wand2, Archive, RotateCcw } from 'lucide-react';
 import posthog from '@/lib/posthog';
 import { ImportFromSpreadsheet } from '@/components/ImportFromSpreadsheet';
 import { ImportFromAI } from '@/components/ImportFromAI';
 import { useToast } from '@/hooks/useToast';
-import { UpgradeModal } from '@/components/UpgradeModal';
-import { useTier } from '@/context/TierContext';
+// PAYMENTS_TODO: import { UpgradeModal } from '@/components/UpgradeModal';
+// PAYMENTS_TODO: import { useTier } from '@/context/TierContext';
 import type { Project } from '@/types';
 import { normalizeProject } from '@/types';
 
@@ -81,9 +81,9 @@ export default function DataManagement() {
   const jsonFileRef = useRef<HTMLInputElement>(null);
   const [showSpreadsheetImport, setShowSpreadsheetImport] = useState(false);
   const [showAIImport, setShowAIImport] = useState(false);
-  const [showUpgrade, setShowUpgrade] = useState(false);
-  const [upgradeFeature, setUpgradeFeature] = useState<'data_export' | 'excel_csv_import'>('data_export');
-  const { isPro } = useTier();
+  // PAYMENTS_TODO: const [showUpgrade, setShowUpgrade] = useState(false);
+  // PAYMENTS_TODO: const [upgradeFeature, setUpgradeFeature] = useState<'data_export' | 'excel_csv_import'>('data_export');
+  // PAYMENTS_TODO: const { isPro } = useTier();
 
   const handleImport = (imported: Project[]) => {
     imported.forEach(p => addProject(p));
@@ -144,12 +144,12 @@ export default function DataManagement() {
           <CardDescription>{t('data.importDataDesc')}</CardDescription>
         </CardHeader>
         <CardContent className="flex gap-3 flex-wrap">
-          <Button variant="outline" onClick={() => { if (!isPro) { setUpgradeFeature('excel_csv_import'); setShowUpgrade(true); return; } setShowSpreadsheetImport(true); }}>
-            {!isPro ? <Lock className="h-4 w-4 mr-2" /> : <FileSpreadsheet className="h-4 w-4 mr-2" />}
+          <Button variant="outline" onClick={() => setShowSpreadsheetImport(true)}>
+            <FileSpreadsheet className="h-4 w-4 mr-2" />
             {t('settings.importFromSpreadsheet')}
           </Button>
-          <Button variant="outline" onClick={() => { if (!isPro) { setUpgradeFeature('excel_csv_import'); setShowUpgrade(true); return; } setShowAIImport(true); }}>
-            {!isPro ? <Lock className="h-4 w-4 mr-2" /> : <Wand2 className="h-4 w-4 mr-2" />}
+          <Button variant="outline" onClick={() => setShowAIImport(true)}>
+            <Wand2 className="h-4 w-4 mr-2" />
             {t('settings.importFromAI')}
           </Button>
         </CardContent>
@@ -161,13 +161,11 @@ export default function DataManagement() {
           <CardDescription>{t('data.exportDataDesc')}</CardDescription>
         </CardHeader>
         <CardContent className="flex gap-3 flex-wrap">
-          <Button variant="outline" onClick={() => { if (!isPro) { setUpgradeFeature('data_export'); setShowUpgrade(true); return; } handleExportCSV(); }} disabled={!isPro && projects.length === 0 || isPro && projects.length === 0}>
-            {!isPro && <Lock className="h-3.5 w-3.5 mr-1" />}
+          <Button variant="outline" onClick={handleExportCSV} disabled={projects.length === 0}>
             <Download className="h-4 w-4 mr-2" />
             {t('data.exportCSV')} ({projects.length} {t('data.projectsWord')})
           </Button>
-          <Button variant="outline" onClick={() => { if (!isPro) { setUpgradeFeature('data_export'); setShowUpgrade(true); return; } handleExportJSON(); }} disabled={!isPro && projects.length === 0 || isPro && projects.length === 0}>
-            {!isPro && <Lock className="h-3.5 w-3.5 mr-1" />}
+          <Button variant="outline" onClick={handleExportJSON} disabled={projects.length === 0}>
             <Archive className="h-4 w-4 mr-2" />
             {t('data.exportFullBackup')}
           </Button>
@@ -208,7 +206,7 @@ export default function DataManagement() {
         onClose={() => setShowAIImport(false)}
         onImport={handleImport}
       />
-      <UpgradeModal open={showUpgrade} onClose={() => setShowUpgrade(false)} feature={upgradeFeature} />
+      {/* PAYMENTS_TODO: <UpgradeModal open={showUpgrade} onClose={() => setShowUpgrade(false)} feature={upgradeFeature} /> */}
     </div>
   );
 }

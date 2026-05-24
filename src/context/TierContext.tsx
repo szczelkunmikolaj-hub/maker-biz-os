@@ -85,14 +85,21 @@ export function TierProvider({ children }: { children: React.ReactNode }) {
   const baseTier: TierName = isAdminUser ? 'business' : tier;
   const baseTrialStartedAt = isAdminUser ? null : trialStartedAt;
 
-  const effectiveTier: TierName = adminPreviewFree && isAdminUser
-    ? 'free'
-    : getEffectiveTier(baseTier, baseTrialStartedAt);
+  // PAYMENTS_TODO: restore gating logic below when payments are ready.
+  // const effectiveTier: TierName = adminPreviewFree && isAdminUser
+  //   ? 'free'
+  //   : getEffectiveTier(baseTier, baseTrialStartedAt);
+  // const trialDaysLeft = baseTier === 'pro_trial' ? getTrialDaysLeft(baseTrialStartedAt) : 0;
+  // const isTrialActive = baseTier === 'pro_trial' && trialDaysLeft > 0;
+  // const trialExpired = baseTier === 'pro_trial' && trialDaysLeft === 0;
+  // const isPro = hasProAccess(effectiveTier);
 
-  const trialDaysLeft = baseTier === 'pro_trial' ? getTrialDaysLeft(baseTrialStartedAt) : 0;
-  const isTrialActive = baseTier === 'pro_trial' && trialDaysLeft > 0;
-  const trialExpired = baseTier === 'pro_trial' && trialDaysLeft === 0;
-  const isPro = hasProAccess(effectiveTier);
+  // Temporarily give everyone full Pro access — all features free until payments are ready.
+  const effectiveTier: TierName = 'pro';
+  const trialDaysLeft = 0;
+  const isTrialActive = false;
+  const trialExpired = false;
+  const isPro = true;
 
   return (
     <TierContext.Provider value={{
@@ -106,8 +113,8 @@ export function TierProvider({ children }: { children: React.ReactNode }) {
       isAdmin: isAdminUser,
       adminPreviewFree,
       setAdminPreviewFree,
-      canUseFeature: (f: ProFeature) => canUseFeature(effectiveTier, f),
-      canAddProject: (count: number) => canAddProject(effectiveTier, count),
+      canUseFeature: () => true,
+      canAddProject: () => true,
       loading,
     }}>
       {children}
