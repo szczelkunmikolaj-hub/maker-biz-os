@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://printtrack.xyz/sitemap.xml
+Sitemap: https://printrack.xyz/sitemap.xml

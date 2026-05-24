@@ -1,4 +1,4 @@
-// AppContext — central state, synced to Lovable Cloud
+// AppContext — central state, synced to Supabase
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { Project, Expense, AppSettings, KanbanStatus, PrintTemplate, FilamentPurchase, normalizeProject } from '@/types';
 import { deriveKanbanStatus, applyKanbanStatus } from '@/types/sync';
@@ -89,13 +89,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     (async () => {
       setLoading(true);
       try {
-        const [pjs, exs, tps, fps, st, profile] = await Promise.all([
+        const [pjs, exs, tps, fps, st] = await Promise.all([
           supabase.from('projects').select('data').eq('user_id', userId),
           supabase.from('expenses').select('data').eq('user_id', userId),
           supabase.from('templates').select('data').eq('user_id', userId),
           supabase.from('filament_purchases').select('data').eq('user_id', userId),
           supabase.from('user_settings').select('data').eq('user_id', userId).maybeSingle(),
-          supabase.from('profiles').select('migrated_at, language').eq('user_id', userId).maybeSingle(),
         ]);
         if (cancelled) return;
 
@@ -111,14 +110,27 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         let nextFilament = (fps.data || []).map(r => r.data as unknown as FilamentPurchase);
         let nextSettings: AppSettings = (st.data?.data as unknown as AppSettings) || DEFAULT_SETTINGS;
 
+        // Fetch profile separately — columns may not exist in all deployments, so we fall back gracefully
+        let profileLang: string | undefined;
+        let profileMigratedAt: string | null | undefined;
+        try {
+          const profileResult = await supabase.from('profiles').select('migrated_at, language').eq('id', userId).maybeSingle();
+          if (!profileResult.error && profileResult.data) {
+            profileLang = (profileResult.data as any).language ?? undefined;
+            profileMigratedAt = (profileResult.data as any).migrated_at ?? undefined;
+          }
+        } catch {
+          // Profile columns may not exist in this deployment — skip silently
+        }
+
         // Sync language preference from profile
-        if (profile.data?.language) {
-          i18n.changeLanguage(profile.data.language);
-          localStorage.setItem('pt_language', profile.data.language);
+        if (profileLang) {
+          i18n.changeLanguage(profileLang);
+          localStorage.setItem('pt_language', profileLang);
         }
 
         // One-time localStorage migration (runs only if cloud is empty and localStorage has data)
-        const alreadyMigrated = profile.data?.migrated_at != null;
+        const alreadyMigrated = profileMigratedAt != null;
         if (!alreadyMigrated && !migratedRef.current) {
           migratedRef.current = true;
           const lsProjects = (loadJSON<any[]>('pt_projects', []) || []).map(normalizeProject);
