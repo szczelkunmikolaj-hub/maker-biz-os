@@ -57,6 +57,13 @@ const en = {
     signUpLink: "Sign up free",
     hasAccount: "Already have an account?",
     logInLink: "Log in",
+    confirmEmailMsg: "Check your email and click the confirmation link before logging in.",
+    forgotPassword: "Forgot password?",
+    forgotPasswordDesc: "Enter your email and we'll send you a reset link.",
+    sendResetEmail: "Send reset email",
+    resetPasswordSent: "Password reset email sent — check your inbox.",
+    backToSignIn: "Back to sign in",
+    emailRequired: "Please enter your email address.",
   },
   landing: {
     badge: "Free · No credit card · Built by a maker",

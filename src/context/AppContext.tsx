@@ -7,6 +7,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useDemo } from '@/context/DemoContext';
 import i18n from '@/i18n';
 import { DEMO_PROJECTS, DEMO_EXPENSES, DEMO_FILAMENT, DEMO_FILAMENT_COST } from '@/lib/demoData';
+import { isAdmin } from '@/lib/admin';
 
 interface AppContextType {
   projects: Project[];
@@ -129,9 +130,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           localStorage.setItem('pt_language', profileLang);
         }
 
-        // One-time localStorage migration (runs only if cloud is empty and localStorage has data)
+        // One-time localStorage migration (runs only if cloud is empty and localStorage has data).
+        // For admin accounts: always attempt migration — bypasses the alreadyMigrated gate.
         const alreadyMigrated = profileMigratedAt != null;
-        if (!alreadyMigrated && !migratedRef.current) {
+        const isAdminUser = isAdmin(user?.email);
+        const shouldMigrate = (!alreadyMigrated || isAdminUser) && !migratedRef.current;
+        if (shouldMigrate) {
           migratedRef.current = true;
           const lsProjects = (loadJSON<any[]>('pt_projects', []) || []).map(normalizeProject);
           const lsExpenses = loadJSON<Expense[]>('pt_expenses', []);
@@ -152,6 +156,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             nextTemplates = lsTemplates.length ? lsTemplates : nextTemplates;
             nextFilament = lsFilament.length ? lsFilament : nextFilament;
             if (lsSettings) nextSettings = lsSettings;
+            // Clear localStorage after successful migration
+            if (isAdminUser) {
+              ['pt_projects', 'pt_expenses', 'pt_templates', 'pt_filament_purchases', 'pt_settings'].forEach(k => localStorage.removeItem(k));
+            }
           }
           // Use upsert so this works even if no profile row exists yet
           await supabase.from('profiles').upsert({ user_id: userId, migrated_at: new Date().toISOString() });

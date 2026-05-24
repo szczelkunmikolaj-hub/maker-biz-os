@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/useToast';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Mail } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 export default function AuthPage() {
@@ -21,6 +21,9 @@ export default function AuthPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
+  const [signUpDone, setSignUpDone] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
 
   // Redirect to dashboard if already logged in
   useEffect(() => {
@@ -51,7 +54,7 @@ export default function AuthPage() {
       }
     } else {
       setBusy(false);
-      navigate('/', { replace: true });
+      setSignUpDone(true);
     }
   };
 
@@ -62,6 +65,18 @@ export default function AuthPage() {
     setBusy(false);
     if (error) toast.error(error.message);
     else navigate('/', { replace: true });
+  };
+
+  const onForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email.trim()) { toast.error(t('auth.emailRequired')); return; }
+    setBusy(true);
+    const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+      redirectTo: `${window.location.origin}/auth?mode=reset`,
+    });
+    setBusy(false);
+    if (error) toast.error(error.message);
+    else setResetSent(true);
   };
 
   const onGoogle = async () => {
@@ -81,47 +96,93 @@ export default function AuthPage() {
             <div className="h-9 w-9 rounded-lg bg-primary flex items-center justify-center">
               <span className="text-primary-foreground font-bold" style={{ fontFamily: 'Space Grotesk' }}>PT</span>
             </div>
-            <span className="font-bold text-xl" style={{ fontFamily: 'Space Grotesk' }}>Maker Biz OS</span>
+            <span className="font-bold text-xl" style={{ fontFamily: 'Space Grotesk' }}>PrintTrack</span>
           </Link>
           <p className="text-sm text-muted-foreground">{t('auth.tagline')}</p>
         </div>
 
-        <Tabs value={tab} onValueChange={setTab}>
+        <Tabs value={tab} onValueChange={v => { setTab(v); setSignUpDone(false); setShowForgotPassword(false); setResetSent(false); }}>
           <TabsList className="grid grid-cols-2 w-full">
             <TabsTrigger value="signin">{t('auth.logIn')}</TabsTrigger>
             <TabsTrigger value="signup">{t('auth.signUp')}</TabsTrigger>
           </TabsList>
 
           <TabsContent value="signin">
-            <form onSubmit={onSignIn} className="space-y-3 mt-4">
-              <div><Label>{t('auth.email')}</Label><Input type="email" value={email} onChange={e => setEmail(e.target.value)} required autoComplete="email" /></div>
-              <div><Label>{t('auth.password')}</Label><Input type="password" value={password} onChange={e => setPassword(e.target.value)} required autoComplete="current-password" /></div>
-              <Button type="submit" className="w-full" disabled={busy}>
-                {busy && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}{t('auth.logIn')}
-              </Button>
-            </form>
-            <p className="text-center text-sm text-muted-foreground mt-4">
-              {t('auth.noAccount')}{' '}
-              <button type="button" className="text-primary underline hover:no-underline" onClick={() => setTab('signup')}>
-                {t('auth.signUpLink')}
-              </button>
-            </p>
+            {showForgotPassword ? (
+              resetSent ? (
+                <div className="mt-4 rounded-lg bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 p-4 flex items-start gap-3">
+                  <Mail className="h-5 w-5 text-green-600 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-medium text-green-800 dark:text-green-300">{t('auth.resetPasswordSent')}</p>
+                    <button type="button" className="text-xs text-green-700 dark:text-green-400 underline hover:no-underline mt-2" onClick={() => { setShowForgotPassword(false); setResetSent(false); }}>
+                      {t('auth.backToSignIn')}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <form onSubmit={onForgotPassword} className="space-y-3 mt-4">
+                  <p className="text-sm text-muted-foreground">{t('auth.forgotPasswordDesc')}</p>
+                  <div><Label>{t('auth.email')}</Label><Input type="email" value={email} onChange={e => setEmail(e.target.value)} required autoComplete="email" /></div>
+                  <Button type="submit" className="w-full" disabled={busy}>
+                    {busy && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}{t('auth.sendResetEmail')}
+                  </Button>
+                  <button type="button" className="block w-full text-center text-sm text-muted-foreground underline hover:no-underline" onClick={() => setShowForgotPassword(false)}>
+                    {t('auth.backToSignIn')}
+                  </button>
+                </form>
+              )
+            ) : (
+              <>
+                <form onSubmit={onSignIn} className="space-y-3 mt-4">
+                  <div><Label>{t('auth.email')}</Label><Input type="email" value={email} onChange={e => setEmail(e.target.value)} required autoComplete="email" /></div>
+                  <div><Label>{t('auth.password')}</Label><Input type="password" value={password} onChange={e => setPassword(e.target.value)} required autoComplete="current-password" /></div>
+                  <div className="flex justify-end">
+                    <button type="button" className="text-xs text-muted-foreground underline hover:no-underline" onClick={() => setShowForgotPassword(true)}>
+                      {t('auth.forgotPassword')}
+                    </button>
+                  </div>
+                  <Button type="submit" className="w-full" disabled={busy}>
+                    {busy && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}{t('auth.logIn')}
+                  </Button>
+                </form>
+                <p className="text-center text-sm text-muted-foreground mt-4">
+                  {t('auth.noAccount')}{' '}
+                  <button type="button" className="text-primary underline hover:no-underline" onClick={() => setTab('signup')}>
+                    {t('auth.signUpLink')}
+                  </button>
+                </p>
+              </>
+            )}
           </TabsContent>
 
           <TabsContent value="signup">
-            <form onSubmit={onSignUp} className="space-y-3 mt-4">
-              <div><Label>{t('auth.email')}</Label><Input type="email" value={email} onChange={e => setEmail(e.target.value)} required autoComplete="email" /></div>
-              <div><Label>{t('auth.password')}</Label><Input type="password" minLength={6} value={password} onChange={e => setPassword(e.target.value)} required autoComplete="new-password" /></div>
-              <Button type="submit" className="w-full" disabled={busy}>
-                {busy && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}{t('auth.createAccount')}
-              </Button>
-            </form>
-            <p className="text-center text-sm text-muted-foreground mt-4">
-              {t('auth.hasAccount')}{' '}
-              <button type="button" className="text-primary underline hover:no-underline" onClick={() => setTab('signin')}>
-                {t('auth.logInLink')}
-              </button>
-            </p>
+            {signUpDone ? (
+              <div className="mt-4 rounded-lg bg-primary/10 border border-primary/25 p-4 flex items-start gap-3">
+                <Mail className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm font-medium text-primary">{t('auth.confirmEmailMsg')}</p>
+                  <button type="button" className="text-xs text-primary/70 underline hover:no-underline mt-2" onClick={() => { setSignUpDone(false); setTab('signin'); }}>
+                    {t('auth.backToSignIn')}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <>
+                <form onSubmit={onSignUp} className="space-y-3 mt-4">
+                  <div><Label>{t('auth.email')}</Label><Input type="email" value={email} onChange={e => setEmail(e.target.value)} required autoComplete="email" /></div>
+                  <div><Label>{t('auth.password')}</Label><Input type="password" minLength={6} value={password} onChange={e => setPassword(e.target.value)} required autoComplete="new-password" /></div>
+                  <Button type="submit" className="w-full" disabled={busy}>
+                    {busy && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}{t('auth.createAccount')}
+                  </Button>
+                </form>
+                <p className="text-center text-sm text-muted-foreground mt-4">
+                  {t('auth.hasAccount')}{' '}
+                  <button type="button" className="text-primary underline hover:no-underline" onClick={() => setTab('signin')}>
+                    {t('auth.logInLink')}
+                  </button>
+                </p>
+              </>
+            )}
           </TabsContent>
         </Tabs>
 

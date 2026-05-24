@@ -8,10 +8,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import posthog from "@/lib/posthog";
 import { useTranslation } from "react-i18next";
-import { FileSpreadsheet, Wand2, MessageSquare, Share2, Check, Zap } from "lucide-react";
+import { FileSpreadsheet, Wand2, MessageSquare, Share2, Check, Zap, ShieldCheck } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useTier } from "@/context/TierContext";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import { ImportFromSpreadsheet } from "@/components/ImportFromSpreadsheet";
 import { ImportFromAI } from "@/components/ImportFromAI";
 import { FeedbackModal } from "@/components/FeedbackModal";
@@ -25,7 +26,7 @@ const API_KEY_LS = 'pt_anthropic_key';
 export default function SettingsPage() {
   const { settings, updateSettings, addProject } = useApp();
   const { t } = useTranslation();
-  const { effectiveTier, trialDaysLeft, isTrialActive, trialExpired, trialStartedAt, isPro } = useTier();
+  const { effectiveTier, trialDaysLeft, isTrialActive, trialExpired, trialStartedAt, isPro, isAdmin, adminPreviewFree, setAdminPreviewFree } = useTier();
   const toast = useToast();
   const captureTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [showSpreadsheetImport, setShowSpreadsheetImport] = useState(false);
@@ -50,7 +51,7 @@ export default function SettingsPage() {
   };
 
   const handleShare = () => {
-    const msg = "I use PrintTrack to manage my 3D printing business — it's free! printtrack.xyz";
+    const msg = "I use PrintTrack to manage my 3D printing business — it's free! printrack.xyz";
     navigator.clipboard.writeText(msg).then(() => {
       setShareCopied(true);
       setTimeout(() => setShareCopied(false), 2500);
@@ -286,6 +287,28 @@ export default function SettingsPage() {
         onClose={() => setShowAIImport(false)}
         onImport={handleBulkImport}
       />
+      {isAdmin && (
+        <Card className="border-dashed border-amber-400/60 bg-amber-50/30 dark:bg-amber-950/10">
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2 text-amber-700 dark:text-amber-400">
+              <ShieldCheck className="h-4 w-4" />
+              Admin Preview
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium">Preview as Free user</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {adminPreviewFree ? 'Showing Free tier view — feature gates active' : 'Showing Business tier view (your real access)'}
+                </p>
+              </div>
+              <Switch checked={adminPreviewFree} onCheckedChange={setAdminPreviewFree} />
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <FeedbackModal open={feedbackOpen} onClose={() => setFeedbackOpen(false)} />
       <UpgradeModal open={showUpgrade} onClose={() => setShowUpgrade(false)} feature="excel_csv_import" />
     </div>

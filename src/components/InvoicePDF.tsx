@@ -136,7 +136,7 @@ function InvoicePDFDocument({ project: p, settings, invoiceNumber, sym }: DocPro
   const piecesTotal = getProjectPiecesTotal(p);
   const effectiveTotal = piecesTotal > 0 ? piecesTotal : (p.totalPrice || 0);
   const expTotal = getProjectExpensesTotal(p);
-  const bizName = settings.businessName || 'Maker Biz OS';
+  const bizName = settings.businessName || 'PrintTrack';
   const today = formatDate(new Date().toISOString().slice(0, 10));
   const dueFormatted = formatDate(p.dueDate || '');
   const initials = getInitials(bizName);
@@ -255,7 +255,7 @@ function InvoicePDFDocument({ project: p, settings, invoiceNumber, sym }: DocPro
         {/* ── Footer (fixed) ── */}
         <View style={s.footer} fixed>
           <Text style={s.footerText}>{bizName}</Text>
-          <Text style={s.footerText}>{invoiceNumber} · Maker Biz OS</Text>
+          <Text style={s.footerText}>{invoiceNumber} · PrintTrack</Text>
         </View>
       </Page>
     </Document>
