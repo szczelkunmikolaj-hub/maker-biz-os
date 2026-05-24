@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import {
-  LayoutDashboard, FolderKanban, Columns3, Receipt, Settings, Calendar, Package, Database, Truck, ExternalLink, LogOut, FlaskConical, Globe, MessageSquare, Zap, BadgeCheck,
+  LayoutDashboard, FolderKanban, Columns3, Receipt, Settings, Calendar, Package, Database, Truck, ExternalLink, LogOut, UserPlus, FlaskConical, Globe, MessageSquare, Zap, BadgeCheck,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { Link, useLocation } from "react-router-dom";
@@ -224,10 +224,19 @@ export function AppSidebar() {
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <SidebarMenuButton onClick={() => signOut()} className="hover:bg-sidebar-accent" title={t('nav.signOut')}>
-              <LogOut className="h-4 w-4" />
-              {!collapsed && <span>{t('nav.signOut')}</span>}
-            </SidebarMenuButton>
+            {localStorage.getItem('pt_guest_mode') === 'true' ? (
+              <SidebarMenuButton asChild className="hover:bg-sidebar-accent text-primary font-medium" title="Sign up / Sign in">
+                <Link to="/auth">
+                  <UserPlus className="h-4 w-4" />
+                  {!collapsed && <span>Sign up / Sign in</span>}
+                </Link>
+              </SidebarMenuButton>
+            ) : (
+              <SidebarMenuButton onClick={() => signOut()} className="hover:bg-sidebar-accent" title={t('nav.signOut')}>
+                <LogOut className="h-4 w-4" />
+                {!collapsed && <span>{t('nav.signOut')}</span>}
+              </SidebarMenuButton>
+            )}
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>
