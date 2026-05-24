@@ -27,24 +27,24 @@ interface TierContextType {
 }
 
 const TierContext = createContext<TierContextType>({
-  tier: 'pro_trial',
-  effectiveTier: 'pro_trial',
+  tier: 'free',
+  effectiveTier: 'free',
   trialStartedAt: null,
-  trialDaysLeft: 30,
-  isTrialActive: true,
+  trialDaysLeft: 0,
+  isTrialActive: false,
   trialExpired: false,
-  isPro: true,
+  isPro: false,
   isAdmin: false,
   adminPreviewFree: false,
   setAdminPreviewFree: () => {},
-  canUseFeature: () => true,
+  canUseFeature: () => false,
   canAddProject: () => true,
   loading: false,
 });
 
 export function TierProvider({ children }: { children: React.ReactNode }) {
   const { user, loading: authLoading } = useAuth();
-  const [tier, setTier] = useState<TierName>('pro_trial');
+  const [tier, setTier] = useState<TierName>('free');
   const [trialStartedAt, setTrialStartedAt] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [adminPreviewFree, setAdminPreviewFreeState] = useState(
@@ -61,8 +61,8 @@ export function TierProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (authLoading) return;
     if (!user) {
-      setTier('pro_trial');
-      setTrialStartedAt(new Date().toISOString());
+      setTier('free');
+      setTrialStartedAt(null);
       setLoading(false);
       return;
     }
@@ -73,8 +73,26 @@ export function TierProvider({ children }: { children: React.ReactNode }) {
       .single()
       .then(({ data }) => {
         if (data) {
-          setTier((data.tier as TierName) ?? 'pro_trial');
-          setTrialStartedAt((data as any).trial_started_at ?? null);
+          const loadedTier = (data.tier as TierName) ?? 'free';
+          const loadedTrialAt = (data as any).trial_started_at ?? null;
+          setTier(loadedTier);
+          setTrialStartedAt(loadedTrialAt);
+
+          // Apply pending trial opt-in from signup welcome screen
+          if (loadedTier === 'free' && localStorage.getItem('pt_pending_trial') === 'true') {
+            localStorage.removeItem('pt_pending_trial');
+            const now = new Date().toISOString();
+            supabase
+              .from('profiles')
+              .update({ tier: 'pro_trial', trial_started_at: now })
+              .eq('id', user.id)
+              .then(({ error }) => {
+                if (!error) {
+                  setTier('pro_trial');
+                  setTrialStartedAt(now);
+                }
+              });
+          }
         }
         setLoading(false);
       })

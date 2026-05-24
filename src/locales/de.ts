@@ -664,6 +664,17 @@ const de = {
     featureRecurringOrdersDesc: "Markiere Stammkunden, um deine besten Klienten zu verfolgen.",
     featureProductionSummaryTitle: "Produktionsübersicht",
     featureMaterialSummaryTitle: "Materialverbrauchsübersicht",
+    welcomeTitle: "Willkommen bei PrintTrack!",
+    welcomeDesc: "Wähle, wie du starten möchtest:",
+    startTrialBtn: "30-Tage Pro-Test starten — kostenlos, keine Kreditkarte erforderlich",
+    startTrialDesc: "Schalte unbegrenzte Projekte, PDF-Rechnungen, Excel/CSV-Import und erweiterte Analysen frei.",
+    continueFreePlan: "Mit dem kostenlosen Plan fortfahren",
+    trialPendingMsg: "Dein 30-Tage Pro-Test startet automatisch, wenn du dich einloggst. Prüfe deine E-Mails, um dein Konto zu aktivieren.",
+    freeBanner: "Du nutzt den kostenlosen Plan — upgrade auf Pro für unbegrenzte Projekte und alle Funktionen.",
+    sidebarUpgradePro: "Auf Pro upgraden",
+    sidebarTrialDays: "🔥 {{days}} Tage übrig",
+    sidebarProBadge: "✓ Pro-Plan",
+    viewPlans: "Pläne ansehen",
   },
 };
 

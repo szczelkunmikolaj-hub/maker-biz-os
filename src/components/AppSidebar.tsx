@@ -1,12 +1,13 @@
 import React, { useState } from "react";
 import {
-  LayoutDashboard, FolderKanban, Columns3, Receipt, Settings, Calendar, Package, Database, Truck, ExternalLink, LogOut, FlaskConical, Globe, MessageSquare,
+  LayoutDashboard, FolderKanban, Columns3, Receipt, Settings, Calendar, Package, Database, Truck, ExternalLink, LogOut, FlaskConical, Globe, MessageSquare, Zap, BadgeCheck,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
-import { useLocation } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { useDemo } from "@/context/DemoContext";
 import { isAdmin } from "@/lib/admin";
+import { useTier } from "@/context/TierContext";
 import { HelpTip } from "@/components/HelpTip";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -36,6 +37,7 @@ export function AppSidebar() {
   const { isDemoMode, toggleDemoMode } = useDemo();
   const { t } = useTranslation();
   const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const { effectiveTier, isTrialActive, trialDaysLeft, isPro, isAdmin: isAdminUser } = useTier();
 
   const allItems = [
     { title: t('nav.dashboard'), url: "/", icon: LayoutDashboard, hint: t('helpTips.dashboard') },
@@ -55,7 +57,7 @@ export function AppSidebar() {
     i18n.changeLanguage(lang);
     localStorage.setItem('pt_language', lang);
     if (supabaseConfigured && user) {
-      supabase.from('profiles').update({ language: lang }).eq('user_id', user.id).then(() => {});
+      supabase.from('profiles').update({ language: lang }).eq('id', user.id).then(() => {});
     }
   };
 
@@ -129,6 +131,32 @@ export function AppSidebar() {
           <div className="px-2 py-1.5 text-xs text-sidebar-foreground/70 truncate">{user.email}</div>
         )}
         <SidebarMenu>
+          {/* Upgrade CTA / Plan status */}
+          {!isAdminUser && !isDemoMode && (
+            <SidebarMenuItem>
+              {isTrialActive ? (
+                <SidebarMenuButton asChild className="text-primary font-medium bg-primary/10 hover:bg-primary/20">
+                  <Link to="/pricing">
+                    <Zap className="h-4 w-4 shrink-0" />
+                    {!collapsed && <span className="flex-1">{t('tier.sidebarTrialDays', { days: trialDaysLeft })}</span>}
+                  </Link>
+                </SidebarMenuButton>
+              ) : effectiveTier === 'free' ? (
+                <SidebarMenuButton asChild className="text-primary font-semibold bg-primary/10 hover:bg-primary/20">
+                  <Link to="/pricing">
+                    <Zap className="h-4 w-4 shrink-0" />
+                    {!collapsed && <span className="flex-1">{t('tier.sidebarUpgradePro')}</span>}
+                  </Link>
+                </SidebarMenuButton>
+              ) : isPro ? (
+                <div className={`flex items-center gap-2 px-2 py-1.5 text-xs text-green-600 dark:text-green-400 ${collapsed ? 'justify-center' : ''}`}>
+                  <BadgeCheck className="h-4 w-4 shrink-0" />
+                  {!collapsed && <span>{t('tier.sidebarProBadge')}</span>}
+                </div>
+              ) : null}
+            </SidebarMenuItem>
+          )}
+
           {/* Language switcher */}
           <SidebarMenuItem>
             {!collapsed ? (

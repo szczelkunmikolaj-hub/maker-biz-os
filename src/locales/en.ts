@@ -671,6 +671,17 @@ const en = {
     featureRecurringOrdersDesc: "Mark customers as recurring to track your best clients.",
     featureProductionSummaryTitle: "Production Summary",
     featureMaterialSummaryTitle: "Material Usage Summary",
+    welcomeTitle: "Welcome to PrintTrack!",
+    welcomeDesc: "Choose how you'd like to start:",
+    startTrialBtn: "Start 30-day Pro trial — free, no credit card needed",
+    startTrialDesc: "Unlock unlimited projects, PDF invoices, Excel/CSV import, and advanced analytics.",
+    continueFreePlan: "Continue with Free plan",
+    trialPendingMsg: "Your 30-day Pro trial will start automatically when you log in. Check your email to activate your account.",
+    freeBanner: "You're on the Free plan — upgrade to Pro for unlimited projects and all features.",
+    sidebarUpgradePro: "Upgrade to Pro",
+    sidebarTrialDays: "🔥 {{days}} days left",
+    sidebarProBadge: "✓ Pro plan",
+    viewPlans: "View plans",
   },
 };
 
