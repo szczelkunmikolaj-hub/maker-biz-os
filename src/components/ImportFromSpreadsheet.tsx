@@ -65,6 +65,9 @@ function parseDate(v: any): string {
 
   const s = String(v).trim();
 
+  // YYYY-MM-DD — return as-is to avoid any timezone shift
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+
   // DD/MM/YYYY
   const ddmmyyyy = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
   if (ddmmyyyy) {
@@ -86,7 +89,7 @@ function parseDate(v: any): string {
     if (!isNaN(d.getTime())) return d.toISOString().slice(0, 10);
   }
 
-  // Standard parsing (YYYY-MM-DD, MM/DD/YYYY, etc.)
+  // Standard parsing (MM/DD/YYYY, etc.)
   const d = new Date(s);
   if (!isNaN(d.getTime())) return d.toISOString().slice(0, 10);
 
@@ -169,6 +172,89 @@ function buildProjects(rows: Record<string, any>[], mapping: Partial<Record<Fiel
     });
 }
 
+// Columns that uniquely identify the app's own CSV export format
+const APP_CSV_MARKER_COLS = ['project_id', 'project_name', 'print_name'];
+
+function parseExpensesDetail(detail: string): Array<{ id: string; name: string; amount: number; category: string; notes: string }> {
+  if (!detail || !detail.trim()) return [];
+  return detail.split(';').map(s => s.trim()).filter(Boolean).map(entry => {
+    const parts = entry.split(':');
+    return {
+      id: crypto.randomUUID(),
+      name: parts[0]?.trim() || 'Expense',
+      amount: parseFloat(parts[1]?.trim() || '0') || 0,
+      category: parts[2]?.trim() || 'Other',
+      notes: '',
+    };
+  });
+}
+
+function buildProjectsFromAppCSV(rows: Record<string, any>[]): Project[] {
+  const today = new Date().toISOString().slice(0, 10);
+
+  // Group rows by project_id preserving insertion order
+  const groups = new Map<string, Record<string, any>[]>();
+  for (const row of rows) {
+    const pid = String(row['project_id'] || '').trim();
+    if (!pid) continue;
+    if (!groups.has(pid)) groups.set(pid, []);
+    groups.get(pid)!.push(row);
+  }
+
+  const projects: Project[] = [];
+
+  for (const [pid, groupRows] of groups) {
+    const first = groupRows[0];
+
+    const printed = parseBool(first['printed']);
+    const paid    = parseBool(first['paid']);
+    const sent    = parseBool(first['sent']);
+
+    const prints = groupRows
+      .filter(row => String(row['print_name'] || '').trim())
+      .map(row => normalizePrint({
+        id: String(row['print_id'] || '').trim() || crypto.randomUUID(),
+        name: String(row['print_name'] || '').trim(),
+        status: String(row['print_status'] || '').trim() || (sent || paid || printed ? 'completed' : 'not-printed'),
+        quantity: Math.max(1, parseInt(String(row['quantity'] || '1')) || 1),
+        completedQuantity: parseInt(String(row['completed_quantity'] || '0')) || 0,
+        estimatedPrintTime: parseFloat(String(row['print_hours'] || '')) || 0,
+        materialUsed: parseFloat(String(row['material_grams'] || '')) || 0,
+        material: String(row['material_type'] || '').trim(),
+        color: String(row['color'] || '').trim(),
+        pricePerPiece: parseFloat(String(row['price_per_piece'] || '')) || 0,
+      }));
+
+    const projectExpenses = parseExpensesDetail(String(first['expenses_detail'] || ''));
+    const storedStatus = String(first['kanban_status'] || '').trim() as KanbanStatus;
+    const kanbanStatus: KanbanStatus = storedStatus || deriveKanbanStatus(printed, paid, sent);
+
+    projects.push(normalizeProject({
+      id: pid,
+      name: String(first['project_name'] || '').trim(),
+      customerName: String(first['customer_name'] || '').trim(),
+      customerSource: (String(first['customer_source'] || '').trim() || 'Other') as Project['customerSource'],
+      paymentMethod: (String(first['payment_method'] || '').trim() || 'Other') as Project['paymentMethod'],
+      totalPrice: parseFloat(String(first['total_price'] || '')) || 0,
+      orderDate: parseDate(first['order_date']) || today,
+      dueDate: parseDate(first['due_date']),
+      completedAt: parseDate(first['completed_at']),
+      paidAt: parseDate(first['paid_at']),
+      shippingDate: parseDate(first['shipping_date']),
+      printed,
+      paid,
+      sent,
+      isRecurringCustomer: parseBool(first['is_recurring_customer']),
+      notes: String(first['notes'] || '').trim(),
+      kanbanStatus,
+      prints,
+      projectExpenses,
+    }));
+  }
+
+  return projects;
+}
+
 interface Props {
   open: boolean;
   onClose: () => void;
@@ -218,6 +304,17 @@ export function ImportFromSpreadsheet({ open, onClose, onImport }: Props) {
       const rawRows: Record<string, any>[] = XLSX.utils.sheet_to_json(ws, { defval: '' });
       if (!rawRows.length) { toast.error(t('importSpreadsheet.noDataError')); return; }
       const hdrs = Object.keys(rawRows[0]);
+
+      // Auto-import when the file matches our own CSV export format
+      if (APP_CSV_MARKER_COLS.every(col => hdrs.includes(col))) {
+        const imported = buildProjectsFromAppCSV(rawRows);
+        if (!imported.length) { toast.error(t('importSpreadsheet.noProjectsError')); return; }
+        onImport(imported);
+        handleClose();
+        toast.success(t('importSpreadsheet.importSuccess', { count: imported.length }));
+        return;
+      }
+
       setHeaders(hdrs);
       setRows(rawRows);
       setMapping(autoDetect(hdrs));

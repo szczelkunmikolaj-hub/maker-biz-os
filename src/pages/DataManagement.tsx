@@ -105,7 +105,7 @@ export default function DataManagement() {
       templates,
       settings,
     };
-    downloadFile(JSON.stringify(backup, null, 2), `maker-biz-backup-${new Date().toISOString().slice(0, 10)}.json`, 'application/json');
+    downloadFile(JSON.stringify(backup, null, 2), `printtrack-backup-${new Date().toISOString().slice(0, 10)}.json`, 'application/json');
     posthog.capture('data_exported', { format: 'json', project_count: projects.length });
   };
 
