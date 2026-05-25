@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Print Farm Management Software — Free | PrintTrack</title>
+  <meta name="description" content="Manage your 3D print farm with free software built for multi-printer operations. Track jobs across printers, monitor filament across machines, and keep every order organised — with PrintTrack." />
+  <link rel="canonical" href="https://printrack.xyz/seo/print-farm-management.html" />
+  <meta property="og:title" content="Print Farm Management Software — Free | PrintTrack" />
+  <meta property="og:description" content="Free print farm management software. Track jobs across multiple printers, manage filament inventory, monitor workload distribution, and invoice customers — all in one tool." />
+  <meta property="og:url" content="https://printrack.xyz/seo/print-farm-management.html" />
+  <meta property="og:type" content="article" />
+  <meta property="og:site_name" content="PrintTrack" />
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:title" content="Print Farm Management Software — Free | PrintTrack" />
+  <meta name="twitter:description" content="Free software to manage a 3D print farm. Track jobs, printers, filament, and customers in one place." />
+  <style>
+    :root {
+      --bg: #0f172a; --surface: #1e293b; --surface-2: #243348;
+      --primary: #2d9e82; --primary-h: #34b896;
+      --text: #f1f5f9; --muted: #94a3b8; --muted-2: #64748b; --border: #2a3a52;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; line-height: 1.75; font-size: 16px; }
+    a { color: var(--primary-h); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    nav { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 1.5rem; position: sticky; top: 0; z-index: 100; }
+    .nav-inner { max-width: 920px; margin: 0 auto; height: 56px; display: flex; align-items: center; justify-content: space-between; }
+    .logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .logo-mark { width: 34px; height: 34px; background: var(--primary); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 13px; color: #fff; flex-shrink: 0; }
+    .logo-name { font-weight: 700; font-size: 17px; color: var(--text); }
+    .btn { display: inline-block; background: var(--primary); color: #fff; padding: 8px 20px; border-radius: 8px; font-weight: 600; font-size: 14px; text-decoration: none; transition: background 0.15s; }
+    .btn:hover { background: var(--primary-h); text-decoration: none; }
+    .btn-lg { padding: 13px 30px; font-size: 16px; border-radius: 10px; }
+    .hero { padding: 56px 1.5rem 40px; max-width: 920px; margin: 0 auto; }
+    .badge { display: inline-flex; align-items: center; gap: 6px; background: rgba(45,158,130,0.12); border: 1px solid rgba(45,158,130,0.28); color: var(--primary-h); font-size: 13px; font-weight: 500; padding: 4px 12px; border-radius: 20px; margin-bottom: 18px; }
+    h1 { font-size: clamp(28px,5vw,46px); font-weight: 800; line-height: 1.15; letter-spacing: -0.5px; margin-bottom: 18px; }
+    .hero-sub { font-size: 18px; color: var(--muted); max-width: 660px; margin-bottom: 28px; }
+    .hero-note { font-size: 13px; color: var(--muted-2); margin-top: 10px; }
+    .content { max-width: 920px; margin: 0 auto; padding: 0 1.5rem 64px; }
+    h2 { font-size: clamp(22px,3.5vw,30px); font-weight: 700; letter-spacing: -0.3px; margin: 48px 0 14px; color: var(--text); }
+    h3 { font-size: 18px; font-weight: 600; margin: 28px 0 10px; color: var(--text); }
+    p { color: var(--muted); margin-bottom: 16px; }
+    strong { color: var(--text); font-weight: 600; }
+    ul, ol { color: var(--muted); padding-left: 1.4rem; margin-bottom: 16px; }
+    li { margin-bottom: 6px; }
+    .scale-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 2px; margin: 24px 0 32px; border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+    .scale-cell { background: var(--surface); padding: 20px; text-align: center; }
+    .scale-num { font-size: 30px; font-weight: 800; color: var(--primary-h); display: block; }
+    .scale-label { font-size: 13px; color: var(--muted-2); display: block; margin-top: 4px; }
+    .challenge-list { margin: 20px 0 28px; }
+    .challenge { display: flex; gap: 14px; padding: 16px 0; border-bottom: 1px solid var(--border); }
+    .challenge:last-child { border-bottom: none; }
+    .ch-icon { font-size: 20px; flex-shrink: 0; margin-top: 2px; }
+    .ch-body h3 { margin: 0 0 6px; font-size: 16px; }
+    .ch-body p { margin: 0; font-size: 15px; }
+    .faq { margin-top: 48px; }
+    .faq h2 { margin-top: 0; }
+    .faq-item { border-top: 1px solid var(--border); padding: 24px 0; }
+    .faq-item:last-child { border-bottom: 1px solid var(--border); }
+    .faq-item h3 { margin: 0 0 10px; font-size: 17px; }
+    .cta-block { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 48px 32px; text-align: center; margin: 52px 0 0; }
+    .cta-block h2 { margin: 0 0 14px; }
+    .cta-block p { max-width: 480px; margin: 0 auto 24px; }
+    .related { margin-top: 52px; }
+    .related h2 { margin-top: 0; font-size: 20px; margin-bottom: 14px; }
+    .related-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(190px,1fr)); gap: 14px; }
+    .rel-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px; display: block; text-decoration: none; transition: border-color 0.15s; }
+    .rel-card:hover { border-color: var(--primary); text-decoration: none; }
+    .rel-card .t { font-weight: 600; font-size: 14px; color: var(--text); display: block; margin-bottom: 4px; }
+    .rel-card .d { font-size: 13px; color: var(--muted-2); }
+    footer { border-top: 1px solid var(--border); padding: 28px 1.5rem; }
+    .footer-inner { max-width: 920px; margin: 0 auto; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; font-size: 13px; color: var(--muted-2); }
+    .footer-links { display: flex; flex-wrap: wrap; gap: 18px; }
+    .footer-links a { color: var(--muted-2); font-size: 13px; }
+    .footer-links a:hover { color: var(--text); }
+    @media (max-width: 600px) { .scale-grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <a href="https://printrack.xyz" class="logo">
+      <div class="logo-mark">PT</div>
+      <span class="logo-name">PrintTrack</span>
+    </a>
+    <a href="https://printrack.xyz" class="btn">Try PrintTrack free</a>
+  </div>
+</nav>
+
+<div class="hero">
+  <div class="badge">🖨️ Multi-printer operations</div>
+  <h1>Print Farm Management Software — Free</h1>
+  <p class="hero-sub">Manage jobs, filament, and customers across your entire print farm. PrintTrack gives small print farm operators the structure of professional operations software without the enterprise price tag.</p>
+  <a href="https://printrack.xyz" class="btn btn-lg">Start managing your farm free →</a>
+  <p class="hero-note">No subscription. No per-printer fee. Works in your browser.</p>
+</div>
+
+<div class="content">
+
+  <p>A single 3D printer is manageable. You know what's printing, what's in the queue, how much filament you have. But once you add a second or third printer, complexity multiplies fast. Different jobs are running on different machines, materials are spread across multiple spools, orders are at different stages — and the mental overhead of tracking it all starts to feel like a part-time job in itself.</p>
+
+  <p>Print farm management is the discipline of running multiple printers as a coordinated operation rather than a collection of independent machines. Done well, it dramatically increases throughput, reduces wasted time, and makes the financial side of the business legible. <strong>PrintTrack</strong> is a free tool that brings this discipline to print farm operators of any scale — from two printers in a garage to a dedicated workshop with a dozen machines running around the clock.</p>
+
+  <h2>When Does a 3D Printing Operation Become a Print Farm?</h2>
+
+  <p>There's no precise definition, but most people use the term "print farm" when they have two or more printers running jobs for paying customers, and when managing those jobs requires more than mental tracking. The transition typically happens somewhere between your second and fourth printer, when you start losing track of which machine has which job, and when your spreadsheet-based order tracking starts showing its limits.</p>
+
+  <div class="scale-grid">
+    <div class="scale-cell">
+      <span class="scale-num">1–2</span>
+      <span class="scale-label">Printers<br>Side hustle / hobby</span>
+    </div>
+    <div class="scale-cell">
+      <span class="scale-num">3–6</span>
+      <span class="scale-label">Printers<br>Small print farm</span>
+    </div>
+    <div class="scale-cell">
+      <span class="scale-num">7+</span>
+      <span class="scale-label">Printers<br>Serious operation</span>
+    </div>
+  </div>
+
+  <p>At every scale, the fundamentals are the same: you need to know what's running, what's queued, what's ready for collection, and whether you're making money. The complexity of answering those questions is what changes as you grow.</p>
+
+  <h2>The Core Challenges of Running a Print Farm</h2>
+
+  <div class="challenge-list">
+    <div class="challenge">
+      <div class="ch-icon">🔄</div>
+      <div class="ch-body">
+        <h3>Job allocation across printers</h3>
+        <p>Deciding which job goes on which printer requires knowing the current state of every machine — what's running, when it finishes, what material is loaded. Without a central record, you're constantly checking machines and making allocation decisions from memory.</p>
+      </div>
+    </div>
+    <div class="challenge">
+      <div class="ch-icon">🧵</div>
+      <div class="ch-body">
+        <h3>Filament management at scale</h3>
+        <p>With multiple printers potentially running different materials simultaneously, filament inventory becomes a real tracking problem. Running out of a material mid-job causes delays, failed prints, and frustrated customers.</p>
+      </div>
+    </div>
+    <div class="challenge">
+      <div class="ch-icon">📊</div>
+      <div class="ch-body">
+        <h3>Profitability visibility</h3>
+        <p>When you're running 20+ jobs a week across multiple printers, understanding which jobs are profitable and which aren't requires structured cost tracking. Without it, you're flying blind on pricing.</p>
+      </div>
+    </div>
+    <div class="challenge">
+      <div class="ch-icon">🧾</div>
+      <div class="ch-body">
+        <h3>Invoice backlog</h3>
+        <p>Higher job volume means more invoices to generate and track. Manual invoicing doesn't scale; you need a system that connects job completion directly to invoice generation.</p>
+      </div>
+    </div>
+  </div>
+
+  <h2>Tracking Jobs Across Multiple Printers</h2>
+
+  <p>The central tool for print farm order management is a system where every active job is visible, with its current status, which machine it's on (or queued for), and when it's expected to complete. PrintTrack's Kanban board is designed for exactly this use case.</p>
+
+  <p>Each order moves through status columns: <strong>New Order → Printing → Printed → Sent</strong>. When you start a job on a specific printer, move the card to Printing. When it comes off the bed, move it to Printed. This simple workflow eliminates the "what's on printer 3 right now?" mental overhead — you check the board and see the answer instantly.</p>
+
+  <p>The calendar view adds a time dimension: you can see all your due dates laid out chronologically, making it easy to spot when too many jobs are due on the same day and when you have capacity to take on new work. For a print farm operator planning their week, this is an essential scheduling tool.</p>
+
+  <h2>Filament Management Across a Print Farm</h2>
+
+  <p>Filament management at print farm scale has two distinct dimensions: inventory (do you have what you need?) and cost tracking (how much are you spending per job?).</p>
+
+  <h3>Inventory Awareness</h3>
+  <p>PrintTrack's filament tracker lets you log each roll as a purchase — brand, material type, colour, starting weight, and price. As you run jobs, you log the material usage against each order. Over time you develop an accurate picture of your consumption rate: how many grams of PLA you use per week, how quickly you go through specialty materials, and when you need to reorder before stock runs out.</p>
+
+  <p>For a print farm running four printers on two-shift production, running out of a key material on a Friday afternoon can mean losing an entire weekend's output. Systematic logging prevents this by making your consumption patterns visible before you hit zero.</p>
+
+  <h3>Cost Allocation</h3>
+  <p>At scale, even small discrepancies in material cost per gram have a significant effect on profitability. If you're buying PLA from multiple suppliers at different prices, your effective average cost per gram matters for accurate job pricing. PrintTrack tracks your purchase history so you always know what you're actually paying, not what you remember paying the last time you ordered.</p>
+
+  <h2>Workload Distribution and Capacity Planning</h2>
+
+  <p>One of the clearest performance indicators for a print farm is printer utilisation: the percentage of time each machine is actively printing vs. sitting idle. High utilisation means you're making good use of your capital investment. Low utilisation on some machines while others are overloaded indicates a scheduling or allocation problem.</p>
+
+  <p>PrintTrack tracks print time per job, which gives you the data to calculate your utilisation over time. By reviewing which jobs have the longest print times and when those jobs are scheduled, you can distribute workload more evenly across your machines and identify when it's time to add capacity.</p>
+
+  <h3>Throughput and Turnaround Time</h3>
+  <p>For repeat customers and professional clients, consistent turnaround time is as important as print quality. PrintTrack records completion timestamps for every order. Over time this data tells you your actual average turnaround for different job types — not your optimistic estimate, but your real performance. This lets you quote accurate lead times and spot when your turnaround is slipping before a customer complains.</p>
+
+  <h2>Financial Tracking for Print Farm Operations</h2>
+
+  <p>At print farm scale, business finances require more structured tracking than a side hustle. Your revenue comes from many sources; your costs include machines, materials, electricity, consumables, and potentially labour. PrintTrack's dashboard aggregates your order revenue and logged expenses over any date range so you can see your net position at a glance.</p>
+
+  <h3>Per-Job Margins</h3>
+  <p>Logging costs against individual jobs reveals which job types are most and least profitable. A print farm might discover that their large single-part orders have much better margins than their small multi-part orders with complex post-processing — a finding that directly informs which kinds of work to pursue. This visibility is only possible if you're tracking costs at the job level.</p>
+
+  <h3>Operating Cost Tracking</h3>
+  <p>Beyond job-level costs, print farms have ongoing operating expenses: printer maintenance, new nozzles and belts, software subscriptions, workspace costs. PrintTrack's expense tracker lets you log these overhead costs separately from job costs, so your profitability dashboard reflects your true business economics.</p>
+
+  <p>For invoicing at volume, see our guide on <a href="./3d-printing-invoice-software.html">3D printing invoice software</a> — PrintTrack's built-in invoice generator scales with your output without adding admin overhead per job.</p>
+
+  <h2>When PrintTrack Is the Right Tool for Your Print Farm</h2>
+
+  <p>PrintTrack is designed for print farm operators who want serious business management capabilities without paying for enterprise software. It works especially well for:</p>
+
+  <ul>
+    <li>Small farms with 2–10 printers run by one or two people</li>
+    <li>Operations that sell direct to consumers or small businesses</li>
+    <li>Makers transitioning from solo printing to farm-scale production</li>
+    <li>Print services where the operator also handles sales, scheduling, and invoicing</li>
+  </ul>
+
+  <p>If you're looking for automated OctoPrint integration or real-time print monitoring via webcam, PrintTrack doesn't cover those — it's focused on the business management layer: orders, costs, invoicing, and profitability. For the operational tracking layer, tools like Obico or OctoEverywhere handle live printer monitoring, and PrintTrack handles everything that happens around the printing itself.</p>
+
+  <p>See our overview of <a href="./3d-printing-business-management.html">3D printing business management</a> for a broader look at how these tools fit together, or our <a href="./3d-print-order-tracker.html">order tracking guide</a> for detail on the job management workflow.</p>
+
+  <div class="faq">
+    <h2>Frequently Asked Questions</h2>
+
+    <div class="faq-item">
+      <h3>What is print farm management software?</h3>
+      <p>Print farm management software helps operators of multi-printer 3D printing operations track jobs, manage filament inventory, monitor workload across machines, handle customer orders, and track financial performance. Unlike single-printer business tools, it's designed for the coordination complexity of running multiple machines simultaneously. PrintTrack covers the business management layer — orders, costs, invoicing — for print farms of any size, and is free to use.</p>
+    </div>
+
+    <div class="faq-item">
+      <h3>How do I track jobs across multiple 3D printers?</h3>
+      <p>Use a Kanban-style board where each job has a card that moves through production stages. When a job starts on a specific printer, move it to "Printing." This gives you a live view of every machine's workload without needing to physically check each one. PrintTrack's Kanban board is built for this workflow. You can also add notes per job to record which printer it's on, any issues encountered, and when the print completed.</p>
+    </div>
+
+    <div class="faq-item">
+      <h3>How do I manage filament inventory across a print farm?</h3>
+      <p>Log each filament purchase in PrintTrack with the material, colour, weight, and price. Record material usage against each job. Over time you build accurate consumption data that shows your weekly usage by material type, your cost per gram by supplier, and your current remaining stock. This makes reordering predictable rather than reactive. For multi-material farms, the per-material breakdown is particularly useful for identifying your most cost-effective materials for different job types.</p>
+    </div>
+
+    <div class="faq-item">
+      <h3>What is a good printer utilisation rate for a print farm?</h3>
+      <p>There's no universal benchmark, but most profitable print farms aim for 60–80% utilisation — enough to keep machines productive without creating a backlog that pushes turnaround times out. Below 50% usually means you have more capacity than demand; above 85% sustained often leads to missed deadlines when things go wrong. PrintTrack's print time data helps you calculate actual utilisation by material and machine over time.</p>
+    </div>
+  </div>
+
+  <div class="cta-block">
+    <h2>Bring Structure to Your Print Farm</h2>
+    <p>Free, no account needed. Track orders, filament, and profitability across all your printers from day one.</p>
+    <a href="https://printrack.xyz" class="btn btn-lg">Try PrintTrack free →</a>
+  </div>
+
+  <div class="related">
+    <h2>Related Resources</h2>
+    <div class="related-grid">
+      <a href="./3d-printing-business-management.html" class="rel-card">
+        <span class="t">Business Management</span>
+        <span class="d">Full overview of running a 3D printing business</span>
+      </a>
+      <a href="./3d-print-order-tracker.html" class="rel-card">
+        <span class="t">Order Tracker</span>
+        <span class="d">Track every job from quote to delivery</span>
+      </a>
+      <a href="./3d-printing-invoice-software.html" class="rel-card">
+        <span class="t">Invoice Generator</span>
+        <span class="d">Create professional PDF invoices for clients</span>
+      </a>
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  <div class="footer-inner">
+    <span>© 2025 PrintTrack — Free 3D printing business software</span>
+    <div class="footer-links">
+      <a href="https://printrack.xyz">App</a>
+      <a href="https://printrack.xyz/trust">Trust &amp; Privacy</a>
+      <a href="./3d-printing-business-management.html">Business Management</a>
+      <a href="./3d-print-order-tracker.html">Order Tracker</a>
+      <a href="./3d-printing-invoice-software.html">Invoice Software</a>
+      <a href="https://printrack.xyz/sitemap.xml">Sitemap</a>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Free 3D Printing Invoice Generator — Professional Invoices | PrintTrack</title>
+  <meta name="description" content="Generate professional PDF invoices for your 3D printing services in seconds. PrintTrack is free invoice software built for 3D printing businesses — no subscription, no design skills needed." />
+  <link rel="canonical" href="https://printrack.xyz/seo/3d-printing-invoice-software.html" />
+  <meta property="og:title" content="Free 3D Printing Invoice Generator — Professional Invoices | PrintTrack" />
+  <meta property="og:description" content="Create professional PDF invoices for 3D printing jobs in seconds. Built-in invoice generator, automatic line items from your orders, and consistent invoice numbering — completely free." />
+  <meta property="og:url" content="https://printrack.xyz/seo/3d-printing-invoice-software.html" />
+  <meta property="og:type" content="article" />
+  <meta property="og:site_name" content="PrintTrack" />
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:title" content="Free 3D Printing Invoice Generator — Professional Invoices | PrintTrack" />
+  <meta name="twitter:description" content="Create professional PDF invoices for 3D printing services in seconds. Free, no signup required." />
+  <style>
+    :root {
+      --bg: #0f172a; --surface: #1e293b; --surface-2: #243348;
+      --primary: #2d9e82; --primary-h: #34b896;
+      --text: #f1f5f9; --muted: #94a3b8; --muted-2: #64748b; --border: #2a3a52;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; line-height: 1.75; font-size: 16px; }
+    a { color: var(--primary-h); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    nav { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 1.5rem; position: sticky; top: 0; z-index: 100; }
+    .nav-inner { max-width: 920px; margin: 0 auto; height: 56px; display: flex; align-items: center; justify-content: space-between; }
+    .logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .logo-mark { width: 34px; height: 34px; background: var(--primary); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 13px; color: #fff; flex-shrink: 0; }
+    .logo-name { font-weight: 700; font-size: 17px; color: var(--text); }
+    .btn { display: inline-block; background: var(--primary); color: #fff; padding: 8px 20px; border-radius: 8px; font-weight: 600; font-size: 14px; text-decoration: none; transition: background 0.15s; }
+    .btn:hover { background: var(--primary-h); text-decoration: none; }
+    .btn-lg { padding: 13px 30px; font-size: 16px; border-radius: 10px; }
+    .hero { padding: 56px 1.5rem 40px; max-width: 920px; margin: 0 auto; }
+    .badge { display: inline-flex; align-items: center; gap: 6px; background: rgba(45,158,130,0.12); border: 1px solid rgba(45,158,130,0.28); color: var(--primary-h); font-size: 13px; font-weight: 500; padding: 4px 12px; border-radius: 20px; margin-bottom: 18px; }
+    h1 { font-size: clamp(28px,5vw,46px); font-weight: 800; line-height: 1.15; letter-spacing: -0.5px; margin-bottom: 18px; }
+    .hero-sub { font-size: 18px; color: var(--muted); max-width: 660px; margin-bottom: 28px; }
+    .hero-note { font-size: 13px; color: var(--muted-2); margin-top: 10px; }
+    .content { max-width: 920px; margin: 0 auto; padding: 0 1.5rem 64px; }
+    h2 { font-size: clamp(22px,3.5vw,30px); font-weight: 700; letter-spacing: -0.3px; margin: 48px 0 14px; color: var(--text); }
+    h3 { font-size: 18px; font-weight: 600; margin: 28px 0 10px; color: var(--text); }
+    p { color: var(--muted); margin-bottom: 16px; }
+    strong { color: var(--text); font-weight: 600; }
+    ul, ol { color: var(--muted); padding-left: 1.4rem; margin-bottom: 16px; }
+    li { margin-bottom: 6px; }
+    .invoice-preview { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 28px; margin: 24px 0 32px; }
+    .inv-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; }
+    .inv-logo { width: 38px; height: 38px; background: var(--primary); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 13px; color: white; }
+    .inv-title { font-size: 22px; font-weight: 800; color: var(--primary-h); }
+    .inv-num { font-size: 12px; color: var(--muted-2); }
+    .inv-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 14px; }
+    .inv-row:last-child { border-bottom: none; }
+    .inv-total { display: flex; justify-content: flex-end; margin-top: 16px; }
+    .inv-total-box { background: var(--primary); color: white; padding: 10px 20px; border-radius: 8px; font-weight: 700; font-size: 16px; }
+    .pricing-table { width: 100%; border-collapse: collapse; margin: 20px 0 28px; font-size: 14px; }
+    .pricing-table th { background: var(--surface); padding: 10px 14px; text-align: left; font-size: 12px; color: var(--muted-2); font-weight: 600; letter-spacing: 0.4px; text-transform: uppercase; border-bottom: 1px solid var(--border); }
+    .pricing-table td { padding: 12px 14px; border-bottom: 1px solid var(--border); color: var(--muted); }
+    .pricing-table tr:last-child td { border-bottom: none; }
+    .faq { margin-top: 48px; }
+    .faq h2 { margin-top: 0; }
+    .faq-item { border-top: 1px solid var(--border); padding: 24px 0; }
+    .faq-item:last-child { border-bottom: 1px solid var(--border); }
+    .faq-item h3 { margin: 0 0 10px; font-size: 17px; }
+    .cta-block { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 48px 32px; text-align: center; margin: 52px 0 0; }
+    .cta-block h2 { margin: 0 0 14px; }
+    .cta-block p { max-width: 480px; margin: 0 auto 24px; }
+    .related { margin-top: 52px; }
+    .related h2 { margin-top: 0; font-size: 20px; margin-bottom: 14px; }
+    .related-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(190px,1fr)); gap: 14px; }
+    .rel-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px; display: block; text-decoration: none; transition: border-color 0.15s; }
+    .rel-card:hover { border-color: var(--primary); text-decoration: none; }
+    .rel-card .t { font-weight: 600; font-size: 14px; color: var(--text); display: block; margin-bottom: 4px; }
+    .rel-card .d { font-size: 13px; color: var(--muted-2); }
+    footer { border-top: 1px solid var(--border); padding: 28px 1.5rem; }
+    .footer-inner { max-width: 920px; margin: 0 auto; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; font-size: 13px; color: var(--muted-2); }
+    .footer-links { display: flex; flex-wrap: wrap; gap: 18px; }
+    .footer-links a { color: var(--muted-2); font-size: 13px; }
+    .footer-links a:hover { color: var(--text); }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <a href="https://printrack.xyz" class="logo">
+      <div class="logo-mark">PT</div>
+      <span class="logo-name">PrintTrack</span>
+    </a>
+    <a href="https://printrack.xyz" class="btn">Try PrintTrack free</a>
+  </div>
+</nav>
+
+<div class="hero">
+  <div class="badge">🧾 Free invoice generator</div>
+  <h1>Free 3D Printing Invoice Generator — Professional Invoices in Seconds</h1>
+  <p class="hero-sub">Generate branded, professional PDF invoices for your 3D printing services directly from your order records. No design skills needed, no subscription, no delay between completing a job and getting paid.</p>
+  <a href="https://printrack.xyz" class="btn btn-lg">Generate your first invoice free →</a>
+  <p class="hero-note">No account required. Download as PDF instantly.</p>
+</div>
+
+<div class="content">
+
+  <p>You finished the print, the customer picked it up, and now you need to get paid. For many 3D printing businesses, this last step is where things fall apart. Invoicing feels like admin overhead, it gets pushed to the end of the day, then the end of the week — and in the meantime, that money sits uncollected.</p>
+
+  <p>The right 3D printing invoice software makes invoicing a natural part of completing a job rather than a separate chore. <strong>PrintTrack</strong> includes a built-in PDF invoice generator that pulls data directly from your order records, creates a professionally formatted invoice, and lets you download it as a PDF to email or print — all without leaving the app.</p>
+
+  <h2>Why Invoicing Matters for 3D Printing Businesses</h2>
+
+  <p>For hobbyists selling occasionally, a PayPal request might be enough. But as soon as you're working with businesses, schools, product designers, or any customer who needs documentation, a professional invoice is essential. A good invoice:</p>
+
+  <ul>
+    <li>Creates a paper trail for both you and your customer</li>
+    <li>Establishes your legitimacy as a business or service provider</li>
+    <li>Provides a reference number if there's ever a payment dispute</li>
+    <li>Lets business customers expense your services through their accounting</li>
+    <li>Makes it clear exactly what was ordered, delivered, and owed</li>
+  </ul>
+
+  <p>Sending a consistent, professional invoice also signals to customers that you run a serious operation. It builds trust, reduces back-and-forth about what was agreed, and makes repeat customers more comfortable placing larger orders.</p>
+
+  <h2>What to Include on a 3D Printing Invoice</h2>
+
+  <p>A complete invoice for 3D printing services should include the following elements:</p>
+
+  <h3>Your Business Information</h3>
+  <p>Your name or business name, address (even a home address for sole traders), and contact email or phone. This establishes who is issuing the invoice and provides a point of contact for queries. In PrintTrack, you set this once in Settings and it appears on every invoice automatically.</p>
+
+  <h3>Invoice Number</h3>
+  <p>A unique, consistent invoice number is essential for accounting and record-keeping. Good invoice numbering follows a predictable pattern — for example, INV-202501-A3B2 — rather than a random sequence. PrintTrack generates invoice numbers deterministically from the job details, so the same job always produces the same invoice number regardless of when you open it.</p>
+
+  <h3>Customer Details</h3>
+  <p>The customer's name and, for business customers, their company name and billing address. This is the "Bill To" section on a formal invoice. If you're working with a business that needs to reclaim VAT or process the invoice through accounts payable, accurate customer details are non-negotiable.</p>
+
+  <h3>Itemised Line Items</h3>
+  <p>Every 3D printing invoice should list the specific items delivered: the print name, material, quantity, unit price, and line total. Vague descriptions like "3D printing services — €45" give customers less confidence than a clear itemised breakdown showing exactly what they received.</p>
+
+  <div class="invoice-preview">
+    <div class="inv-header">
+      <div>
+        <div class="inv-logo">PT</div>
+        <div style="margin-top:8px;font-weight:700;color:var(--primary-h);font-size:14px">Your Business Name</div>
+      </div>
+      <div style="text-align:right">
+        <div class="inv-title">INVOICE</div>
+        <div class="inv-num">INV-202501-A4C1</div>
+        <div class="inv-num" style="margin-top:2px">Due: 15 Jan 2025</div>
+      </div>
+    </div>
+    <div class="inv-row"><span style="color:var(--muted-2);font-size:13px">DESCRIPTION</span><span style="color:var(--muted-2);font-size:13px">TOTAL</span></div>
+    <div class="inv-row"><span>Miniature figurine × 6 (PLA, 18g each)</span><span>€18.00</span></div>
+    <div class="inv-row"><span>Display base × 1 (PETG, 45g)</span><span>€8.50</span></div>
+    <div class="inv-total"><div class="inv-total-box">Total €26.50</div></div>
+  </div>
+
+  <h3>Due Date and Payment Terms</h3>
+  <p>State clearly when payment is expected. Common terms for small 3D printing businesses are "due on receipt" or "net 14 days." Including a due date in your invoice reduces payment delays significantly compared to invoices with no deadline stated.</p>
+
+  <h3>Notes</h3>
+  <p>An optional notes section lets you add any relevant context — for example, care instructions for the printed parts, a warranty statement, or a thank-you message. PrintTrack pulls in notes from your order record automatically.</p>
+
+  <h2>How to Price 3D Printing Services</h2>
+
+  <p>Pricing is one of the hardest parts of running a 3D printing business. Too high and you lose jobs to competitors; too low and you're working for less than minimum wage. A reliable pricing model accounts for all your costs and builds in a target margin.</p>
+
+  <h3>Cost-Plus Pricing</h3>
+  <p>Start with your total cost for the job — material, electricity, machine depreciation, and your time — and add a markup. If a job costs you €8 all-in and you want a 60% margin, your price is €20. This approach ensures every job is profitable, but it requires knowing your actual costs rather than estimating. PrintTrack's cost tracking helps you build this data over time.</p>
+
+  <h3>Market Rate Pricing</h3>
+  <p>Look at what comparable services charge in your region for similar work. For common items like tabletop miniatures, phone cases, or mechanical components, there are rough market rates you can anchor to. The risk is pricing below your cost, which is why combining market rate research with your own cost data is ideal.</p>
+
+  <h3>Per-Gram or Per-Hour Rates</h3>
+  <p>Many 3D printing businesses settle on a base rate per gram of material used (typically €0.05–€0.20/g depending on material and local costs) plus a print setup fee. This scales naturally with job size and is easy to explain to customers. PrintTrack lets you record material usage per job so you can see whether your per-gram rate is actually covering costs.</p>
+
+  <table class="pricing-table">
+    <thead>
+      <tr>
+        <th>Component</th>
+        <th>How to calculate</th>
+        <th>Example</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td>Material cost</td><td>grams × cost per gram</td><td>85g × €0.02 = €1.70</td></tr>
+      <tr><td>Electricity</td><td>hours × watts × rate / 1000</td><td>6h × 150W × €0.30 = €0.27</td></tr>
+      <tr><td>Setup &amp; removal</td><td>time × hourly rate</td><td>15min × €20/h = €5.00</td></tr>
+      <tr><td>Machine wear</td><td>hours × depreciation rate</td><td>6h × €0.20/h = €1.20</td></tr>
+      <tr><td><strong>Total cost</strong></td><td></td><td><strong>€8.17</strong></td></tr>
+      <tr><td><strong>Price at 60% margin</strong></td><td>cost ÷ (1 − margin)</td><td><strong>€20.43</strong></td></tr>
+    </tbody>
+  </table>
+
+  <h2>Generating Invoices with PrintTrack</h2>
+
+  <p>PrintTrack's invoice generator works directly from your job records. Once you've recorded a project — with the customer details, print line items, and prices — you can open the invoice view from the project page and generate a print-ready PDF in a single click.</p>
+
+  <p>The invoice includes your business name and address (set once in settings), the customer's name and order details, an itemised list of print items with quantities and prices, the total due, and the due date. It's formatted to look professional without requiring any design work on your part.</p>
+
+  <p>The invoice number is generated consistently from the project data — so reopening the same project always gives you the same invoice number. This matters when a customer references an invoice number in a payment or query, and you need to quickly identify which job they mean.</p>
+
+  <h2>Getting Paid Faster</h2>
+
+  <p>The single biggest driver of faster payment is invoicing promptly. Research consistently shows that invoices sent the same day work is completed are paid faster than invoices sent days or weeks later — partly because the work is fresh in the customer's memory and partly because there's no delay that makes it feel like the invoice is optional.</p>
+
+  <p>PrintTrack makes same-day invoicing practical by eliminating the friction. There's no switching between apps, no reformatting data, no choosing a template. Your job data is already there. One click generates the invoice; one download gives you the PDF. Keep track of which orders are paid and which are outstanding from the same dashboard where you track production.</p>
+
+  <div class="faq">
+    <h2>Frequently Asked Questions</h2>
+
+    <div class="faq-item">
+      <h3>How do I create an invoice for 3D printing services?</h3>
+      <p>In PrintTrack, create an order record for each job with the customer details, print items, and prices. When the job is complete, open the invoice view from the project page and click to generate a PDF. The invoice is populated automatically from your order data — no re-entering information required. Download the PDF and send it to your customer by email or message.</p>
+    </div>
+
+    <div class="faq-item">
+      <h3>What should a 3D printing invoice include?</h3>
+      <p>A complete 3D printing invoice should include your business name and address, the customer's name, a unique invoice number, the invoice date and due date, an itemised list of prints with material, quantity, unit price, and line total, the total amount due, and any relevant notes. PrintTrack generates all of this automatically from your order records.</p>
+    </div>
+
+    <div class="faq-item">
+      <h3>How do I calculate my 3D printing rates?</h3>
+      <p>Start by calculating your true cost per job: filament (grams × cost per gram), electricity (hours × wattage × electricity rate), machine depreciation, and your time. Add a markup for your target margin — 40–60% is common for custom 3D printing work. Use your PrintTrack expense records and print time data to build accurate cost baselines for different job types over time.</p>
+    </div>
+
+    <div class="faq-item">
+      <h3>Can I send PDF invoices directly to customers?</h3>
+      <p>PrintTrack generates a downloadable PDF invoice from your order data. You download the PDF and send it yourself via email or any messaging platform — there is no built-in email sending within PrintTrack. The PDF is formatted professionally and includes all the standard invoice fields your customers and their accounts departments will expect.</p>
+    </div>
+  </div>
+
+  <div class="cta-block">
+    <h2>Invoice Your First Customer Today</h2>
+    <p>Free PDF invoice generator included with every PrintTrack account — no subscription needed.</p>
+    <a href="https://printrack.xyz" class="btn btn-lg">Try PrintTrack free →</a>
+  </div>
+
+  <div class="related">
+    <h2>Related Resources</h2>
+    <div class="related-grid">
+      <a href="./3d-printing-business-management.html" class="rel-card">
+        <span class="t">Business Management</span>
+        <span class="d">Full overview of running a 3D printing business</span>
+      </a>
+      <a href="./3d-print-order-tracker.html" class="rel-card">
+        <span class="t">Order Tracker</span>
+        <span class="d">Track every job from quote to delivery</span>
+      </a>
+      <a href="./print-farm-management.html" class="rel-card">
+        <span class="t">Print Farm Management</span>
+        <span class="d">Scale invoicing across multiple printers</span>
+      </a>
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  <div class="footer-inner">
+    <span>© 2025 PrintTrack — Free 3D printing business software</span>
+    <div class="footer-links">
+      <a href="https://printrack.xyz">App</a>
+      <a href="https://printrack.xyz/trust">Trust &amp; Privacy</a>
+      <a href="./3d-printing-business-management.html">Business Management</a>
+      <a href="./3d-print-order-tracker.html">Order Tracker</a>
+      <a href="./print-farm-management.html">Print Farm</a>
+      <a href="https://printrack.xyz/sitemap.xml">Sitemap</a>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

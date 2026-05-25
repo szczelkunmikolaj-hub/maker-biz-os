@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Free 3D Print Order Tracker — Track Every Job | PrintTrack</title>
+  <meta name="description" content="Track every 3D print order from quote to delivery. PrintTrack is a free 3D print order tracker with customer management, production status, and payment tracking — no signup required." />
+  <link rel="canonical" href="https://printrack.xyz/seo/3d-print-order-tracker.html" />
+  <meta property="og:title" content="Free 3D Print Order Tracker — Track Every Job | PrintTrack" />
+  <meta property="og:description" content="Never lose a print job again. PrintTrack tracks every 3D print order with customer details, production status, due dates, and payment — completely free." />
+  <meta property="og:url" content="https://printrack.xyz/seo/3d-print-order-tracker.html" />
+  <meta property="og:type" content="article" />
+  <meta property="og:site_name" content="PrintTrack" />
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:title" content="Free 3D Print Order Tracker — Track Every Job | PrintTrack" />
+  <meta name="twitter:description" content="Never lose a print job again. Free order tracking for 3D printing businesses — from quote to delivery." />
+  <style>
+    :root {
+      --bg: #0f172a; --surface: #1e293b; --surface-2: #243348;
+      --primary: #2d9e82; --primary-h: #34b896;
+      --text: #f1f5f9; --muted: #94a3b8; --muted-2: #64748b; --border: #2a3a52;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; line-height: 1.75; font-size: 16px; }
+    a { color: var(--primary-h); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    nav { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 1.5rem; position: sticky; top: 0; z-index: 100; }
+    .nav-inner { max-width: 920px; margin: 0 auto; height: 56px; display: flex; align-items: center; justify-content: space-between; }
+    .logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .logo-mark { width: 34px; height: 34px; background: var(--primary); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 13px; color: #fff; flex-shrink: 0; }
+    .logo-name { font-weight: 700; font-size: 17px; color: var(--text); }
+    .btn { display: inline-block; background: var(--primary); color: #fff; padding: 8px 20px; border-radius: 8px; font-weight: 600; font-size: 14px; text-decoration: none; transition: background 0.15s; }
+    .btn:hover { background: var(--primary-h); text-decoration: none; }
+    .btn-lg { padding: 13px 30px; font-size: 16px; border-radius: 10px; }
+    .hero { padding: 56px 1.5rem 40px; max-width: 920px; margin: 0 auto; }
+    .badge { display: inline-flex; align-items: center; gap: 6px; background: rgba(45,158,130,0.12); border: 1px solid rgba(45,158,130,0.28); color: var(--primary-h); font-size: 13px; font-weight: 500; padding: 4px 12px; border-radius: 20px; margin-bottom: 18px; }
+    h1 { font-size: clamp(28px,5vw,46px); font-weight: 800; line-height: 1.15; letter-spacing: -0.5px; margin-bottom: 18px; }
+    .hero-sub { font-size: 18px; color: var(--muted); max-width: 660px; margin-bottom: 28px; }
+    .hero-note { font-size: 13px; color: var(--muted-2); margin-top: 10px; }
+    .content { max-width: 920px; margin: 0 auto; padding: 0 1.5rem 64px; }
+    h2 { font-size: clamp(22px,3.5vw,30px); font-weight: 700; letter-spacing: -0.3px; margin: 48px 0 14px; color: var(--text); }
+    h3 { font-size: 18px; font-weight: 600; margin: 28px 0 10px; color: var(--text); }
+    p { color: var(--muted); margin-bottom: 16px; }
+    strong { color: var(--text); font-weight: 600; }
+    ul, ol { color: var(--muted); padding-left: 1.4rem; margin-bottom: 16px; }
+    li { margin-bottom: 6px; }
+    .steps { counter-reset: step; margin: 24px 0; }
+    .step { display: flex; gap: 16px; margin-bottom: 24px; }
+    .step-num { width: 36px; height: 36px; border-radius: 50%; background: var(--primary); color: #fff; font-weight: 700; font-size: 15px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 2px; }
+    .step-body h3 { margin: 0 0 6px; font-size: 16px; }
+    .step-body p { margin: 0; font-size: 15px; }
+    .status-bar { display: flex; flex-wrap: wrap; gap: 8px; margin: 20px 0 28px; }
+    .status-pill { background: var(--surface); border: 1px solid var(--border); padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: 500; }
+    .status-pill.active { border-color: var(--primary); color: var(--primary-h); background: rgba(45,158,130,0.1); }
+    .faq { margin-top: 48px; }
+    .faq h2 { margin-top: 0; }
+    .faq-item { border-top: 1px solid var(--border); padding: 24px 0; }
+    .faq-item:last-child { border-bottom: 1px solid var(--border); }
+    .faq-item h3 { margin: 0 0 10px; font-size: 17px; }
+    .cta-block { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 48px 32px; text-align: center; margin: 52px 0 0; }
+    .cta-block h2 { margin: 0 0 14px; }
+    .cta-block p { max-width: 480px; margin: 0 auto 24px; }
+    .related { margin-top: 52px; }
+    .related h2 { margin-top: 0; font-size: 20px; margin-bottom: 14px; }
+    .related-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(190px,1fr)); gap: 14px; }
+    .rel-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px; display: block; text-decoration: none; transition: border-color 0.15s; }
+    .rel-card:hover { border-color: var(--primary); text-decoration: none; }
+    .rel-card .t { font-weight: 600; font-size: 14px; color: var(--text); display: block; margin-bottom: 4px; }
+    .rel-card .d { font-size: 13px; color: var(--muted-2); }
+    footer { border-top: 1px solid var(--border); padding: 28px 1.5rem; }
+    .footer-inner { max-width: 920px; margin: 0 auto; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; font-size: 13px; color: var(--muted-2); }
+    .footer-links { display: flex; flex-wrap: wrap; gap: 18px; }
+    .footer-links a { color: var(--muted-2); font-size: 13px; }
+    .footer-links a:hover { color: var(--text); }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <a href="https://printrack.xyz" class="logo">
+      <div class="logo-mark">PT</div>
+      <span class="logo-name">PrintTrack</span>
+    </a>
+    <a href="https://printrack.xyz" class="btn">Try PrintTrack free</a>
+  </div>
+</nav>
+
+<div class="hero">
+  <div class="badge">📦 3D print order management</div>
+  <h1>Free 3D Print Order Tracker — Never Lose a Job Again</h1>
+  <p class="hero-sub">Keep every 3D print order organised from first contact to final delivery. PrintTrack is a dedicated 3D printing order management tool built for makers, freelance printers, and small print services.</p>
+  <a href="https://printrack.xyz" class="btn btn-lg">Start tracking orders free →</a>
+  <p class="hero-note">No signup required. Works instantly in your browser.</p>
+</div>
+
+<div class="content">
+
+  <p>If you're running a 3D printing business or side hustle, you already know the pain: a customer messages you on Instagram, another emails through your website, a friend texts about a commission. Each job has different specs, a different deadline, a different price. Without a system, jobs slip through the cracks — and when a print doesn't show up on time, that's a customer you probably won't see again.</p>
+
+  <p>A dedicated <strong>3D print order tracker</strong> changes that. Instead of relying on memory, spreadsheets, or scattered notes, every job has a home. You know what's queued, what's printing, what's waiting for pickup, and what still needs to be invoiced. PrintTrack is a free tool built specifically to manage 3D printing order workflows from intake to payment.</p>
+
+  <h2>Why Spreadsheets Fall Short for 3D Printing Order Management</h2>
+
+  <p>Spreadsheets seem like the obvious starting point. They're free, flexible, and most people already know how to use them. But they have real limitations for active 3D printing businesses:</p>
+
+  <ul>
+    <li><strong>No status workflow</strong> — you can't drag a row through production stages</li>
+    <li><strong>Manual calculations</strong> — material cost and profit require formulas that break</li>
+    <li><strong>No due date visibility</strong> — a flat list doesn't show you what's overdue today</li>
+    <li><strong>Hard to share</strong> — syncing across devices or with a collaborator creates version conflicts</li>
+    <li><strong>No invoicing</strong> — you still need a separate tool to create professional invoices</li>
+  </ul>
+
+  <p>PrintTrack replaces the spreadsheet with a purpose-built 3D printing order tracker that handles all of this in one place. The workflow is designed around how 3D printing businesses actually operate, not adapted from generic project management tools.</p>
+
+  <h2>What to Record for Every Print Order</h2>
+
+  <p>A good 3D print order record captures everything you need to complete the job and get paid, without requiring more data entry than necessary. For each order, PrintTrack stores:</p>
+
+  <h3>Customer Information</h3>
+  <p>The customer's name and any relevant contact details. PrintTrack tracks order history per customer, so over time you build a picture of who your best customers are, how often they order, and what they typically request. Identifying repeat customers lets you prioritise relationships that drive consistent revenue.</p>
+
+  <h3>Print Specifications</h3>
+  <p>Each job can have multiple individual prints — different parts, different quantities, different materials. For each print item you can record the name, material type, filament colour, quantity, estimated print time, weight in grams, and price. This level of detail means nothing gets lost and your cost calculations are accurate.</p>
+
+  <h3>Pricing and Revenue</h3>
+  <p>Record your quoted price for the job. As you complete work, mark the order as paid and log the payment date. PrintTrack's dashboard aggregates this across all orders to show your total revenue, average order value, and payment status at a glance.</p>
+
+  <h3>Timeline and Deadlines</h3>
+  <p>Log the order date and due date for each job. PrintTrack's calendar view maps all your active orders onto a timeline so you can see at a glance when things are due — and spot when your schedule is getting dangerously full. When you mark a job as complete, the system timestamps it, giving you data on your actual turnaround times.</p>
+
+  <h2>The 3D Printing Production Workflow</h2>
+
+  <p>Order management isn't just about recording data — it's about moving jobs through a production process efficiently. PrintTrack's Kanban board gives you a live visual overview of everything in progress.</p>
+
+  <div class="status-bar">
+    <div class="status-pill active">New Order</div>
+    <div class="status-pill">Printing</div>
+    <div class="status-pill">Printed</div>
+    <div class="status-pill">Sent / Delivered</div>
+  </div>
+
+  <p>When a new order comes in, it lands in <strong>New Order</strong>. When you load the file and start the print, drag it to <strong>Printing</strong>. Once the print is off the bed and ready, move it to <strong>Printed</strong>. After pickup or shipping, it goes to <strong>Sent</strong>. Each column shows you exactly how many jobs are at each stage, so you can spot bottlenecks before they cause problems.</p>
+
+  <p>This Kanban-style 3D printing order management approach is borrowed from software development and manufacturing workflows. It works particularly well for 3D printing because the production stages are distinct and sequential — you always know whether you're waiting for a print to finish or waiting for a customer to collect.</p>
+
+  <h2>Managing Multiple Customers and Recurring Work</h2>
+
+  <p>As your 3D printing business grows, managing multiple active customers becomes one of the biggest challenges. Different customers have different expectations, different communication styles, and different payment reliability.</p>
+
+  <p>PrintTrack lets you tag orders by customer and filter your view to see all active orders for a specific person or business. You can see who has outstanding unpaid invoices, who your most frequent customers are, and which relationships are worth investing in. Over time, your order history becomes a valuable business intelligence tool.</p>
+
+  <p>For repeat customers who commission the same models regularly — replacement parts, tabletop gaming pieces, product components — PrintTrack's template system lets you save standard print specifications so you're not re-entering the same data for each new order.</p>
+
+  <h2>From Order to Invoice Without the Gap</h2>
+
+  <p>One of the most common failure points in freelance 3D printing work is the gap between completing a job and sending an invoice. The print is done, the customer picks it up, life gets busy, and the invoice either gets sent days later or forgotten entirely.</p>
+
+  <p>PrintTrack closes this gap by connecting your order records directly to your invoicing workflow. Once a job is complete, you can generate a professional PDF invoice from the order data in a few clicks. The customer name, job description, materials, quantities, and price are all pulled through automatically. See our full guide on <a href="./3d-printing-invoice-software.html">3D printing invoice software</a> for more detail on the invoicing workflow.</p>
+
+  <h2>Tracking Profitability Alongside Orders</h2>
+
+  <p>Order tracking on its own tells you what you're working on. Combined with cost tracking, it tells you whether that work is actually worth doing. For each order, you can log expenses — materials beyond the standard filament cost, post-processing supplies, shipping costs, custom packaging — and see your actual margin on each job.</p>
+
+  <p>Over time, this data reveals patterns that are invisible without a proper 3D printing order management system. You might find that small orders from new customers are less profitable than larger repeat orders. Or that certain print types consistently run over their estimated time. These insights are only accessible if you've been consistently recording order data.</p>
+
+  <p>If you're running a print farm with multiple printers, see our guide on <a href="./print-farm-management.html">print farm management</a> for how to scale this approach across a larger operation.</p>
+
+  <div class="faq">
+    <h2>Frequently Asked Questions</h2>
+
+    <div class="faq-item">
+      <h3>What is a 3D print order tracker?</h3>
+      <p>A 3D print order tracker is a tool that records and organises every print job you accept — capturing customer details, print specifications, deadlines, materials used, pricing, and payment status. It replaces spreadsheets or ad-hoc notes with a structured system that shows you what's in progress, what's due, and what's waiting for payment. PrintTrack is a free example built specifically for 3D printing businesses.</p>
+    </div>
+
+    <div class="faq-item">
+      <h3>How do I manage 3D printing order workflows?</h3>
+      <p>The most effective approach is a Kanban-style board with columns for each production stage: New Order, Printing, Printed, and Sent/Delivered. You move each job through the columns as it progresses. This gives you a live visual overview of your entire production queue without needing to read through a list or check a spreadsheet. PrintTrack includes this Kanban board as a core feature.</p>
+    </div>
+
+    <div class="faq-item">
+      <h3>Can I track multiple customers with different order histories?</h3>
+      <p>Yes. PrintTrack stores customer information with each order and lets you filter your order list by customer. Over time you build a complete history of each customer relationship — what they've ordered, when, how much they've paid, and whether they have any outstanding invoices. This is especially useful for identifying your most valuable recurring customers.</p>
+    </div>
+
+    <div class="faq-item">
+      <h3>What should I record for each 3D print job?</h3>
+      <p>At minimum: customer name, what's being printed, quantity, material type, due date, and your price. For better profitability tracking also log the weight in grams (for material cost calculation), estimated print time, and any project-specific expenses. The more consistently you record this data, the more useful your order history becomes for quoting and business decisions later.</p>
+    </div>
+  </div>
+
+  <div class="cta-block">
+    <h2>Start Tracking Your Print Orders Today</h2>
+    <p>Free, instant, no account needed. Add your first order in under a minute.</p>
+    <a href="https://printrack.xyz" class="btn btn-lg">Try PrintTrack free →</a>
+  </div>
+
+  <div class="related">
+    <h2>Related Resources</h2>
+    <div class="related-grid">
+      <a href="./3d-printing-business-management.html" class="rel-card">
+        <span class="t">Business Management</span>
+        <span class="d">Full overview of running a 3D printing business</span>
+      </a>
+      <a href="./3d-printing-invoice-software.html" class="rel-card">
+        <span class="t">Invoice Generator</span>
+        <span class="d">Create professional PDF invoices from your orders</span>
+      </a>
+      <a href="./print-farm-management.html" class="rel-card">
+        <span class="t">Print Farm Management</span>
+        <span class="d">Scale order tracking across multiple printers</span>
+      </a>
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  <div class="footer-inner">
+    <span>© 2025 PrintTrack — Free 3D printing business software</span>
+    <div class="footer-links">
+      <a href="https://printrack.xyz">App</a>
+      <a href="https://printrack.xyz/trust">Trust &amp; Privacy</a>
+      <a href="./3d-printing-business-management.html">Business Management</a>
+      <a href="./3d-printing-invoice-software.html">Invoice Software</a>
+      <a href="./print-farm-management.html">Print Farm</a>
+      <a href="https://printrack.xyz/sitemap.xml">Sitemap</a>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>
