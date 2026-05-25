@@ -71,6 +71,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const migratedRef = useRef(false);
 
+  // State refs — assigned synchronously each render so up()/del() always see
+  // the latest in-memory data without relying on a stale closure or localStorage reads.
+  const projectsRef = useRef<Project[]>([]);
+  const expensesRef = useRef<Expense[]>([]);
+  const templatesRef = useRef<PrintTemplate[]>([]);
+  const filamentRef = useRef<FilamentPurchase[]>([]);
+  projectsRef.current = projects;
+  expensesRef.current = expenses;
+  templatesRef.current = templates;
+  filamentRef.current = filamentPurchases;
+
   // Load from cloud on auth — with localStorage fallback if Supabase fails
   useEffect(() => {
     if (authLoading) return;
@@ -146,11 +157,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           const cloudIsEmpty = nextProjects.length === 0 && nextExpenses.length === 0;
           const hasLocal = lsProjects.length || lsExpenses.length || lsTemplates.length || lsFilament.length || lsSettings;
           if (hasLocal && cloudIsEmpty) {
-            if (lsProjects.length) await supabase.from('projects').upsert(lsProjects.map(p => ({ id: p.id, user_id: userId, data: p as any })));
-            if (lsExpenses.length) await supabase.from('expenses').upsert(lsExpenses.map(e => ({ id: e.id, user_id: userId, data: e as any })));
-            if (lsTemplates.length) await supabase.from('templates').upsert(lsTemplates.map(t => ({ id: t.id, user_id: userId, data: t as any })));
-            if (lsFilament.length) await supabase.from('filament_purchases').upsert(lsFilament.map(f => ({ id: f.id, user_id: userId, data: f as any })));
-            if (lsSettings) await supabase.from('user_settings').upsert({ user_id: userId, data: lsSettings as any });
+            if (lsProjects.length) { const { error: e1 } = await supabase.from('projects').upsert(lsProjects.map(p => ({ id: p.id, user_id: userId, data: p as any }))); if (e1) console.error('[sync] migration projects:', e1); }
+            if (lsExpenses.length) { const { error: e2 } = await supabase.from('expenses').upsert(lsExpenses.map(e => ({ id: e.id, user_id: userId, data: e as any }))); if (e2) console.error('[sync] migration expenses:', e2); }
+            if (lsTemplates.length) { const { error: e3 } = await supabase.from('templates').upsert(lsTemplates.map(t => ({ id: t.id, user_id: userId, data: t as any }))); if (e3) console.error('[sync] migration templates:', e3); }
+            if (lsFilament.length) { const { error: e4 } = await supabase.from('filament_purchases').upsert(lsFilament.map(f => ({ id: f.id, user_id: userId, data: f as any }))); if (e4) console.error('[sync] migration filament:', e4); }
+            if (lsSettings) { const { error: e5 } = await supabase.from('user_settings').upsert({ user_id: userId, data: lsSettings as any }); if (e5) console.error('[sync] migration settings:', e5); }
             nextProjects = lsProjects.length ? lsProjects : nextProjects;
             nextExpenses = lsExpenses.length ? lsExpenses : nextExpenses;
             nextTemplates = lsTemplates.length ? lsTemplates : nextTemplates;
@@ -162,7 +173,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             }
           }
           // Use upsert so this works even if no profile row exists yet
-          await supabase.from('profiles').upsert({ user_id: userId, migrated_at: new Date().toISOString() });
+          // profiles.id is the PK (references auth.users.id), not user_id
+          await supabase.from('profiles').upsert({ id: userId, migrated_at: new Date().toISOString() });
         }
 
         setProjects(nextProjects);
@@ -196,30 +208,40 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     filament_purchases: 'pt_filament_purchases',
   };
 
+  const refForTable = (table: 'projects'|'expenses'|'templates'|'filament_purchases'): any[] => {
+    if (table === 'projects') return projectsRef.current;
+    if (table === 'expenses') return expensesRef.current;
+    if (table === 'templates') return templatesRef.current;
+    return filamentRef.current;
+  };
+
   const up = (table: 'projects'|'expenses'|'templates'|'filament_purchases', id: string, data: any) => {
-    if (!userId) {
-      const key = LS_TABLE_KEYS[table];
-      if (key) {
-        const items = loadJSON<any[]>(key, []);
-        const idx = items.findIndex((x: any) => x.id === id);
-        if (idx >= 0) items[idx] = data; else items.unshift(data);
-        localStorage.setItem(key, JSON.stringify(items));
-      }
-      return;
+    // Always write localStorage as backup for both guest and auth users
+    const key = LS_TABLE_KEYS[table];
+    if (key) {
+      const items = [...refForTable(table)];
+      const idx = items.findIndex((x: any) => x.id === id);
+      if (idx >= 0) items[idx] = data; else items.unshift(data);
+      localStorage.setItem(key, JSON.stringify(items));
     }
-    supabase.from(table).upsert({ id, user_id: userId, data }).then(({ error }) => {
-      if (error) console.error(`[sync] ${table} upsert`, error);
+    if (!userId) return;
+    supabase.from(table).upsert({ id, user_id: userId, data }).then(async ({ error }) => {
+      if (error) { console.error(`[sync] ${table} upsert error`, error); return; }
+      // Verify the write landed — read it back and log if missing
+      const { data: verify, error: verifyErr } = await (supabase as any).from(table).select('id').eq('id', id).maybeSingle();
+      if (verifyErr) { console.error(`[sync] ${table} verify error`, verifyErr); return; }
+      if (!verify) console.error(`[sync] ${table} id=${id} not found after upsert — possible RLS or data loss`);
     });
   };
+
   const del = (table: 'projects'|'expenses'|'templates'|'filament_purchases', id: string) => {
-    if (!userId) {
-      const key = LS_TABLE_KEYS[table];
-      if (key) {
-        const items = loadJSON<any[]>(key, []).filter((x: any) => x.id !== id);
-        localStorage.setItem(key, JSON.stringify(items));
-      }
-      return;
+    // Always sync localStorage as backup for both guest and auth users
+    const key = LS_TABLE_KEYS[table];
+    if (key) {
+      const items = refForTable(table).filter((x: any) => x.id !== id);
+      localStorage.setItem(key, JSON.stringify(items));
     }
+    if (!userId) return;
     supabase.from(table).delete().eq('id', id).then(({ error }) => {
       if (error) console.error(`[sync] ${table} delete`, error);
     });
@@ -296,11 +318,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const updateSettings = useCallback((s: AppSettings) => {
     if (isDemoRef.current) return;
     setSettings(s);
-    if (userId) {
-      supabase.from('user_settings').upsert({ user_id: userId, data: s as any }).then(({ error }) => error && console.error(error));
-    } else {
-      localStorage.setItem('pt_settings', JSON.stringify(s));
-    }
+    // Always write localStorage as backup for both guest and auth users
+    localStorage.setItem('pt_settings', JSON.stringify(s));
+    if (!userId) return;
+    supabase.from('user_settings').upsert({ user_id: userId, data: s as any }).then(({ error }) => {
+      if (error) console.error('[sync] user_settings upsert:', error);
+    });
   }, [userId]);
 
   const addTemplate = useCallback((t: PrintTemplate) => { if (isDemoRef.current) return; setTemplates(prev => [t, ...prev]); up('templates', t.id, t); }, [userId]);
