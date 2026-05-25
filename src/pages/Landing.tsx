@@ -51,10 +51,10 @@ export default function Landing() {
   ];
 
   const mockupStats = [
-    { l: t('landing.mockupRevenue'), v: '€2,340' },
-    { l: t('landing.mockupProfit'), v: '€1,612' },
-    { l: t('landing.mockupActivePrints'), v: '7' },
-    { l: t('landing.mockupFilamentLeft'), v: '1.2 kg' },
+    { l: t('landing.mockupRevenue'), v: '€847' },
+    { l: t('landing.mockupProfit'), v: '€563' },
+    { l: t('landing.mockupActivePrints'), v: '4' },
+    { l: t('landing.mockupFilamentLeft'), v: '890 g' },
   ];
 
   const steps = [

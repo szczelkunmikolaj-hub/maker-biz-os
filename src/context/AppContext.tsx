@@ -33,6 +33,7 @@ interface AppContextType {
   totalFilamentPurchasesCost: number;
   allPrintNames: string[];
   replaceAllData: (data: { projects: Project[]; expenses: Expense[]; templates: PrintTemplate[]; filamentPurchases: FilamentPurchase[]; settings: AppSettings }) => void;
+  snapshotToLocalStorage: () => void;
 }
 
 const DEFAULT_SETTINGS: AppSettings = {
@@ -182,6 +183,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setTemplates(nextTemplates);
         setFilamentPurchases(nextFilament);
         setSettings(nextSettings);
+        // Cache fresh Supabase data to localStorage so next load has a warm fallback
+        localStorage.setItem('pt_projects', JSON.stringify(nextProjects));
+        localStorage.setItem('pt_expenses', JSON.stringify(nextExpenses));
+        localStorage.setItem('pt_templates', JSON.stringify(nextTemplates));
+        localStorage.setItem('pt_filament_purchases', JSON.stringify(nextFilament));
+        localStorage.setItem('pt_settings', JSON.stringify(nextSettings));
       } catch (err) {
         // Unexpected error (e.g. network down) — fall back to localStorage
         console.error('[sync] unexpected error, falling back to localStorage:', err);
@@ -366,6 +373,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     await supabase.from('user_settings').upsert({ user_id: userId, data: data.settings as any });
   }, [userId]);
 
+  const snapshotToLocalStorage = useCallback(() => {
+    localStorage.setItem('pt_projects', JSON.stringify(projectsRef.current));
+    localStorage.setItem('pt_expenses', JSON.stringify(expensesRef.current));
+    localStorage.setItem('pt_templates', JSON.stringify(templatesRef.current));
+    localStorage.setItem('pt_filament_purchases', JSON.stringify(filamentRef.current));
+  }, []);
+
   const allPrintNames = React.useMemo(() => {
     const names = new Set<string>();
     projects.forEach(p => (p.prints || []).forEach(pr => { if (pr.name) names.add(pr.name); }));
@@ -388,7 +402,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       addExpense, updateExpense, deleteExpense, updateSettings,
       addTemplate, deleteTemplate,
       addFilamentPurchase, updateFilamentPurchase, deleteFilamentPurchase,
-      replaceAllData,
+      replaceAllData, snapshotToLocalStorage,
     }}>
       {children}
     </AppContext.Provider>

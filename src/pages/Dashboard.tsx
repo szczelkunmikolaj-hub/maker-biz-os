@@ -112,8 +112,9 @@ export default function Dashboard() {
       ? (completedProjects.length / filteredProjects.length) * 100 : 0;
     const avgProfitPerProject = paidSent.length > 0
       ? (totalRevenue - projectExp - otherExp) / paidSent.length : 0;
-    const avgTimePerProject = filteredProjects.length > 0
-      ? filteredProjects.reduce((s, p) => s + getProjectTotalPrintTime(p), 0) / filteredProjects.length : 0;
+    const projectsWithPrints = filteredProjects.filter(p => (p.prints || []).length > 0);
+    const avgTimePerProject = projectsWithPrints.length > 0
+      ? projectsWithPrints.reduce((s, p) => s + getProjectTotalPrintTime(p), 0) / projectsWithPrints.length : 0;
 
     const materialMap = new Map<string, number>();
     filteredProjects.forEach(p => (p.prints || []).forEach(pr => {

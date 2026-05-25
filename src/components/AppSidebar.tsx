@@ -3,9 +3,10 @@ import {
   LayoutDashboard, FolderKanban, Columns3, Receipt, Settings, Calendar, Package, Database, Truck, ExternalLink, LogOut, UserPlus, FlaskConical, Globe, MessageSquare, Zap, BadgeCheck,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { useDemo } from "@/context/DemoContext";
+import { useApp } from "@/context/AppContext";
 import { isAdmin } from "@/lib/admin";
 import { useTier } from "@/context/TierContext";
 import { HelpTip } from "@/components/HelpTip";
@@ -33,7 +34,9 @@ export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
+  const navigate = useNavigate();
   const { user, signOut } = useAuth();
+  const { snapshotToLocalStorage } = useApp();
   const { isDemoMode, toggleDemoMode } = useDemo();
   const { t } = useTranslation();
   const [feedbackOpen, setFeedbackOpen] = useState(false);
@@ -225,11 +228,13 @@ export function AppSidebar() {
           </SidebarMenuItem>
           <SidebarMenuItem>
             {localStorage.getItem('pt_guest_mode') === 'true' ? (
-              <SidebarMenuButton asChild className="hover:bg-sidebar-accent text-primary font-medium" title="Sign up / Sign in">
-                <Link to="/auth">
-                  <UserPlus className="h-4 w-4" />
-                  {!collapsed && <span>Sign up / Sign in</span>}
-                </Link>
+              <SidebarMenuButton
+                onClick={() => { snapshotToLocalStorage(); navigate('/auth'); }}
+                className="hover:bg-sidebar-accent text-primary font-medium"
+                title="Sign up / Sign in"
+              >
+                <UserPlus className="h-4 w-4" />
+                {!collapsed && <span>Sign up / Sign in</span>}
               </SidebarMenuButton>
             ) : (
               <SidebarMenuButton onClick={() => signOut()} className="hover:bg-sidebar-accent" title={t('nav.signOut')}>

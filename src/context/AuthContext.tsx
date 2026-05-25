@@ -22,6 +22,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!supabaseConfigured) return;
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, s) => {
+      if (event === 'SIGNED_IN') {
+        localStorage.removeItem('pt_guest_mode');
+      }
       if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') {
         setSession(s);
         setLoading(false);
