@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import {
-  LayoutDashboard, FolderKanban, Columns3, Receipt, Settings, Calendar, Package, Database, Truck, ExternalLink, LogOut, UserPlus, FlaskConical, Globe, MessageSquare, Zap, BadgeCheck,
+  LayoutDashboard, FolderKanban, Columns3, Receipt, Settings, Calendar, Package, Database, Truck, ExternalLink, LogOut, UserPlus, FlaskConical, Globe, MessageSquare, Zap, BadgeCheck, Users,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { Link, useLocation, useNavigate } from "react-router-dom";
@@ -50,6 +50,7 @@ export function AppSidebar() {
     { title: t('nav.calendar'), url: "/calendar", icon: Calendar, hint: t('helpTips.calendar') },
     { title: t('nav.expenses'), url: "/expenses", icon: Receipt, hint: t('helpTips.expenses') },
     { title: t('nav.filament'), url: "/filament", icon: Package, hint: t('helpTips.filament') },
+    { title: "Customers", url: "/customers", icon: Users },
     { title: t('nav.data'), url: "/data", icon: Database },
     // PAYMENTS_TODO: { title: t('tier.pricingNav'), url: "/pricing", icon: Zap },
     { title: t('nav.settings'), url: "/settings", icon: Settings },

@@ -16,12 +16,13 @@ import {
 import {
   DollarSign, TrendingUp, Package, Clock, Weight, Lightbulb,
   Printer, Award, BarChart3, AlertTriangle, Activity, ExternalLink,
+  CalendarClock, CheckCircle2, AlertCircle, Zap,
 } from "lucide-react";
 import { useMemo, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  format, parseISO, isBefore, startOfToday, startOfWeek, endOfWeek, eachMonthOfInterval, eachWeekOfInterval, eachDayOfInterval,
-  startOfMonth, endOfMonth, startOfYear, endOfYear,
+  format, parseISO, isBefore, isEqual, startOfToday, startOfWeek, endOfWeek, eachMonthOfInterval, eachWeekOfInterval, eachDayOfInterval,
+  startOfMonth, endOfMonth, startOfYear, endOfYear, addDays, isWithinInterval,
 } from "date-fns";
 import ProductionSummary from "@/components/ProductionSummary";
 import MaterialUsageSummary from "@/components/MaterialUsageSummary";
@@ -266,6 +267,56 @@ export default function Dashboard() {
 
   const noData = filteredProjects.length === 0 && filteredExpenses.length === 0;
 
+  const today = startOfToday();
+  const todayStr = format(today, "yyyy-MM-dd");
+
+  const todaysTasks = useMemo(() => {
+    return projects.filter(p => {
+      if (p.paid && p.sent) return false;
+      if (!p.dueDate) return false;
+      const due = p.dueDate;
+      const isDueToday = due === todayStr;
+      const isOverdue = isBefore(parseISO(due), today);
+      return isDueToday || isOverdue;
+    }).sort((a, b) => (a.dueDate || "").localeCompare(b.dueDate || ""));
+  }, [projects, todayStr, today]);
+
+  const thisWeekStats = useMemo(() => {
+    const weekStart = startOfWeek(today, { weekStartsOn: 1 });
+    const weekEnd = endOfWeek(today, { weekStartsOn: 1 });
+    const weekProjects = projects.filter(p => {
+      if (!p.orderDate) return false;
+      try { return isWithinInterval(parseISO(p.orderDate), { start: weekStart, end: weekEnd }); } catch { return false; }
+    });
+    const shipped = weekProjects.filter(p => p.sent);
+    const revenue = projects.filter(p => {
+      if (!p.paid || !p.sent) return false;
+      const ds = p.shippingDate || p.orderDate;
+      if (!ds) return false;
+      try { return isWithinInterval(parseISO(ds), { start: weekStart, end: weekEnd }); } catch { return false; }
+    }).reduce((s, p) => s + (p.totalPrice || 0), 0);
+    const hours = projects.flatMap(p => p.prints || []).reduce((s, pr) => {
+      return s + (pr.estimatedPrintTime || 0) * (pr.completedQuantity || 0);
+    }, 0);
+    return { ordersReceived: weekProjects.length, shipped: shipped.length, revenue, hours };
+  }, [projects, today]);
+
+  // Active projects count (not fully done)
+  const activeProjectsCount = projects.filter(p => !p.paid || !p.sent).length;
+  // Revenue this month
+  const thisMonthRevenue = useMemo(() => {
+    const ms = startOfMonth(today);
+    const me = endOfMonth(today);
+    return projects.filter(p => {
+      if (!p.paid || !p.sent) return false;
+      const ds = p.shippingDate || p.orderDate;
+      if (!ds) return false;
+      try { return isWithinInterval(parseISO(ds), { start: ms, end: me }); } catch { return false; }
+    }).reduce((s, p) => s + (p.totalPrice || 0), 0);
+  }, [projects, today]);
+  // Hours printed this week
+  const thisWeekHours = thisWeekStats.hours;
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -279,11 +330,120 @@ export default function Dashboard() {
         </p>
       </div>
 
+      {/* Quick stats bar */}
+      <div className="grid grid-cols-3 gap-3">
+        <div className="rounded-xl border bg-card px-4 py-3 flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+            <Activity className="h-4 w-4 text-primary" />
+          </div>
+          <div>
+            <p className="text-xl font-bold">{activeProjectsCount}</p>
+            <p className="text-xs text-muted-foreground">Active projects</p>
+          </div>
+        </div>
+        <div className="rounded-xl border bg-card px-4 py-3 flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center shrink-0">
+            <DollarSign className="h-4 w-4 text-emerald-600" />
+          </div>
+          <div>
+            <p className="text-xl font-bold">€{thisMonthRevenue.toFixed(0)}</p>
+            <p className="text-xs text-muted-foreground">Revenue this month</p>
+          </div>
+        </div>
+        <div className="rounded-xl border bg-card px-4 py-3 flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center shrink-0">
+            <Clock className="h-4 w-4 text-blue-600" />
+          </div>
+          <div>
+            <p className="text-xl font-bold">{thisWeekHours.toFixed(1)}h</p>
+            <p className="text-xs text-muted-foreground">Hours this week</p>
+          </div>
+        </div>
+      </div>
+
       {noData && (
-        <Card><CardContent className="p-8 text-center text-muted-foreground">
-          {t('dashboard.noData')}
+        <Card><CardContent className="p-8 text-center space-y-4">
+          <div className="mx-auto w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center">
+            <BarChart3 className="h-7 w-7 text-primary" />
+          </div>
+          <div>
+            <p className="font-semibold text-base">No data yet</p>
+            <p className="text-sm text-muted-foreground mt-1">Add projects and mark them as paid & shipped to see your analytics.</p>
+          </div>
+          <div className="text-left space-y-1.5 max-w-xs mx-auto">
+            {["Create your first project", "Add prints with time & material", "Mark paid & shipped when done", "Watch your analytics grow"].map((step, i) => (
+              <div key={i} className="flex items-center gap-2 text-sm">
+                <div className="h-5 w-5 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-bold text-primary shrink-0">{i + 1}</div>
+                <span className="text-muted-foreground">{step}</span>
+              </div>
+            ))}
+          </div>
         </CardContent></Card>
       )}
+
+      {/* Today's tasks */}
+      {todaysTasks.length > 0 && (
+        <Card className="border-amber-500/30 bg-amber-500/5">
+          <CardHeader className="pb-2 pt-4">
+            <CardTitle className="text-base flex items-center gap-2">
+              <CalendarClock className="h-4 w-4 text-amber-600" />
+              Today's tasks
+              <Badge variant="secondary" className="ml-1 bg-amber-500/15 text-amber-700 dark:text-amber-400">
+                {todaysTasks.length}
+              </Badge>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pb-4 space-y-2">
+            {todaysTasks.map(p => {
+              const isOverdue = p.dueDate && isBefore(parseISO(p.dueDate), today);
+              return (
+                <div
+                  key={p.id}
+                  className="flex items-center justify-between gap-3 rounded-lg border bg-card px-3 py-2 cursor-pointer hover:border-primary/40 transition-colors"
+                  onClick={() => navigate(`/projects?id=${p.id}`)}
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    {isOverdue
+                      ? <AlertCircle className="h-4 w-4 text-red-500 shrink-0" />
+                      : <CheckCircle2 className="h-4 w-4 text-amber-500 shrink-0" />
+                    }
+                    <span className="text-sm font-medium truncate">{p.name}</span>
+                    {p.customerName && <span className="text-xs text-muted-foreground truncate">· {p.customerName}</span>}
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    {p.totalPrice > 0 && <span className="text-xs font-medium text-primary">€{p.totalPrice.toFixed(2)}</span>}
+                    <Badge variant={isOverdue ? "destructive" : "outline"} className="text-[10px] px-1.5">
+                      {isOverdue ? `${Math.floor((today.getTime() - parseISO(p.dueDate).getTime()) / 86400000)}d overdue` : 'due today'}
+                    </Badge>
+                  </div>
+                </div>
+              );
+            })}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* This week summary */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {[
+          { label: "Orders received", value: thisWeekStats.ordersReceived, icon: Package, color: "text-primary" },
+          { label: "Shipped", value: thisWeekStats.shipped, icon: Zap, color: "text-blue-600" },
+          { label: "Revenue", value: `€${thisWeekStats.revenue.toFixed(2)}`, icon: DollarSign, color: "text-emerald-600" },
+          { label: "Hours printed", value: `${thisWeekStats.hours.toFixed(1)}h`, icon: Clock, color: "text-purple-600" },
+        ].map(s => (
+          <Card key={s.label} className="border-border/60">
+            <CardContent className="p-3 flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                <s.icon className={`h-4 w-4 ${s.color}`} />
+              </div>
+              <div>
+                <p className="text-lg font-bold">{s.value}</p>
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wide">{s.label}</p>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
 
       {/* KPI Grid */}
       <div className="flex items-center gap-1.5 -mb-1">

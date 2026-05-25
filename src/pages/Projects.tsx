@@ -15,10 +15,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
-import { Plus, Search, Download, ArrowUpDown, Printer, Package, Clock, Calendar, CreditCard, Sparkles, Upload, ChevronDown, FileSpreadsheet, Wand2, BookTemplate, Trash2, Zap } from "lucide-react";
+import { Plus, Search, Download, ArrowUpDown, Printer, Package, Clock, Calendar, CreditCard, Sparkles, Upload, ChevronDown, FileSpreadsheet, Wand2, BookTemplate, Trash2, Zap, Users, LayoutGrid } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import ProjectDetail from "@/components/ProjectDetail";
-import { parseISO, isBefore } from "date-fns";
+import { parseISO, isBefore, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval } from "date-fns";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { Dialog as ImportDialog, DialogContent as ImportDialogContent, DialogHeader as ImportDialogHeader, DialogTitle as ImportDialogTitle, DialogDescription as ImportDialogDescription } from "@/components/ui/dialog";
 import { PlateImporter } from "@/components/PlateImporter";
@@ -39,7 +39,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 const SOURCES: CustomerSource[] = ["Wallapop", "Instagram", "Website", "Other"];
 const PAYMENT_METHODS: PaymentMethod[] = ["Cash", "PayPal", "Bank Transfer", "Bizum", "Other"];
 
-type SortKey = "date" | "price" | "paid" | "shipped";
+type SortKey = "date" | "date-asc" | "price" | "paid" | "shipped" | "due-date";
+type DateRange = "all" | "this-week" | "this-month";
 
 function newTemplate(): PrintTemplate {
   return { id: crypto.randomUUID(), name: "", estimatedPrintTime: 0, materialUsed: 0, notes: "" };
@@ -78,6 +79,7 @@ export default function Projects() {
   // PAYMENTS_TODO: const [showProjectLimit, setShowProjectLimit] = useState(false);
   const [showAddTemplate, setShowAddTemplate] = useState(false);
   const [templateDraft, setTemplateDraft] = useState<PrintTemplate>(newTemplate());
+  const [dateRange, setDateRange] = usePersistedState<DateRange>("projects_date_range", "all");
 
   // Sync URL param to selectedId
   useEffect(() => {
@@ -109,9 +111,22 @@ export default function Projects() {
     if (filter === "recurring") list = list.filter(p => p.isRecurringCustomer);
     if (filter === "new-customer") list = list.filter(p => !p.isRecurringCustomer);
 
+    // Date range filter
+    if (dateRange !== "all") {
+      const now = new Date();
+      const interval = dateRange === "this-week"
+        ? { start: startOfWeek(now, { weekStartsOn: 1 }), end: endOfWeek(now, { weekStartsOn: 1 }) }
+        : { start: startOfMonth(now), end: endOfMonth(now) };
+      list = list.filter(p => {
+        if (!p.orderDate) return false;
+        try { return isWithinInterval(parseISO(p.orderDate), interval); } catch { return false; }
+      });
+    }
+
     list.sort((a, b) => {
       switch (sortBy) {
         case "date": return (b.orderDate || "").localeCompare(a.orderDate || "");
+        case "date-asc": return (a.orderDate || "").localeCompare(b.orderDate || "");
         case "price": {
           const aTotal = getProjectPiecesTotal(a) || a.totalPrice || 0;
           const bTotal = getProjectPiecesTotal(b) || b.totalPrice || 0;
@@ -119,11 +134,12 @@ export default function Projects() {
         }
         case "paid": return (a.paid === b.paid ? 0 : a.paid ? 1 : -1);
         case "shipped": return (a.sent === b.sent ? 0 : a.sent ? 1 : -1);
+        case "due-date": return (a.dueDate || "9999").localeCompare(b.dueDate || "9999");
         default: return 0;
       }
     });
     return list;
-  }, [projects, search, filter, sortBy, showAll, mode, filterProjectsForWorkflow]);
+  }, [projects, search, filter, sortBy, dateRange, showAll, mode, filterProjectsForWorkflow]);
 
   const selectedProject = projects.find(p => p.id === selectedId);
 
@@ -290,14 +306,27 @@ export default function Projects() {
             <SelectItem value="new-customer">{t('projects.newCustomer')}</SelectItem>
           </SelectContent>
         </Select>
-        <Select value={sortBy} onValueChange={v => setSortBy(v as SortKey)}>
+        <Select value={dateRange} onValueChange={v => setDateRange(v as DateRange)}>
           <SelectTrigger className="w-[130px] min-h-[44px] md:min-h-[36px]">
+            <Calendar className="h-3 w-3 mr-1" />
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All time</SelectItem>
+            <SelectItem value="this-week">This week</SelectItem>
+            <SelectItem value="this-month">This month</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={sortBy} onValueChange={v => setSortBy(v as SortKey)}>
+          <SelectTrigger className="w-[140px] min-h-[44px] md:min-h-[36px]">
             <ArrowUpDown className="h-3 w-3 mr-1" />
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="date">{t('projects.sortDate')}</SelectItem>
-            <SelectItem value="price">{t('projects.sortPrice')}</SelectItem>
+            <SelectItem value="date">Newest first</SelectItem>
+            <SelectItem value="date-asc">Oldest first</SelectItem>
+            <SelectItem value="price">Highest value</SelectItem>
+            <SelectItem value="due-date">Due date</SelectItem>
             <SelectItem value="paid">{t('projects.sortPaid')}</SelectItem>
             <SelectItem value="shipped">{t('projects.sortShipped')}</SelectItem>
           </SelectContent>
@@ -311,17 +340,27 @@ export default function Projects() {
       </div>
 
       {filtered.length === 0 ? (
-        <Card><CardContent className="p-8 text-center text-muted-foreground space-y-4">
-          <p>{mode === 'month' && !showAll ? t('projects.noProjectsMonth') : t('projects.noProjectsEmpty')}</p>
-          {projects.length === 0 && (
-            <div className="flex gap-2 justify-center flex-wrap">
-              <Button variant="outline" size="sm" onClick={() => setShowSpreadsheetImport(true)}>
-                <FileSpreadsheet className="h-4 w-4 mr-1" />{t('projects.importFromSpreadsheet')}
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => setShowAIImport(true)}>
-                <Wand2 className="h-4 w-4 mr-1" />{t('projects.importFromAI')}
-              </Button>
-            </div>
+        <Card><CardContent className="p-10 text-center space-y-5">
+          {projects.length === 0 ? (
+            <>
+              <div className="mx-auto w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center">
+                <LayoutGrid className="h-8 w-8 text-primary" />
+              </div>
+              <div>
+                <p className="font-semibold text-lg">No projects yet</p>
+                <p className="text-sm text-muted-foreground mt-1">Add your first project or import existing data to get started.</p>
+              </div>
+              <div className="flex gap-2 justify-center flex-wrap">
+                <Button onClick={() => setShowAdd(true)}>
+                  <Plus className="h-4 w-4 mr-1" />Add your first project
+                </Button>
+                <Button variant="outline" onClick={() => setShowSpreadsheetImport(true)}>
+                  <FileSpreadsheet className="h-4 w-4 mr-1" />Import from Excel
+                </Button>
+              </div>
+            </>
+          ) : (
+            <p className="text-muted-foreground">{mode === 'month' && !showAll ? t('projects.noProjectsMonth') : t('projects.noProjectsEmpty')}</p>
           )}
         </CardContent></Card>
       ) : (

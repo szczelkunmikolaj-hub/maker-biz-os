@@ -1,10 +1,10 @@
-import { useEffect } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
-import { Outlet, Link, useLocation } from "react-router-dom";
+import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
 import { useMonth } from "@/context/MonthContext";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, CalendarDays } from "lucide-react";
+import { ChevronLeft, ChevronRight, CalendarDays, Plus } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { NotificationBell } from "@/components/NotificationBell";
 import { GlobalStatusBar } from "@/components/GlobalStatusBar";
@@ -15,12 +15,84 @@ import { WelcomeModal } from "@/components/WelcomeModal";
 // import { TrialOptInModal } from "@/components/TrialOptInModal";
 import { useDemo } from "@/context/DemoContext";
 import { useTranslation } from "react-i18next";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useApp } from "@/context/AppContext";
+import { useNotifications } from "@/context/NotificationContext";
+import { Project } from "@/types";
+import { format, addDays } from "date-fns";
+import { useRef } from "react";
+
+function newQuickProject(): Project {
+  return {
+    id: crypto.randomUUID(), name: "", customerName: "", customerSource: "Other",
+    paymentMethod: "Other", orderDate: new Date().toISOString().split("T")[0],
+    dueDate: "", totalPrice: 0, printed: false, paid: false, sent: false,
+    shippingDate: "", notes: "", prints: [], kanbanStatus: "new-order", projectExpenses: [],
+  };
+}
 
 export function Layout() {
   const location = useLocation();
+  const navigate = useNavigate();
   const { mode, setMode, label, prevMonth, nextMonth } = useMonth();
   const { isDemoMode, toggleDemoMode } = useDemo();
   const { t } = useTranslation();
+  const { addProject, projects } = useApp();
+  const { addNotification, notifications } = useNotifications();
+  const prevPaidRef = useRef<Record<string, boolean>>({});
+  const [showQuickAdd, setShowQuickAdd] = useState(false);
+  const [quickDraft, setQuickDraft] = useState<Project>(newQuickProject());
+
+  // Listen for quick-add trigger (from keyboard shortcut / command palette)
+  useEffect(() => {
+    const handler = () => { setQuickDraft(newQuickProject()); setShowQuickAdd(true); };
+    document.addEventListener("quick-add-project", handler);
+    return () => document.removeEventListener("quick-add-project", handler);
+  }, []);
+
+  // Auto-notify: due tomorrow
+  useEffect(() => {
+    const tomorrowStr = format(addDays(new Date(), 1), "yyyy-MM-dd");
+    projects.forEach(p => {
+      if (!p.dueDate || p.paid || p.sent) return;
+      if (p.dueDate !== tomorrowStr) return;
+      const notifId = `due-tomorrow-${p.id}-${tomorrowStr}`;
+      if (notifications.some(n => n.id === notifId)) return;
+      addNotification({
+        id: notifId,
+        type: "due_tomorrow",
+        title: `Due tomorrow: ${p.name}`,
+        customerName: p.customerName || undefined,
+        message: p.customerName ? `Order for ${p.customerName} is due tomorrow.` : "This project is due tomorrow.",
+      });
+    });
+    // Auto-notify: project marked as paid
+    projects.forEach(p => {
+      const wasPaid = prevPaidRef.current[p.id];
+      if (p.paid && !wasPaid && wasPaid !== undefined) {
+        const notifId = `paid-${p.id}-${Date.now()}`;
+        addNotification({
+          id: notifId,
+          type: "project_paid",
+          title: `Payment received: ${p.name}`,
+          customerName: p.customerName || undefined,
+          message: `"${p.name}" has been marked as paid.`,
+        });
+      }
+    });
+    prevPaidRef.current = Object.fromEntries(projects.map(p => [p.id, p.paid]));
+  }, [projects]); // eslint-disable-line
+
+  const handleQuickAdd = useCallback(() => {
+    if (!quickDraft.name.trim()) return;
+    const proj = { ...quickDraft };
+    addProject(proj);
+    setShowQuickAdd(false);
+    setQuickDraft(newQuickProject());
+    navigate(`/projects?id=${proj.id}`);
+  }, [quickDraft, addProject, navigate]);
 
   const PAGE_TITLES: Record<string, string> = {
     "/": t('nav.dashboard'),
@@ -34,6 +106,7 @@ export function Layout() {
     "/data": t('nav.data'),
     "/settings": t('nav.settings'),
     "/customer-orders": t('nav.customerOrders'),
+    "/customers": "Customers",
   };
 
   const title = PAGE_TITLES[location.pathname] || "";
@@ -100,9 +173,76 @@ export function Layout() {
           <main className="flex-1 overflow-auto p-4 md:p-6 animate-fade-in">
             <Outlet />
           </main>
+
+          {/* Floating quick-add button */}
+          <button
+            onClick={() => { setQuickDraft(newQuickProject()); setShowQuickAdd(true); }}
+            className="fixed bottom-6 right-6 z-40 h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-lg hover:bg-primary/90 hover:shadow-xl transition-all flex items-center justify-center"
+            aria-label="Quick add project"
+          >
+            <Plus className="h-6 w-6" />
+          </button>
+
           <WelcomeModal />
           {/* PAYMENTS_TODO: <TrialOptInModal /> */}
           <CommandPalette />
+
+          {/* Quick-add modal */}
+          <Dialog open={showQuickAdd} onOpenChange={setShowQuickAdd}>
+            <DialogContent className="max-w-sm">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <Plus className="h-4 w-4 text-primary" /> Quick Add Project
+                </DialogTitle>
+              </DialogHeader>
+              <div className="grid gap-3">
+                <div>
+                  <Label>Project name *</Label>
+                  <Input
+                    autoFocus
+                    placeholder="e.g. Miniature set for John"
+                    value={quickDraft.name}
+                    onChange={e => setQuickDraft(d => ({ ...d, name: e.target.value }))}
+                    onKeyDown={e => e.key === 'Enter' && handleQuickAdd()}
+                  />
+                </div>
+                <div>
+                  <Label>Customer name</Label>
+                  <Input
+                    placeholder="e.g. John Smith"
+                    value={quickDraft.customerName}
+                    onChange={e => setQuickDraft(d => ({ ...d, customerName: e.target.value }))}
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <Label>Price</Label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      placeholder="0.00"
+                      value={quickDraft.totalPrice || ""}
+                      onChange={e => setQuickDraft(d => ({ ...d, totalPrice: parseFloat(e.target.value) || 0 }))}
+                    />
+                  </div>
+                  <div>
+                    <Label>Due date</Label>
+                    <Input
+                      type="date"
+                      value={quickDraft.dueDate || ""}
+                      onChange={e => setQuickDraft(d => ({ ...d, dueDate: e.target.value }))}
+                    />
+                  </div>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setShowQuickAdd(false)}>Cancel</Button>
+                <Button onClick={handleQuickAdd} disabled={!quickDraft.name.trim()}>
+                  Save & Open
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
     </SidebarProvider>

@@ -71,6 +71,15 @@ export default function ProjectDetail({ project, onBack }: Props) {
     save({ ...p, prints: p.prints.map(pr => pr.id === id ? { ...pr, ...partial } : pr) });
   };
   const removePrint = (id: string) => save({ ...p, prints: p.prints.filter(pr => pr.id !== id) });
+  const duplicatePrint = (id: string) => {
+    const pr = p.prints.find(x => x.id === id);
+    if (!pr) return;
+    const copy = { ...pr, id: crypto.randomUUID(), name: pr.name ? `${pr.name} (copy)` : '' };
+    const idx = p.prints.findIndex(x => x.id === id);
+    const arr = [...p.prints];
+    arr.splice(idx + 1, 0, copy);
+    save({ ...p, prints: arr });
+  };
   const movePrint = (id: string, dir: -1 | 1) => {
     const idx = p.prints.findIndex(pr => pr.id === id);
     if (idx < 0) return;
@@ -372,6 +381,7 @@ export default function ProjectDetail({ project, onBack }: Props) {
                         </SelectContent>
                       </Select>
                     </div>
+                    <Button size="icon" variant="ghost" className="h-9 w-9" title="Duplicate print" onClick={() => duplicatePrint(pr.id)}><Copy className="h-4 w-4" /></Button>
                     <Button size="icon" variant="ghost" className="text-destructive h-9 w-9" onClick={() => removePrint(pr.id)}><Trash2 className="h-4 w-4" /></Button>
                   </div>
                 </div>

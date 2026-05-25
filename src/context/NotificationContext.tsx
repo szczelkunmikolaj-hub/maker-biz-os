@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useCallback, useMemo } from 'react';
 import { usePersistedState } from '@/hooks/usePersistedState';
 
-export type NotificationType = 'quote_request' | 'upload_request' | 'message' | 'order_update';
+export type NotificationType = 'quote_request' | 'upload_request' | 'message' | 'order_update' | 'due_tomorrow' | 'project_paid';
 
 export interface AppNotification {
   id: string;

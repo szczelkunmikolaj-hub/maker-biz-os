@@ -1,4 +1,4 @@
-import { Bell, FileText, Upload, MessageSquare, Package, X, Check, Trash2, Plus, AlertCircle } from "lucide-react";
+import { Bell, FileText, Upload, MessageSquare, Package, X, Check, Trash2, Plus, AlertCircle, Clock, CreditCard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -23,6 +23,8 @@ const TYPE_ICON: Record<NotificationType, React.ComponentType<{ className?: stri
   upload_request: Upload,
   message: MessageSquare,
   order_update: Package,
+  due_tomorrow: Clock,
+  project_paid: CreditCard,
 };
 
 const TYPE_ACCENT: Record<NotificationType, string> = {
@@ -30,6 +32,8 @@ const TYPE_ACCENT: Record<NotificationType, string> = {
   upload_request: 'text-blue-500 bg-blue-500/10',
   message: 'text-muted-foreground bg-muted',
   order_update: 'text-green-500 bg-green-500/10',
+  due_tomorrow: 'text-amber-500 bg-amber-500/10',
+  project_paid: 'text-emerald-500 bg-emerald-500/10',
 };
 
 export function NotificationBell() {

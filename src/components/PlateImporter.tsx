@@ -30,7 +30,9 @@ import {
   CheckCircle2,
   AlertTriangle,
   Upload,
+  Info,
 } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   parse3mf,
   parseGcodeFile,
@@ -317,9 +319,19 @@ export function PlateImporter({ project, compact = false, onImported }: Props) {
             <Sparkles className={"text-primary " + (compact ? "h-4 w-4" : "h-6 w-6")} />
           )}
         </div>
-        <h3 className={"font-semibold " + (compact ? "text-sm" : "text-base")}>
-          {project ? "Add Plates / Models" : "Smart Print Project Importer"}
-        </h3>
+        <div className={"flex items-center justify-center gap-1.5 " + (compact ? "" : "")}>
+          <h3 className={"font-semibold " + (compact ? "text-sm" : "text-base")}>
+            {project ? "Import sliced file" : "Import sliced file"}
+          </h3>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help shrink-0" />
+            </TooltipTrigger>
+            <TooltipContent className="max-w-[220px] text-xs">
+              Export your sliced file from Bambu Studio, PrusaSlicer or OrcaSlicer for accurate time and filament data.
+            </TooltipContent>
+          </Tooltip>
+        </div>
         <p className="text-xs text-muted-foreground mt-1">
           Drop <code className="bg-muted px-1 rounded">.3mf</code> or{" "}
           <code className="bg-muted px-1 rounded">.gcode</code>
@@ -456,7 +468,13 @@ export function PlateImporter({ project, compact = false, onImported }: Props) {
                 ))}
               </div>
 
-              {parsed.totalTimeHours === 0 && (
+              {parsed.totalTimeHours === 0 && parsed.totalFilamentGrams === 0 && (
+                <div className="flex items-start gap-2 text-xs text-amber-700 dark:text-amber-400 bg-amber-500/10 border border-amber-500/20 rounded p-2">
+                  <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                  <span>No print data found. This may be an unsliced 3MF file. Slice the model in Bambu Studio, PrusaSlicer or OrcaSlicer first, then export and import again.</span>
+                </div>
+              )}
+              {(parsed.totalTimeHours === 0 || parsed.totalFilamentGrams === 0) && !(parsed.totalTimeHours === 0 && parsed.totalFilamentGrams === 0) && (
                 <div className="flex items-start gap-2 text-xs text-muted-foreground bg-muted/50 rounded p-2">
                   <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
                   <span>Some metadata could not be detected. You can fill missing values manually after import.</span>

@@ -24,6 +24,7 @@ import ImportQueue from "@/pages/ImportQueue";
 import CalendarPage from "@/pages/CalendarPage";
 import FilamentPurchases from "@/pages/FilamentPurchases";
 import DataManagement from "@/pages/DataManagement";
+import CustomersPage from "@/pages/CustomersPage";
 import AuthPage from "@/pages/Auth";
 import PricingPage from "@/pages/PricingPage";
 import TrustPage from "@/pages/TrustPage";
@@ -59,6 +60,7 @@ const App = () => (
                     <Route path="/import" element={<ImportQueue />} />
                     <Route path="/data" element={<DataManagement />} />
                     <Route path="/settings" element={<SettingsPage />} />
+                    <Route path="/customers" element={<CustomersPage />} />
                   </Route>
                   <Route path="/" element={<ProtectedRoute allowLanding><Layout /></ProtectedRoute>}>
                     <Route index element={<Dashboard />} />
