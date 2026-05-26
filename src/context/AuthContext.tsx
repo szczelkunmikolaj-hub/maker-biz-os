@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase, supabaseConfigured } from '@/integrations/supabase/client';
 import type { Session, User } from '@supabase/supabase-js';
+import posthog from 'posthog-js';
 
 interface AuthContextType {
   session: Session | null;
@@ -28,6 +29,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') {
         setSession(s);
         setLoading(false);
+        if (s?.user) {
+          posthog.identify(s.user.id, { email: s.user.email });
+        }
       }
     });
     supabase.auth.getSession().then(({ data: { session: s } }) => {
@@ -39,6 +43,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = async () => {
     if (supabaseConfigured) await supabase.auth.signOut();
+    posthog.reset();
   };
 
   return (
