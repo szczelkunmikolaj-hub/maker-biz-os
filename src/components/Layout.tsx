@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
-import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
+import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useMonth } from "@/context/MonthContext";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, CalendarDays, Plus } from "lucide-react";
@@ -10,6 +10,9 @@ import { NotificationBell } from "@/components/NotificationBell";
 import { GlobalStatusBar } from "@/components/GlobalStatusBar";
 import { CommandPalette } from "@/components/CommandPalette";
 import { WelcomeModal } from "@/components/WelcomeModal";
+import { GuestWelcomeOverlay } from "@/components/GuestWelcomeOverlay";
+import { GuestBanner } from "@/components/GuestBanner";
+import { GuestGateModal } from "@/components/GuestGateModal";
 // PAYMENTS_TODO: re-enable when payments are ready
 // import { TrialBanner } from "@/components/TrialBanner";
 // import { TrialOptInModal } from "@/components/TrialOptInModal";
@@ -44,13 +47,36 @@ export function Layout() {
   const prevPaidRef = useRef<Record<string, boolean>>({});
   const [showQuickAdd, setShowQuickAdd] = useState(false);
   const [quickDraft, setQuickDraft] = useState<Project>(newQuickProject());
+  const isGuest = localStorage.getItem('pt_guest_mode') === 'true';
+
+  const fireGuestGate = (message: string) => {
+    document.dispatchEvent(new CustomEvent('guest-gate', { detail: { message } }));
+  };
 
   // Listen for quick-add trigger (from keyboard shortcut / command palette)
   useEffect(() => {
-    const handler = () => { setQuickDraft(newQuickProject()); setShowQuickAdd(true); };
+    const handler = () => {
+      if (localStorage.getItem('pt_guest_mode') === 'true') {
+        fireGuestGate('Create a free account to add your real orders — takes 30 seconds');
+        return;
+      }
+      setQuickDraft(newQuickProject());
+      setShowQuickAdd(true);
+    };
     document.addEventListener("quick-add-project", handler);
     return () => document.removeEventListener("quick-add-project", handler);
   }, []);
+
+  // Soft prompt after 2 minutes in guest mode
+  useEffect(() => {
+    if (!isGuest) return;
+    if (sessionStorage.getItem('pt_soft_prompt_shown') === 'true') return;
+    const timer = setTimeout(() => {
+      sessionStorage.setItem('pt_soft_prompt_shown', 'true');
+      fireGuestGate('Enjoying PrintTrack? Your real data is one click away');
+    }, 2 * 60 * 1000);
+    return () => clearTimeout(timer);
+  }, []); // eslint-disable-line
 
   // Auto-notify: due tomorrow
   useEffect(() => {
@@ -158,25 +184,27 @@ export function Layout() {
           </header>
           <GlobalStatusBar />
           {/* PAYMENTS_TODO: <TrialBanner /> */}
-          {isDemoMode && (
+          {isDemoMode && !isGuest && (
             <div className="bg-yellow-500/10 border-b border-yellow-500/25 px-4 py-2 flex items-center justify-between shrink-0">
               <span className="text-sm font-medium text-yellow-700 dark:text-yellow-400">{t('demo.banner')}</span>
               <button onClick={toggleDemoMode} className="text-xs text-yellow-700 dark:text-yellow-400 underline hover:no-underline">{t('demo.turnOff')}</button>
             </div>
           )}
-          {!isDemoMode && localStorage.getItem('pt_guest_mode') === 'true' && (
-            <div className="bg-blue-500/10 border-b border-blue-500/25 px-4 py-2 flex items-center justify-between shrink-0">
-              <span className="text-sm font-medium text-blue-700 dark:text-blue-400">{t('guest.banner')}</span>
-              <Link to="/auth?mode=signup" className="text-xs text-blue-700 dark:text-blue-400 underline hover:no-underline">{t('guest.signUp')}</Link>
-            </div>
-          )}
+          <GuestBanner />
           <main className="flex-1 overflow-auto p-4 md:p-6 animate-fade-in">
             <Outlet />
           </main>
 
           {/* Floating quick-add button */}
           <button
-            onClick={() => { setQuickDraft(newQuickProject()); setShowQuickAdd(true); }}
+            onClick={() => {
+              if (isGuest) {
+                fireGuestGate('Create a free account to add your real orders — takes 30 seconds');
+                return;
+              }
+              setQuickDraft(newQuickProject());
+              setShowQuickAdd(true);
+            }}
             className="fixed bottom-6 right-6 z-40 h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-lg hover:bg-primary/90 hover:shadow-xl transition-all flex items-center justify-center"
             aria-label="Quick add project"
           >
@@ -186,6 +214,8 @@ export function Layout() {
           <WelcomeModal />
           {/* PAYMENTS_TODO: <TrialOptInModal /> */}
           <CommandPalette />
+          <GuestWelcomeOverlay />
+          <GuestGateModal />
 
           {/* Quick-add modal */}
           <Dialog open={showQuickAdd} onOpenChange={setShowQuickAdd}>

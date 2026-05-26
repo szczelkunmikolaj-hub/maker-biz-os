@@ -185,7 +185,14 @@ export default function Projects() {
     }
   };
 
+  const fireGuestGate = (message: string) => {
+    document.dispatchEvent(new CustomEvent('guest-gate', { detail: { message } }));
+  };
+
+  const isGuest = localStorage.getItem('pt_guest_mode') === 'true';
+
   const exportCSV = () => {
+    if (isGuest) { fireGuestGate('Create an account to export your data'); return; }
     const header = "Name,Customer,Source,PaymentMethod,Date,Price,Paid,Sent\n";
     const rows = projects.map(p =>
       `"${p.name}","${p.customerName}","${p.customerSource}","${p.paymentMethod || ''}","${p.orderDate}",${p.totalPrice},${p.paid},${p.sent}`
@@ -218,7 +225,7 @@ export default function Projects() {
           </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button size="sm">
+              <Button size="sm" onClick={isGuest ? (e) => { e.preventDefault(); fireGuestGate('Create a free account to add your real orders — takes 30 seconds'); } : undefined}>
                 <Plus className="h-4 w-4 mr-1" />{t('projects.newProject')}
                 <ChevronDown className="h-3 w-3 ml-1 opacity-70" />
               </Button>

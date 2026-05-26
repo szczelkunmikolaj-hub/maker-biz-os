@@ -29,10 +29,20 @@ import MaterialUsageSummary from "@/components/MaterialUsageSummary";
 import ChartGroupingSelect, { type ChartGrouping } from "@/components/ChartGroupingSelect";
 import { usePersistedState } from "@/hooks/usePersistedState";
 import { HelpTip } from "@/components/HelpTip";
+import { useDemo } from "@/context/DemoContext";
 // PAYMENTS_TODO: import { UpgradeModal } from "@/components/UpgradeModal";
 // PAYMENTS_TODO: import { useTier } from "@/context/TierContext";
 import { useState } from "react";
 // PAYMENTS_TODO: import { Lock } from "lucide-react";
+
+function DemoHint({ text }: { text: string }) {
+  return (
+    <span title={text} className="relative ml-1.5 cursor-help inline-flex items-center">
+      <span className="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-primary/50" />
+      <span className="relative inline-flex h-2 w-2 rounded-full bg-primary/70" />
+    </span>
+  );
+}
 
 const COLORS = [
   "hsl(168,60%,38%)", "hsl(220,60%,50%)", "hsl(38,92%,50%)",
@@ -77,6 +87,7 @@ export default function Dashboard() {
   const { filterProjects, filterExpenses, interval, mode } = useMonth();
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const { isDemoMode } = useDemo();
   // PAYMENTS_TODO: const { isPro } = useTier();
   // PAYMENTS_TODO: const [showUpgrade, setShowUpgrade] = useState(false);
 
@@ -338,7 +349,10 @@ export default function Dashboard() {
           </div>
           <div>
             <p className="text-xl font-bold">{activeProjectsCount}</p>
-            <p className="text-xs text-muted-foreground">Active projects</p>
+            <p className="text-xs text-muted-foreground flex items-center">
+              Your orders will show here
+              {isDemoMode && <DemoHint text="Your orders will show here" />}
+            </p>
           </div>
         </div>
         <div className="rounded-xl border bg-card px-4 py-3 flex items-center gap-3">
@@ -347,7 +361,10 @@ export default function Dashboard() {
           </div>
           <div>
             <p className="text-xl font-bold">€{thisMonthRevenue.toFixed(0)}</p>
-            <p className="text-xs text-muted-foreground">Revenue this month</p>
+            <p className="text-xs text-muted-foreground flex items-center">
+              {isDemoMode ? 'Your real revenue will appear here' : 'Revenue this month'}
+              {isDemoMode && <DemoHint text="Your real revenue will appear here" />}
+            </p>
           </div>
         </div>
         <div className="rounded-xl border bg-card px-4 py-3 flex items-center gap-3">

@@ -190,6 +190,10 @@ export default function ProjectDetail({ project, onBack }: Props) {
             <Copy className="h-4 w-4 mr-1" />{t('projectDetail.duplicate')}
           </Button>
           <Button size="sm" variant="outline" className="text-xs gap-1 min-h-[36px]" onClick={() => {
+            if (localStorage.getItem('pt_guest_mode') === 'true') {
+              document.dispatchEvent(new CustomEvent('guest-gate', { detail: { message: 'Sign up free to generate and download invoices' } }));
+              return;
+            }
             setShowInvoice(true); posthog.capture('invoice_generated', { customer_source: p.customerSource });
           }}>
             <FileText className="h-3.5 w-3.5" />{t('invoice.generateBtn')}

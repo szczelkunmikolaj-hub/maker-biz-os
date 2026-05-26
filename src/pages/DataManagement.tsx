@@ -161,11 +161,23 @@ export default function DataManagement() {
           <CardDescription>{t('data.exportDataDesc')}</CardDescription>
         </CardHeader>
         <CardContent className="flex gap-3 flex-wrap">
-          <Button variant="outline" onClick={handleExportCSV} disabled={projects.length === 0}>
+          <Button variant="outline" onClick={() => {
+            if (localStorage.getItem('pt_guest_mode') === 'true') {
+              document.dispatchEvent(new CustomEvent('guest-gate', { detail: { message: 'Create an account to export your data' } }));
+              return;
+            }
+            handleExportCSV();
+          }} disabled={projects.length === 0}>
             <Download className="h-4 w-4 mr-2" />
             {t('data.exportCSV')} ({projects.length} {t('data.projectsWord')})
           </Button>
-          <Button variant="outline" onClick={handleExportJSON} disabled={projects.length === 0}>
+          <Button variant="outline" onClick={() => {
+            if (localStorage.getItem('pt_guest_mode') === 'true') {
+              document.dispatchEvent(new CustomEvent('guest-gate', { detail: { message: 'Create an account to export your data' } }));
+              return;
+            }
+            handleExportJSON();
+          }} disabled={projects.length === 0}>
             <Archive className="h-4 w-4 mr-2" />
             {t('data.exportFullBackup')}
           </Button>

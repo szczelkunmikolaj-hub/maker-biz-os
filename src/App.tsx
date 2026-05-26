@@ -1,3 +1,10 @@
+// Auto-activate demo + guest mode for first-time visitors — runs before React renders
+if (!localStorage.getItem('pt_first_visit_done')) {
+  localStorage.setItem('pt_first_visit_done', 'true');
+  localStorage.setItem('pt_demo_mode', 'true');
+  localStorage.setItem('pt_guest_mode', 'true');
+}
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -28,6 +35,7 @@ import CustomersPage from "@/pages/CustomersPage";
 import AuthPage from "@/pages/Auth";
 import PricingPage from "@/pages/PricingPage";
 import TrustPage from "@/pages/TrustPage";
+import Landing from "@/pages/Landing";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -48,6 +56,7 @@ const App = () => (
                   <Route path="/auth" element={<AuthPage />} />
                   <Route path="/pricing" element={<PricingPage />} />
                   <Route path="/trust" element={<TrustPage />} />
+                  <Route path="/about" element={<Landing />} />
                   <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
                     <Route path="/customer-orders" element={<AdminRoute><CustomerOrdersPage /></AdminRoute>} />
                     <Route path="/projects" element={<Projects />} />
@@ -62,7 +71,7 @@ const App = () => (
                     <Route path="/settings" element={<SettingsPage />} />
                     <Route path="/customers" element={<CustomersPage />} />
                   </Route>
-                  <Route path="/" element={<ProtectedRoute allowLanding><Layout /></ProtectedRoute>}>
+                  <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
                     <Route index element={<Dashboard />} />
                   </Route>
                   <Route path="*" element={<NotFound />} />
