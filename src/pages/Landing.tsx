@@ -194,6 +194,9 @@ export default function Landing() {
         <div className="max-w-6xl mx-auto px-4 py-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
           <span>{t('landing.footer')}</span>
           <div className="flex items-center gap-4">
+            <a href="https://fazier.com" target="_blank" rel="noopener noreferrer">
+              <img src="https://fazier.com/api/v1/public/badges/embed_image.svg?launch_id=YOUR_ID&badge_type=daily" width="270" alt="Fazier badge" />
+            </a>
             <Link to="/trust" className="hover:text-foreground transition-colors">Trust &amp; Privacy</Link>
             <Link to="/auth?mode=signup" className="hover:text-foreground transition-colors">{t('auth.signUpLink')}</Link>
             <Link to="/auth?mode=signin" className="hover:text-foreground transition-colors">{t('auth.logIn')}</Link>
