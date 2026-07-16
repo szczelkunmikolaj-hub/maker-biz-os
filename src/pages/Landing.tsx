@@ -200,6 +200,8 @@ export default function Landing() {
             <Link to="/trust" className="hover:text-foreground transition-colors">Trust &amp; Privacy</Link>
             <Link to="/auth?mode=signup" className="hover:text-foreground transition-colors">{t('auth.signUpLink')}</Link>
             <Link to="/auth?mode=signin" className="hover:text-foreground transition-colors">{t('auth.logIn')}</Link>
+            <span className="text-muted-foreground/40">·</span>
+            <a href="https://nico-portfolio-gold.vercel.app" target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors">Mikołaj Szczełkun</a>
           </div>
         </div>
       </footer>
