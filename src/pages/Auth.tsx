@@ -83,7 +83,7 @@ export default function AuthPage() {
     setBusy(true);
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: 'https://printrack.xyz/' },
+      options: { redirectTo: window.location.origin },
     });
     if (error) { toast.error(t('auth.googleSignInFailed')); setBusy(false); }
   };
