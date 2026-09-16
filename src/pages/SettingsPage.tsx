@@ -8,13 +8,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import posthog from "@/lib/posthog";
 import { useTranslation } from "react-i18next";
-import { FileSpreadsheet, Wand2, MessageSquare, Share2, Check, Zap, ShieldCheck } from "lucide-react";
+import { FileSpreadsheet, Wand2, MessageSquare, Share2, Check, Zap, ShieldCheck, ListPlus } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useTier } from "@/context/TierContext";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { ImportFromSpreadsheet } from "@/components/ImportFromSpreadsheet";
 import { ImportFromAI } from "@/components/ImportFromAI";
+import { QuickAddFromList } from "@/components/QuickAddFromList";
 import { FeedbackModal } from "@/components/FeedbackModal";
 // PAYMENTS_TODO: import { UpgradeModal } from "@/components/UpgradeModal";
 import { useToast } from "@/hooks/useToast";
@@ -32,6 +33,7 @@ export default function SettingsPage() {
   const captureTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [showSpreadsheetImport, setShowSpreadsheetImport] = useState(false);
   const [showAIImport, setShowAIImport] = useState(false);
+  const [showQuickAdd, setShowQuickAdd] = useState(false);
   // PAYMENTS_TODO: const [showUpgrade, setShowUpgrade] = useState(false);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
@@ -267,6 +269,9 @@ export default function SettingsPage() {
             <Button variant="outline" onClick={() => setShowSpreadsheetImport(true)}>
               <FileSpreadsheet className="h-4 w-4 mr-1" />{t('settings.importFromSpreadsheet')}
             </Button>
+            <Button variant="outline" onClick={() => setShowQuickAdd(true)}>
+              <ListPlus className="h-4 w-4 mr-1" />Quick Add from List
+            </Button>
             <Button variant="outline" onClick={() => setShowAIImport(true)}>
               <Wand2 className="h-4 w-4 mr-1" />{t('settings.importFromAI')}
             </Button>
@@ -307,6 +312,11 @@ export default function SettingsPage() {
       <ImportFromSpreadsheet
         open={showSpreadsheetImport}
         onClose={() => setShowSpreadsheetImport(false)}
+        onImport={handleBulkImport}
+      />
+      <QuickAddFromList
+        open={showQuickAdd}
+        onClose={() => setShowQuickAdd(false)}
         onImport={handleBulkImport}
       />
       <ImportFromAI
