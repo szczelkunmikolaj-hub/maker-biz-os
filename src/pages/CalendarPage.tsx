@@ -59,7 +59,7 @@ export default function CalendarPage() {
   const { t } = useTranslation();
 
   const EVENT_CONFIG: EventConfig = {
-    'order-created':        { label: t('calendar.orderCreated'),       color: 'hsl(220, 60%, 50%)',  bgClass: 'bg-blue-500/15 border-blue-500/30',      textClass: 'text-blue-700 dark:text-blue-400',    icon: Package },
+    'order-created':        { label: t('calendar.orderCreated'),       color: 'hsl(200, 70%, 50%)',  bgClass: 'bg-sky-500/15 border-sky-500/30',        textClass: 'text-sky-700 dark:text-sky-400',      icon: Package },
     'printing-scheduled':   { label: t('calendar.printingScheduled'),  color: 'hsl(25, 90%, 50%)',   bgClass: 'bg-orange-500/15 border-orange-500/30',  textClass: 'text-orange-700 dark:text-orange-400', icon: Printer },
     'printing-in-progress': { label: t('calendar.printing'),           color: 'hsl(45, 90%, 50%)',   bgClass: 'bg-yellow-500/15 border-yellow-500/30',  textClass: 'text-yellow-700 dark:text-yellow-400', icon: Clock },
     'completed':            { label: t('calendar.completed'),          color: 'hsl(142, 60%, 40%)',  bgClass: 'bg-emerald-500/15 border-emerald-500/30', textClass: 'text-emerald-700 dark:text-emerald-400', icon: CheckCircle2 },

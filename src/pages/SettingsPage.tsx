@@ -148,6 +148,17 @@ export default function SettingsPage() {
             <p className="text-xs text-muted-foreground mt-1">{t('settings.printerCountDesc')}</p>
           </div>
           <div>
+            <Label>Printer model(s)</Label>
+            <Input
+              placeholder="e.g. Bambu X1C, Prusa MK4"
+              value={settings.printerModels || ""}
+              onChange={e => update('printerModels', e.target.value)}
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              Comma-separated if you have multiple. Used as a reference in imports and print notes.
+            </p>
+          </div>
+          <div>
             <Label>{t('settings.bufferMinutes')}</Label>
             <Input type="number" min="0" step="5" value={settings.bufferMinutes}
               onChange={e => update('bufferMinutes', Math.max(0, parseInt(e.target.value) || 0))} />

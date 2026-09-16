@@ -15,7 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
-import { Plus, Search, Download, ArrowUpDown, Printer, Package, Clock, Calendar, CreditCard, Sparkles, Upload, ChevronDown, FileSpreadsheet, Wand2, BookTemplate, Trash2, Zap, Users, LayoutGrid } from "lucide-react";
+import { Plus, Search, Download, ArrowUpDown, Printer, Package, Clock, Calendar, CreditCard, Sparkles, Upload, ChevronDown, FileSpreadsheet, Wand2, BookTemplate, Trash2, Zap, Users, LayoutGrid, MoreHorizontal, Pencil, Copy } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import ProjectDetail from "@/components/ProjectDetail";
 import { parseISO, isBefore, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval } from "date-fns";
@@ -57,7 +57,7 @@ function newProject(): Project {
 }
 
 export default function Projects() {
-  const { projects, addProject, updateProject, templates, addTemplate, deleteTemplate } = useApp();
+  const { projects, addProject, updateProject, deleteProject, templates, addTemplate, deleteTemplate } = useApp();
   const { filterProjectsForWorkflow, mode } = useMonth();
   const { t } = useTranslation();
   // PAYMENTS_TODO: const { isPro, canAddProject } = useTier();
@@ -74,6 +74,7 @@ export default function Projects() {
   const [appendTargetId, setAppendTargetId] = useState<string | null>(null);
   const [showSpreadsheetImport, setShowSpreadsheetImport] = useState(false);
   const [showAIImport, setShowAIImport] = useState(false);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   // PAYMENTS_TODO: const [showUpgrade, setShowUpgrade] = useState(false);
   // PAYMENTS_TODO: const [upgradeFeature, setUpgradeFeature] = useState<'excel_csv_import' | 'templates'>('excel_csv_import');
   // PAYMENTS_TODO: const [showProjectLimit, setShowProjectLimit] = useState(false);
@@ -183,6 +184,30 @@ export default function Projects() {
         customer_source: proj.customerSource,
       });
     }
+  };
+
+  const duplicateProject = (p: Project) => {
+    addProject({
+      ...p,
+      id: crypto.randomUUID(),
+      name: `${p.name} (Copy)`,
+      printed: false,
+      paid: false,
+      sent: false,
+      shippingDate: "",
+      kanbanStatus: "new-order",
+      completedAt: "",
+      paidAt: "",
+      stripePaymentLinkId: undefined,
+      stripePaymentLinkUrl: undefined,
+      prints: (p.prints || []).map(pr => ({
+        ...pr,
+        id: crypto.randomUUID(),
+        status: "not-printed" as const,
+        completedQuantity: 0,
+      })),
+      projectExpenses: (p.projectExpenses || []).map(e => ({ ...e, id: crypto.randomUUID() })),
+    });
   };
 
   const fireGuestGate = (message: string) => {
@@ -411,7 +436,34 @@ export default function Projects() {
                         <p className="text-xs text-muted-foreground truncate">{p.customerName}</p>
                       </div>
                     </div>
-                    <StatusPill status={status} className="shrink-0" />
+                    <div className="flex items-center gap-1 shrink-0" onClick={e => e.stopPropagation()}>
+                      <StatusPill status={status} />
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <button
+                            className="h-6 w-6 flex items-center justify-center rounded hover:bg-accent transition-colors text-muted-foreground hover:text-foreground"
+                            title="More options"
+                          >
+                            <MoreHorizontal className="h-3.5 w-3.5" />
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-40">
+                          <DropdownMenuItem onClick={() => handleSelectProject(p.id)}>
+                            <Pencil className="h-3.5 w-3.5 mr-2" />Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => duplicateProject(p)}>
+                            <Copy className="h-3.5 w-3.5 mr-2" />Duplicate
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            onClick={() => setConfirmDeleteId(p.id)}
+                            className="text-destructive focus:text-destructive"
+                          >
+                            <Trash2 className="h-3.5 w-3.5 mr-2" />Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
                   </div>
 
                   {/* Price */}
@@ -645,6 +697,30 @@ export default function Projects() {
             </div>
           </div>
           <DialogFooter><Button onClick={handleAddTemplate}>{t('templates.saveTemplate')}</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete confirmation dialog */}
+      <Dialog open={!!confirmDeleteId} onOpenChange={open => { if (!open) setConfirmDeleteId(null); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Delete project?</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            "{projects.find(p => p.id === confirmDeleteId)?.name}" will be permanently deleted. This cannot be undone.
+          </p>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setConfirmDeleteId(null)}>Cancel</Button>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                if (confirmDeleteId) deleteProject(confirmDeleteId);
+                setConfirmDeleteId(null);
+              }}
+            >
+              Delete
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </Tabs>

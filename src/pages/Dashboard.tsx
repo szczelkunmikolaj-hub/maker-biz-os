@@ -89,7 +89,7 @@ function buildBuckets(grouping: ChartGrouping, interval: { start: Date; end: Dat
 
 export default function Dashboard() {
   const { projects, expenses, totalFilamentPurchasesCost } = useApp();
-  const { filterProjects, filterExpenses, interval, mode } = useMonth();
+  const { filterProjects, filterExpenses, interval, mode, label: periodLabel } = useMonth();
   const navigate = useNavigate();
   const { t } = useTranslation();
   const { isDemoMode } = useDemo();
@@ -317,21 +317,8 @@ export default function Dashboard() {
     return { ordersReceived: weekProjects.length, shipped: shipped.length, revenue, hours };
   }, [projects, today]);
 
-  // Active projects count (not fully done)
-  const activeProjectsCount = projects.filter(p => !p.paid || !p.sent).length;
-  // Revenue this month
-  const thisMonthRevenue = useMemo(() => {
-    const ms = startOfMonth(today);
-    const me = endOfMonth(today);
-    return projects.filter(p => {
-      if (!p.paid || !p.sent) return false;
-      const ds = p.shippingDate || p.orderDate;
-      if (!ds) return false;
-      try { return isWithinInterval(parseISO(ds), { start: ms, end: me }); } catch { return false; }
-    }).reduce((s, p) => s + (p.totalPrice || 0), 0);
-  }, [projects, today]);
-  // Hours printed this week
-  const thisWeekHours = thisWeekStats.hours;
+  // Top 3 stat cards — all use filteredProjects so they respect the selected period
+  const activeProjectsCount = filteredProjects.filter(p => !p.paid || !p.sent).length;
 
   return (
     <div className="space-y-6">
@@ -346,7 +333,7 @@ export default function Dashboard() {
         </p>
       </div>
 
-      {/* Quick stats bar */}
+      {/* Quick stats bar — all three respect the selected period */}
       <div className="grid grid-cols-3 gap-3">
         <div className="rounded-xl border bg-card px-4 py-3 flex items-center gap-3">
           <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
@@ -355,7 +342,7 @@ export default function Dashboard() {
           <div>
             <p className="text-xl font-bold">{activeProjectsCount}</p>
             <p className="text-xs text-muted-foreground flex items-center">
-              Your orders will show here
+              {isDemoMode ? 'Your orders will show here' : 'Active orders'}
               {isDemoMode && <DemoHint text="Your orders will show here" />}
             </p>
           </div>
@@ -365,20 +352,20 @@ export default function Dashboard() {
             <DollarSign className="h-4 w-4 text-emerald-600" />
           </div>
           <div>
-            <p className="text-xl font-bold">€{thisMonthRevenue.toFixed(0)}</p>
+            <p className="text-xl font-bold">€{stats.totalRevenue.toFixed(0)}</p>
             <p className="text-xs text-muted-foreground flex items-center">
-              {isDemoMode ? 'Your real revenue will appear here' : 'Revenue this month'}
+              {isDemoMode ? 'Your real revenue will appear here' : `Revenue · ${periodLabel}`}
               {isDemoMode && <DemoHint text="Your real revenue will appear here" />}
             </p>
           </div>
         </div>
         <div className="rounded-xl border bg-card px-4 py-3 flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center shrink-0">
-            <Clock className="h-4 w-4 text-blue-600" />
+          <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+            <Clock className="h-4 w-4 text-primary" />
           </div>
           <div>
-            <p className="text-xl font-bold">{thisWeekHours.toFixed(1)}h</p>
-            <p className="text-xs text-muted-foreground">Hours this week</p>
+            <p className="text-xl font-bold">{stats.totalHoursPrinted.toFixed(1)}h</p>
+            <p className="text-xs text-muted-foreground">Hours printed · {periodLabel}</p>
           </div>
         </div>
       </div>
@@ -451,7 +438,7 @@ export default function Dashboard() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[
           { label: "Orders received", value: thisWeekStats.ordersReceived, icon: Package, color: "text-primary" },
-          { label: "Shipped", value: thisWeekStats.shipped, icon: Zap, color: "text-blue-600" },
+          { label: "Shipped", value: thisWeekStats.shipped, icon: Zap, color: "text-sky-600" },
           { label: "Revenue", value: `€${thisWeekStats.revenue.toFixed(2)}`, icon: DollarSign, color: "text-emerald-600" },
           { label: "Hours printed", value: `${thisWeekStats.hours.toFixed(1)}h`, icon: Clock, color: "text-purple-600" },
         ].map(s => (

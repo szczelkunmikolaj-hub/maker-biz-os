@@ -11,7 +11,7 @@ import { Printer, Bell, ChevronRight } from "lucide-react";
 const TOTAL_STEPS = 3;
 
 export function OnboardingWizard() {
-  const { settings, updateSettings } = useApp();
+  const { settings, updateSettings, loading } = useApp();
   const { user } = useAuth();
   const { isDemoMode } = useDemo();
 
@@ -23,7 +23,10 @@ export function OnboardingWizard() {
   );
 
   const isGuest = localStorage.getItem("pt_guest_mode") === "true";
-  const isOpen = !!(user && !isDemoMode && !isGuest && !settings.onboardingCompleted);
+  // Don't open until settings have finished loading from Supabase — prevents
+  // a false-positive open during the async load while onboardingCompleted is
+  // still undefined in the DEFAULT_SETTINGS initial state.
+  const isOpen = !!(user && !isDemoMode && !isGuest && !loading && !settings.onboardingCompleted);
 
   const finish = (skipped = false) => {
     updateSettings({

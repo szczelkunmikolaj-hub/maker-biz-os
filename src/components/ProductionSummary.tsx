@@ -32,7 +32,7 @@ export default function ProductionSummary() {
     moderate: {
       label: t('production.moderateLoad'),
       emoji: "🟡",
-      color: "hsl(38, 92%, 50%)",
+      color: "hsl(var(--warning))",
       badgeClass: "bg-yellow-500/15 text-yellow-700 dark:text-yellow-400 border-yellow-500/30",
       accept: t('production.acceptMaybe'),
       acceptLabel: t('production.acceptCarefullyLabel'),
