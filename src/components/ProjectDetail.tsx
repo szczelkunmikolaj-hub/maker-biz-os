@@ -53,7 +53,7 @@ export default function ProjectDetail({ project, onBack }: Props) {
   const [showTemplates, setShowTemplates] = useState(false);
   const [showInvoice, setShowInvoice] = useState(false);
   const [trackingCopied, setTrackingCopied] = useState(false);
-  const [paymentLinkUrl, setPaymentLinkUrl] = useState(p.stripePaymentLinkUrl || "");
+  const [paymentLinkUrl, setPaymentLinkUrl] = useState(project.stripePaymentLinkUrl || "");
   const [paymentLinkCopied, setPaymentLinkCopied] = useState(false);
   const [paymentLinkLoading, setPaymentLinkLoading] = useState(false);
   // PAYMENTS_TODO: const [showUpgrade, setShowUpgrade] = useState(false);

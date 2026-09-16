@@ -27,15 +27,18 @@ export function OnboardingWizard() {
   // a false-positive open during the async load while onboardingCompleted is
   // still undefined in the DEFAULT_SETTINGS initial state.
   const isOpen = !!(user && !isDemoMode && !isGuest && !loading && !settings.onboardingCompleted);
+  console.log('[OnboardingWizard] isOpen check:', { isOpen, loading, onboardingCompleted: settings.onboardingCompleted, hasUser: !!user, isDemoMode, isGuest });
 
   const finish = (skipped = false) => {
-    updateSettings({
+    const updated = {
       ...settings,
       printerCount: skipped ? settings.printerCount : printerCount,
       printerModels: skipped ? settings.printerModels : printerModels,
       notificationEmail: skipped ? settings.notificationEmail : notificationEmail,
       onboardingCompleted: true,
-    });
+    };
+    console.log('[OnboardingWizard] finish() — saving onboardingCompleted: true', { skipped, settings: updated });
+    updateSettings(updated);
   };
 
   const next = () => {

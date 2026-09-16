@@ -123,7 +123,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         let nextExpenses = (exs.data || []).map(r => r.data as unknown as Expense);
         let nextTemplates = (tps.data || []).map(r => r.data as unknown as PrintTemplate);
         let nextFilament = (fps.data || []).map(r => r.data as unknown as FilamentPurchase);
-        let nextSettings: AppSettings = (st.data?.data as unknown as AppSettings) || DEFAULT_SETTINGS;
+        // Use Supabase settings if present; fall back to localStorage cache rather than DEFAULT_SETTINGS
+        // so that flags like onboardingCompleted survive if the Supabase row is temporarily missing.
+        const cachedSettings = loadJSON<AppSettings | null>('pt_settings', null);
+        let nextSettings: AppSettings = (st.data?.data as unknown as AppSettings) || cachedSettings || DEFAULT_SETTINGS;
 
         // Fetch profile separately — columns may not exist in all deployments, so we fall back gracefully
         let profileLang: string | undefined;
