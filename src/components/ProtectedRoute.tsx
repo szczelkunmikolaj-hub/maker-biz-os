@@ -11,7 +11,13 @@ function hasOAuthHash() {
          window.location.hash.includes('error_description');
 }
 
-export function ProtectedRoute({ children }: { children: React.ReactNode }) {
+export function ProtectedRoute({
+  children,
+  fallback,
+}: {
+  children: React.ReactNode;
+  fallback?: React.ReactNode;
+}) {
   const { session, loading } = useAuth();
   const location = useLocation();
 
@@ -23,6 +29,8 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
   if (!session) {
     const isGuest = localStorage.getItem('pt_guest_mode') === 'true';
     if (isGuest) return <>{children}</>;
+    // Show fallback (e.g. landing page) instead of redirecting when one is provided
+    if (fallback) return <>{fallback}</>;
     return <Navigate to="/auth?mode=signup" state={{ from: location }} replace />;
   }
   // Authenticated — clear any lingering guest flag synchronously before children render

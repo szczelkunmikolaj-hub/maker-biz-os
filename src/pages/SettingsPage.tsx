@@ -121,6 +121,20 @@ export default function SettingsPage() {
               onChange={e => update('filamentCostPerGram', parseFloat(e.target.value) || 0)} />
             <p className="text-xs text-muted-foreground mt-1">{t('settings.filamentCostDefault')}</p>
           </div>
+          <div>
+            <Label>Target profit margin (%)</Label>
+            <Input
+              type="number"
+              min={0}
+              max={99}
+              step={1}
+              value={settings.targetMarginPercent ?? 40}
+              onChange={e => update('targetMarginPercent', Math.min(99, Math.max(0, parseFloat(e.target.value) || 0)))}
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              Used as the default in the quote calculator. Suggested price = cost ÷ (1 − margin%).
+            </p>
+          </div>
         </CardContent>
       </Card>
 

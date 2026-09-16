@@ -34,6 +34,7 @@ import { useDemo } from "@/context/DemoContext";
 // PAYMENTS_TODO: import { useTier } from "@/context/TierContext";
 import { useState } from "react";
 // PAYMENTS_TODO: import { Lock } from "lucide-react";
+import { ActivationChecklist } from "@/components/ActivationChecklist";
 
 function DemoHint({ text }: { text: string }) {
   return (
@@ -45,8 +46,12 @@ function DemoHint({ text }: { text: string }) {
 }
 
 const COLORS = [
-  "hsl(168,60%,38%)", "hsl(220,60%,50%)", "hsl(38,92%,50%)",
-  "hsl(280,60%,50%)", "hsl(0,72%,51%)", "hsl(120,40%,45%)",
+  "hsl(28,90%,55%)",   // amber — primary
+  "hsl(200,70%,50%)",  // steel blue
+  "hsl(142,55%,45%)",  // green
+  "hsl(280,60%,58%)",  // purple
+  "hsl(0,72%,51%)",    // red
+  "hsl(45,95%,52%)",   // yellow
 ];
 
 // Helper: build time buckets for a given grouping and interval
@@ -229,8 +234,8 @@ export default function Dashboard() {
 
   const statusDistribution = useMemo(() => {
     return [
-      { name: t('dashboard.completed'), value: stats.completedProjects, color: "hsl(168,60%,38%)" },
-      { name: t('dashboard.active'), value: stats.activeProjects, color: "hsl(220,60%,50%)" },
+      { name: t('dashboard.completed'), value: stats.completedProjects, color: "hsl(142,55%,45%)" },
+      { name: t('dashboard.active'), value: stats.activeProjects, color: "hsl(28,90%,55%)" },
       { name: t('dashboard.overdue'), value: stats.overdueProjects, color: "hsl(0,72%,51%)" },
     ].filter(d => d.value > 0);
   }, [stats, t]);
@@ -377,6 +382,8 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+
+      <ActivationChecklist />
 
       {noData && (
         <Card><CardContent className="p-8 text-center space-y-4">
@@ -595,7 +602,7 @@ export default function Dashboard() {
                   <XAxis dataKey="label" className="text-xs" tick={{ fontSize: 11 }} />
                   <YAxis className="text-xs" tick={{ fontSize: 11 }} />
                   <Tooltip contentStyle={tooltipStyle} />
-                  <Line type="monotone" dataKey="revenue" stroke="hsl(220,60%,50%)" strokeWidth={2} dot={{ r: 3 }} name={`${t('dashboard.revenue')} (€)`} />
+                  <Line type="monotone" dataKey="revenue" stroke="hsl(28,90%,55%)" strokeWidth={2} dot={{ r: 3 }} name={`${t('dashboard.revenue')} (€)`} />
                 </LineChart>
               </ResponsiveContainer>
             )}
@@ -620,7 +627,7 @@ export default function Dashboard() {
                   <YAxis className="text-xs" tick={{ fontSize: 11 }} />
                   <Tooltip contentStyle={tooltipStyle} />
                   <Legend wrapperStyle={{ fontSize: 12 }} />
-                  <Bar dataKey="profit" fill="hsl(168,60%,38%)" radius={[4, 4, 0, 0]} name={t('dashboard.netProfit')} />
+                  <Bar dataKey="profit" fill="hsl(142,60%,42%)" radius={[4, 4, 0, 0]} name={t('dashboard.netProfit')} />
                   <Bar dataKey="expenses" fill="hsl(0,72%,51%)" radius={[4, 4, 0, 0]} name={t('dashboard.expenses')} />
                 </BarChart>
               </ResponsiveContainer>
@@ -648,7 +655,7 @@ export default function Dashboard() {
                   <XAxis dataKey="label" className="text-xs" tick={{ fontSize: 11 }} />
                   <YAxis className="text-xs" tick={{ fontSize: 11 }} />
                   <Tooltip contentStyle={tooltipStyle} />
-                  <Line type="monotone" dataKey="hours" stroke="hsl(38,92%,50%)" strokeWidth={2} dot={{ r: 3 }} name={t('dashboard.hoursPrinted')} />
+                  <Line type="monotone" dataKey="hours" stroke="hsl(200,70%,50%)" strokeWidth={2} dot={{ r: 3 }} name={t('dashboard.hoursPrinted')} />
                 </LineChart>
               </ResponsiveContainer>
             )}
@@ -720,7 +727,7 @@ export default function Dashboard() {
                     <XAxis type="number" className="text-xs" tick={{ fontSize: 11 }} />
                     <YAxis type="category" dataKey="name" className="text-xs" width={80} tick={{ fontSize: 11 }} />
                     <Tooltip contentStyle={tooltipStyle} />
-                    <Bar dataKey="revenue" fill="hsl(168,60%,38%)" radius={[0, 4, 4, 0]} name={`${t('dashboard.revenue')} (€)`} />
+                    <Bar dataKey="revenue" fill="hsl(28,90%,55%)" radius={[0, 4, 4, 0]} name={`${t('dashboard.revenue')} (€)`} />
                   </BarChart>
                 </ResponsiveContainer>
               );

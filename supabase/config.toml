@@ -1,1 +1,20 @@
 project_id = "xehfqgudwdlswglgarfa"
+
+# ── Edge functions ────────────────────────────────────────────────────────────
+# Public: no login required — disable JWT guard so unauthenticated callers pass through.
+[functions.get-project-tracking]
+verify_jwt = false
+
+[functions.create-quote-request]
+verify_jwt = false
+
+# Stripe sends no JWT — must disable the guard so the webhook reaches our handler.
+[functions.stripe-webhook]
+verify_jwt = false
+
+# Auth-required: called from the authenticated app, JWT guard stays on.
+[functions.create-payment-link]
+verify_jwt = true
+
+[functions.notify-shipped]
+verify_jwt = true

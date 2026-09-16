@@ -23,14 +23,28 @@ export default function QuoteGenerator({ isPublic = false }: { isPublic?: boolea
   const [hours, setHours] = useState(2);
   const [electricityRate, setElectricityRate] = useState(0.10);
   const [labourRate, setLabourRate] = useState(0);
-  const [margin, setMargin] = useState(20);
+  const [margin, setMargin] = useState(settings.targetMarginPercent ?? 40);
 
-  // For logged-in users, sync filament cost from settings on first load
+  // Mark quote calculator as visited for the activation checklist
   useEffect(() => {
-    if (!isPublic && settings.filamentCostPerGram > 0) {
-      setFilamentCostKg(Math.round(settings.filamentCostPerGram * 1000 * 100) / 100);
+    if (!isPublic && localStorage.getItem("pt_guest_mode") !== "true") {
+      localStorage.setItem("pt_checklist_visited_quote", "true");
     }
-  }, [settings.filamentCostPerGram, isPublic]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // For logged-in users, sync filament cost and target margin from settings on first load
+  useEffect(() => {
+    if (!isPublic) {
+      if (settings.filamentCostPerGram > 0) {
+        setFilamentCostKg(Math.round(settings.filamentCostPerGram * 1000 * 100) / 100);
+      }
+      if (settings.targetMarginPercent != null) {
+        setMargin(settings.targetMarginPercent);
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [settings.filamentCostPerGram, settings.targetMarginPercent, isPublic]);
 
   const avgFilamentCostFromPurchases = (() => {
     if (!filamentPurchases || filamentPurchases.length === 0) return null;
@@ -236,6 +250,7 @@ export default function QuoteGenerator({ isPublic = false }: { isPublic?: boolea
             <CardTitle className="text-base">{t('quote.quoteResult')}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
+            {/* Cost breakdown */}
             <div className="space-y-2.5">
               <div className="flex justify-between items-center">
                 <span className="text-sm text-muted-foreground">{t('quote.materialCost')}</span>
@@ -260,6 +275,15 @@ export default function QuoteGenerator({ isPublic = false }: { isPublic?: boolea
 
             <Separator />
 
+            {/* Margin formula chain */}
+            <div className="rounded-lg bg-muted/40 border px-3 py-2.5 text-xs text-muted-foreground space-y-1">
+              <p className="font-medium text-foreground">How the price is calculated</p>
+              <p>Raw cost = €{totalCost.toFixed(2)}</p>
+              <p>Target margin = {margin}%</p>
+              <p className="font-mono">Suggested = €{totalCost.toFixed(2)} ÷ (1 − {margin}%) = <span className="text-primary font-semibold">€{isFinite(suggestedPrice) && suggestedPrice >= 0 ? suggestedPrice.toFixed(2) : "—"}</span></p>
+            </div>
+
+            {/* Suggested price box */}
             <div className="rounded-xl bg-primary/5 border border-primary/20 p-4 space-y-3">
               <div className="flex justify-between items-center">
                 <span className="font-semibold">{t('quote.suggestedPrice')}</span>
@@ -274,7 +298,7 @@ export default function QuoteGenerator({ isPublic = false }: { isPublic?: boolea
                 </span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">{t('quote.profitMargin')}</span>
+                <span className="text-sm text-muted-foreground">Actual margin</span>
                 <span className="font-mono font-semibold text-primary">
                   {isFinite(profitMarginActual) ? profitMarginActual.toFixed(1) : "—"}%
                 </span>

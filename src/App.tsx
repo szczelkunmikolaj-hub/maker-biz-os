@@ -1,22 +1,3 @@
-// Visitor classification — runs synchronously before React renders so every component
-// sees the correct flags from the very first render.
-if (!localStorage.getItem('pt_first_visit_done')) {
-  // ── Brand-new visitor ───────────────────────────────────────────────────────
-  // Drop them straight into the live demo with sample data.
-  localStorage.setItem('pt_first_visit_done', 'true');
-  localStorage.setItem('pt_demo_mode', 'true');
-  localStorage.setItem('pt_guest_mode', 'true');
-  localStorage.setItem('pt_live_demo', 'true');
-  // Pre-dismiss the blocking welcome overlay so they land on the populated dashboard
-  localStorage.setItem('pt_welcome_dismissed', 'true');
-} else if (localStorage.getItem('pt_guest_mode') === 'true') {
-  // ── Returning guest ─────────────────────────────────────────────────────────
-  // They've been here before. Clear the "new visitor" live-demo intro bar so they
-  // land directly in their own workspace (or the demo without the splash prompt).
-  localStorage.setItem('pt_returning', 'true');
-  localStorage.removeItem('pt_live_demo');
-}
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -48,7 +29,10 @@ import AuthPage from "@/pages/Auth";
 import PricingPage from "@/pages/PricingPage";
 import TrustPage from "@/pages/TrustPage";
 import Landing from "@/pages/Landing";
+import LandingPage from "@/pages/LandingPage";
 import CreatorPage from "@/pages/CreatorPage";
+import TrackOrderPage from "@/pages/TrackOrderPage";
+import PublicQuotePage from "@/pages/PublicQuotePage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -67,6 +51,8 @@ const App = () => (
                 <Sonner />
                 <Routes>
                   <Route path="/auth" element={<AuthPage />} />
+                  <Route path="/track/:projectId" element={<TrackOrderPage />} />
+                  <Route path="/public-quote" element={<PublicQuotePage />} />
                   <Route path="/pricing" element={<PricingPage />} />
                   <Route path="/trust" element={<TrustPage />} />
                   <Route path="/about" element={<Landing />} />
@@ -85,7 +71,7 @@ const App = () => (
                     <Route path="/settings" element={<SettingsPage />} />
                     <Route path="/customers" element={<CustomersPage />} />
                   </Route>
-                  <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
+                  <Route path="/" element={<ProtectedRoute fallback={<LandingPage />}><Layout /></ProtectedRoute>}>
                     <Route index element={<Dashboard />} />
                   </Route>
                   <Route path="*" element={<NotFound />} />

@@ -77,6 +77,12 @@ export interface Project {
   originalFileName?: string;
   /** Cover thumbnail (data URL) auto-extracted from .3mf import. */
   coverThumbnail?: string;
+  /** Customer email for shipping notifications and Stripe receipts. */
+  customerEmail?: string;
+  /** Stripe Payment Link ID stored after generating a payment link. */
+  stripePaymentLinkId?: string;
+  /** Stripe Payment Link URL stored after generating a payment link. */
+  stripePaymentLinkUrl?: string;
 }
 
 /** Get the effective date for analytics: shippingDate > completedAt > paidAt > orderDate */
@@ -113,6 +119,12 @@ export interface AppSettings {
   businessAddress?: string;
   invoicePrefix?: string;
   currency?: string;
+  // Onboarding
+  printerModels?: string;
+  notificationEmail?: string;
+  onboardingCompleted?: boolean;
+  // Quote calculator
+  targetMarginPercent?: number;
 }
 
 export const CURRENCIES = [

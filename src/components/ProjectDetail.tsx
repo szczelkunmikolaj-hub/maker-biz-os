@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { ArrowLeft, Plus, Trash2, Copy, BookTemplate, Calendar, Kanban, Receipt, RefreshCw, ArrowUp, ArrowDown, Box, X, MoveRight, FileText } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Copy, BookTemplate, Calendar, Kanban, Receipt, RefreshCw, ArrowUp, ArrowDown, Box, X, MoveRight, FileText, Link2, CreditCard, Check, Loader2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { PlateImporter } from "@/components/PlateImporter";
 import { RecurringBadge } from "@/components/RecurringBadge";
@@ -28,6 +28,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import type { PrintModel } from "@/types";
 import { InvoiceModal } from "@/components/InvoicePDF";
+import { supabase } from "@/integrations/supabase/client";
+import { PAYMENTS_ENABLED } from "@/config/features";
 // PAYMENTS_TODO: import { UpgradeModal } from "@/components/UpgradeModal";
 // PAYMENTS_TODO: import { useTier } from "@/context/TierContext";
 // PAYMENTS_TODO: import { Lock } from "lucide-react";
@@ -50,6 +52,10 @@ export default function ProjectDetail({ project, onBack }: Props) {
   const { t } = useTranslation();
   const [showTemplates, setShowTemplates] = useState(false);
   const [showInvoice, setShowInvoice] = useState(false);
+  const [trackingCopied, setTrackingCopied] = useState(false);
+  const [paymentLinkUrl, setPaymentLinkUrl] = useState(p.stripePaymentLinkUrl || "");
+  const [paymentLinkCopied, setPaymentLinkCopied] = useState(false);
+  const [paymentLinkLoading, setPaymentLinkLoading] = useState(false);
   // PAYMENTS_TODO: const [showUpgrade, setShowUpgrade] = useState(false);
   // PAYMENTS_TODO: const { isPro } = useTier();
 
@@ -141,6 +147,41 @@ export default function ProjectDetail({ project, onBack }: Props) {
     });
   };
 
+  const copyTrackingLink = () => {
+    const url = `${window.location.origin}/track/${p.id}`;
+    navigator.clipboard.writeText(url).then(() => {
+      localStorage.setItem("pt_checklist_copied_tracking", "true");
+      setTrackingCopied(true);
+      setTimeout(() => setTrackingCopied(false), 2500);
+    });
+  };
+
+  const generatePaymentLink = async () => {
+    setPaymentLinkLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("create-payment-link", {
+        body: { projectId: p.id, projectName: p.name, amount: effectiveTotal },
+      });
+      if (error) throw error;
+      if (data?.url) {
+        setPaymentLinkUrl(data.url);
+        save({ ...p, stripePaymentLinkUrl: data.url, stripePaymentLinkId: data.paymentLinkId });
+      }
+    } catch (err) {
+      console.error("[stripe] payment link error:", err);
+      alert("Failed to generate payment link. Check that the create-payment-link edge function is deployed and STRIPE_SECRET_KEY is set.");
+    } finally {
+      setPaymentLinkLoading(false);
+    }
+  };
+
+  const copyPaymentLink = () => {
+    navigator.clipboard.writeText(paymentLinkUrl).then(() => {
+      setPaymentLinkCopied(true);
+      setTimeout(() => setPaymentLinkCopied(false), 2500);
+    });
+  };
+
   // Auto-calculate total from piece prices
   const piecesTotal = getProjectPiecesTotal(p);
   const autoCalcTotal = piecesTotal > 0;
@@ -198,6 +239,28 @@ export default function ProjectDetail({ project, onBack }: Props) {
           }}>
             <FileText className="h-3.5 w-3.5" />{t('invoice.generateBtn')}
           </Button>
+          <Button size="sm" variant="outline" className="text-xs gap-1 min-h-[36px]" onClick={copyTrackingLink}>
+            {trackingCopied ? <Check className="h-3.5 w-3.5 text-green-600" /> : <Link2 className="h-3.5 w-3.5" />}
+            {trackingCopied ? "Copied!" : "Tracking link"}
+          </Button>
+          {PAYMENTS_ENABLED && (!paymentLinkUrl ? (
+            <Button
+              size="sm"
+              variant="outline"
+              className="text-xs gap-1 min-h-[36px]"
+              onClick={generatePaymentLink}
+              disabled={paymentLinkLoading || effectiveTotal <= 0}
+              title={effectiveTotal <= 0 ? "Set a project price first" : "Generate a Stripe payment link"}
+            >
+              {paymentLinkLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CreditCard className="h-3.5 w-3.5" />}
+              Send payment link
+            </Button>
+          ) : (
+            <Button size="sm" variant="outline" className="text-xs gap-1 min-h-[36px]" onClick={copyPaymentLink}>
+              {paymentLinkCopied ? <Check className="h-3.5 w-3.5 text-green-600" /> : <CreditCard className="h-3.5 w-3.5" />}
+              {paymentLinkCopied ? "Copied!" : "Copy payment link"}
+            </Button>
+          ))}
         </div>
       </div>
 
@@ -275,6 +338,7 @@ export default function ProjectDetail({ project, onBack }: Props) {
             <Input type="number" step="0.01" value={autoCalcTotal ? piecesTotal.toFixed(2) : (p.totalPrice || "")} onChange={e => set({ totalPrice: parseFloat(e.target.value) || 0 })} readOnly={autoCalcTotal} className={autoCalcTotal ? "bg-muted" : ""} />
           </div>
           <div><Label>{t('projectDetail.shippingDate')}</Label><Input type="date" value={p.shippingDate} onChange={e => set({ shippingDate: e.target.value })} /></div>
+          <div><Label>Customer email</Label><Input type="email" value={p.customerEmail || ""} onChange={e => set({ customerEmail: e.target.value })} placeholder="customer@example.com" /></div>
           <div className="md:col-span-2"><Label>{t('projectDetail.notes')}</Label><Textarea value={p.notes} onChange={e => set({ notes: e.target.value })} /></div>
           <div className="flex gap-6 md:col-span-2 flex-wrap">
             {(["printed", "paid", "sent"] as const).map(field => (
@@ -479,6 +543,27 @@ export default function ProjectDetail({ project, onBack }: Props) {
           ))}
         </CardContent>
       </Card>
+
+      {PAYMENTS_ENABLED && paymentLinkUrl && (
+        <div className="rounded-lg border bg-muted/30 p-4 space-y-2">
+          <p className="text-sm font-medium flex items-center gap-2">
+            <CreditCard className="h-4 w-4 text-primary" />
+            Stripe Payment Link
+          </p>
+          <div className="flex items-center gap-2">
+            <input
+              readOnly
+              value={paymentLinkUrl}
+              className="flex-1 text-xs font-mono bg-background border rounded px-2 py-1.5 truncate"
+            />
+            <Button size="sm" variant="outline" className="shrink-0 gap-1" onClick={copyPaymentLink}>
+              {paymentLinkCopied ? <Check className="h-3.5 w-3.5 text-green-600" /> : <Copy className="h-3.5 w-3.5" />}
+              {paymentLinkCopied ? "Copied" : "Copy"}
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground">Share this link with your customer to collect payment.</p>
+        </div>
+      )}
 
       <div className="flex justify-end">
         <Button variant="destructive" size="sm" onClick={() => { deleteProject(p.id); posthog.capture('project_deleted', { customer_source: p.customerSource, total_price: effectiveTotal }); onBack(); }}>

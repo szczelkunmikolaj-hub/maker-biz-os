@@ -8,6 +8,7 @@ import { useDemo } from '@/context/DemoContext';
 import i18n from '@/i18n';
 import { DEMO_PROJECTS, DEMO_EXPENSES, DEMO_FILAMENT, DEMO_FILAMENT_COST } from '@/lib/demoData';
 import { isAdmin } from '@/lib/admin';
+import { NOTIFICATIONS_ENABLED } from '@/config/features';
 
 interface AppContextType {
   projects: Project[];
@@ -46,6 +47,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   businessAddress: '',
   invoicePrefix: 'INV',
   currency: 'EUR',
+  targetMarginPercent: 40,
 };
 
 const AppContext = createContext<AppContextType | null>(null);
@@ -271,6 +273,26 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const allPrintsComplete = normalized.prints.length > 0 && normalized.prints.every(pr => (pr.completedQuantity || 0) >= (pr.quantity || 1));
     if (!normalized.completedAt && (normalized.printed || normalized.sent || allPrintsComplete)) normalized.completedAt = new Date().toISOString();
     if (!normalized.paidAt && normalized.paid) normalized.paidAt = new Date().toISOString();
+
+    // Fire shipped email when project transitions to 'shipped' and has a customer email
+    if (NOTIFICATIONS_ENABLED) {
+      const previous = projectsRef.current.find(x => x.id === normalized.id);
+      if (
+        normalized.kanbanStatus === 'shipped' &&
+        previous?.kanbanStatus !== 'shipped' &&
+        normalized.customerEmail
+      ) {
+        supabase.functions.invoke('notify-shipped', {
+          body: {
+            projectId:     normalized.id,
+            projectName:   normalized.name,
+            customerEmail: normalized.customerEmail,
+            shippingDate:  normalized.shippingDate || undefined,
+          },
+        }).catch(err => console.error('[notify] shipped email error:', err));
+      }
+    }
+
     setProjects(prev => prev.map(x => x.id === normalized.id ? normalized : x));
     up('projects', normalized.id, normalized);
   }, [userId]);

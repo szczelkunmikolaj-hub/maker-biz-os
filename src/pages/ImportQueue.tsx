@@ -23,6 +23,19 @@ const STLViewer = React.lazy(() =>
   import("@/components/STLViewer").then(m => ({ default: m.STLViewer }))
 );
 
+// Material density table (g/cm³) — same as PublicQuotePage
+const MATERIAL_DENSITIES: Record<string, number> = {
+  PLA: 1.24, PETG: 1.27, ABS: 1.04, ASA: 1.07, TPU: 0.92,
+  PC: 1.20, Nylon: 1.14, PVA: 1.23, HIPS: 1.04,
+};
+
+function estimateWeightFromVolume(volumeMm3: number, material: string): number {
+  const density = MATERIAL_DENSITIES[material.toUpperCase()] ??
+    MATERIAL_DENSITIES[Object.keys(MATERIAL_DENSITIES).find(k => material.toUpperCase().startsWith(k)) ?? ""] ??
+    1.24;
+  return Math.max(1, Math.round((volumeMm3 / 1000) * density));
+}
+
 const ACCEPTED_EXTENSIONS = [".3mf", ".stl", ".gcode", ".json"];
 const PRINT_FILE_EXTENSIONS = [".3mf", ".stl", ".gcode"];
 
@@ -171,7 +184,10 @@ export default function ImportQueue() {
           const info = getSTLInfo(geometry);
           entry.stlGeometry = geometry;
           entry.stlInfo = info;
-          log.push(`✅ Parsed "${file.name}" — ${info.width}×${info.height}×${info.depth}mm, ${info.triangles} triangles`);
+          // Default material and density-based weight estimate
+          if (!entry.filamentType) entry.filamentType = "PLA";
+          entry.filamentGrams = estimateWeightFromVolume(info.volume, entry.filamentType);
+          log.push(`✅ Parsed "${file.name}" — ${info.width}×${info.height}×${info.depth}mm, ~${entry.filamentGrams}g (${entry.filamentType}), ${info.triangles} triangles`);
         } catch {
           log.push(`⚠️ Could not parse STL geometry for "${file.name}"`);
         }
@@ -252,9 +268,21 @@ export default function ImportQueue() {
     }
   }, [pasteText, toast]);
 
-  // Update file entry
+  // Update file entry — recalculate STL weight when material type changes
   const updateFile = useCallback((id: string, updates: Partial<ImportedFileEntry>) => {
-    setFiles(prev => prev.map(f => f.id === id ? { ...f, ...updates } : f));
+    setFiles(prev => prev.map(f => {
+      if (f.id !== id) return f;
+      const merged = { ...f, ...updates };
+      // If material type changed and we have STL volume, recalculate weight
+      if (
+        updates.filamentType !== undefined &&
+        updates.filamentType !== f.filamentType &&
+        f.stlInfo?.volume
+      ) {
+        merged.filamentGrams = estimateWeightFromVolume(f.stlInfo.volume, updates.filamentType);
+      }
+      return merged;
+    }));
   }, []);
 
   const removeFile = useCallback((id: string) => {
@@ -405,6 +433,7 @@ export default function ImportQueue() {
               <Upload className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
               <p className="text-sm font-medium">Drag & drop 3D print files or JSON</p>
               <p className="text-xs text-muted-foreground mt-1">.stl, .3mf, .gcode, .json</p>
+              <p className="text-xs text-muted-foreground mt-0.5">STL files: weight auto-estimated from volume × material density. Print time must be entered manually.</p>
               <input
                 ref={fileInputRef}
                 type="file"
@@ -563,14 +592,16 @@ export default function ImportQueue() {
                       className="h-6 w-16 text-[10px]"
                       placeholder="hours"
                     />
-                    <Input
-                      type="number"
-                      min={0}
-                      value={f.filamentGrams || ""}
-                      onChange={e => updateFile(f.id, { filamentGrams: parseFloat(e.target.value) || 0 })}
-                      className="h-6 w-16 text-[10px]"
-                      placeholder="grams"
-                    />
+                    <div className="relative" title={f.fileType === "stl" && f.stlInfo ? "Estimated from STL volume — adjust if needed" : undefined}>
+                      <Input
+                        type="number"
+                        min={0}
+                        value={f.filamentGrams || ""}
+                        onChange={e => updateFile(f.id, { filamentGrams: parseFloat(e.target.value) || 0 })}
+                        className={`h-6 w-16 text-[10px] ${f.fileType === "stl" && f.stlInfo ? "border-primary/50" : ""}`}
+                        placeholder="grams"
+                      />
+                    </div>
                     <Input
                       type="number"
                       min={1}

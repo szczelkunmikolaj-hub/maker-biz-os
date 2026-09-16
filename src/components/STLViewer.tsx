@@ -12,7 +12,7 @@ function Model({ geometry }: { geometry: THREE.BufferGeometry }) {
   const meshRef = useRef<THREE.Mesh>(null);
 
   const material = useMemo(
-    () => new THREE.MeshStandardMaterial({ color: "#4db8a4", roughness: 0.4, metalness: 0.1 }),
+    () => new THREE.MeshStandardMaterial({ color: "#f38525", roughness: 0.4, metalness: 0.1 }),
     []
   );
 
