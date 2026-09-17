@@ -31,8 +31,8 @@ export function WelcomeModal() {
     },
     {
       icon: CalendarDays,
-      color: 'text-orange-500',
-      bg: 'bg-orange-500/10',
+      color: 'text-primary',
+      bg: 'bg-primary/10',
       title: t('onboarding.slide3Title'),
       body: t('onboarding.slide3Body'),
     },

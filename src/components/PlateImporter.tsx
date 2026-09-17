@@ -469,7 +469,7 @@ export function PlateImporter({ project, compact = false, onImported }: Props) {
               </div>
 
               {parsed.totalTimeHours === 0 && parsed.totalFilamentGrams === 0 && (
-                <div className="flex items-start gap-2 text-xs text-amber-700 dark:text-amber-400 bg-amber-500/10 border border-amber-500/20 rounded p-2">
+                <div className="flex items-start gap-2 text-xs text-muted-foreground bg-muted border border-border rounded p-2">
                   <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
                   <span>No print data found. This may be an unsliced 3MF file. Slice the model in Bambu Studio, PrusaSlicer or OrcaSlicer first, then export and import again.</span>
                 </div>

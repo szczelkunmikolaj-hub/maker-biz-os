@@ -103,7 +103,7 @@ export default function SettingsPage() {
             </p>
           )}
           {trialExpired && (
-            <p className="text-sm text-orange-600 dark:text-orange-400">{t('tier.trialEndedBanner')}</p>
+            <p className="text-sm text-destructive">{t('tier.trialEndedBanner')}</p>
           )}
           {(effectiveTier === 'free' || isTrialActive || trialExpired) && (
             <Button size="sm" asChild className="gap-1">
@@ -325,9 +325,9 @@ export default function SettingsPage() {
         onImport={handleBulkImport}
       />
       {isAdmin && (
-        <Card className="border-dashed border-amber-400/60 bg-amber-50/30 dark:bg-amber-950/10">
+        <Card className="border-dashed border-primary/40 bg-primary/5">
           <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2 text-amber-700 dark:text-amber-400">
+            <CardTitle className="text-base flex items-center gap-2 text-primary">
               <ShieldCheck className="h-4 w-4" />
               Admin Preview
             </CardTitle>

@@ -46,7 +46,7 @@ function DemoHint({ text }: { text: string }) {
 }
 
 const COLORS = [
-  "hsl(28,90%,55%)",   // amber — primary
+  "hsl(215,70%,45%)",  // indigo steel — primary
   "hsl(200,70%,50%)",  // steel blue
   "hsl(142,55%,45%)",  // green
   "hsl(280,60%,58%)",  // purple
@@ -235,7 +235,7 @@ export default function Dashboard() {
   const statusDistribution = useMemo(() => {
     return [
       { name: t('dashboard.completed'), value: stats.completedProjects, color: "hsl(142,55%,45%)" },
-      { name: t('dashboard.active'), value: stats.activeProjects, color: "hsl(28,90%,55%)" },
+      { name: t('dashboard.active'), value: stats.activeProjects, color: "hsl(215,70%,45%)" },
       { name: t('dashboard.overdue'), value: stats.overdueProjects, color: "hsl(0,72%,51%)" },
     ].filter(d => d.value > 0);
   }, [stats, t]);
@@ -394,12 +394,12 @@ export default function Dashboard() {
 
       {/* Today's tasks */}
       {todaysTasks.length > 0 && (
-        <Card className="border-amber-500/30 bg-amber-500/5">
+        <Card className="border-primary/30 bg-primary/5">
           <CardHeader className="pb-2 pt-4">
             <CardTitle className="text-base flex items-center gap-2">
-              <CalendarClock className="h-4 w-4 text-amber-600" />
+              <CalendarClock className="h-4 w-4 text-primary" />
               Today's tasks
-              <Badge variant="secondary" className="ml-1 bg-amber-500/15 text-amber-700 dark:text-amber-400">
+              <Badge variant="secondary" className="ml-1 bg-primary/15 text-primary">
                 {todaysTasks.length}
               </Badge>
             </CardTitle>
@@ -416,7 +416,7 @@ export default function Dashboard() {
                   <div className="flex items-center gap-2 min-w-0">
                     {isOverdue
                       ? <AlertCircle className="h-4 w-4 text-red-500 shrink-0" />
-                      : <CheckCircle2 className="h-4 w-4 text-amber-500 shrink-0" />
+                      : <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
                     }
                     <span className="text-sm font-medium truncate">{p.name}</span>
                     {p.customerName && <span className="text-xs text-muted-foreground truncate">· {p.customerName}</span>}
@@ -589,7 +589,7 @@ export default function Dashboard() {
                   <XAxis dataKey="label" className="text-xs" tick={{ fontSize: 11 }} />
                   <YAxis className="text-xs" tick={{ fontSize: 11 }} />
                   <Tooltip contentStyle={tooltipStyle} />
-                  <Line type="monotone" dataKey="revenue" stroke="hsl(28,90%,55%)" strokeWidth={2} dot={{ r: 3 }} name={`${t('dashboard.revenue')} (€)`} />
+                  <Line type="monotone" dataKey="revenue" stroke="hsl(215,70%,45%)" strokeWidth={2} dot={{ r: 3 }} name={`${t('dashboard.revenue')} (€)`} />
                 </LineChart>
               </ResponsiveContainer>
             )}
@@ -714,7 +714,7 @@ export default function Dashboard() {
                     <XAxis type="number" className="text-xs" tick={{ fontSize: 11 }} />
                     <YAxis type="category" dataKey="name" className="text-xs" width={80} tick={{ fontSize: 11 }} />
                     <Tooltip contentStyle={tooltipStyle} />
-                    <Bar dataKey="revenue" fill="hsl(28,90%,55%)" radius={[0, 4, 4, 0]} name={`${t('dashboard.revenue')} (€)`} />
+                    <Bar dataKey="revenue" fill="hsl(215,70%,45%)" radius={[0, 4, 4, 0]} name={`${t('dashboard.revenue')} (€)`} />
                   </BarChart>
                 </ResponsiveContainer>
               );

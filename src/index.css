@@ -6,44 +6,44 @@
 
 @layer base {
   :root {
-    --background: 30 15% 97%;
-    --foreground: 20 8% 12%;
+    --background: 220 20% 97%;
+    --foreground: 220 10% 12%;
 
     --card: 0 0% 100%;
-    --card-foreground: 20 8% 12%;
+    --card-foreground: 220 10% 12%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 20 8% 12%;
+    --popover-foreground: 220 10% 12%;
 
-    --primary: 28 90% 52%;
-    --primary-foreground: 20 8% 8%;
+    --primary: 215 70% 42%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 30 12% 93%;
-    --secondary-foreground: 20 8% 12%;
+    --secondary: 215 15% 93%;
+    --secondary-foreground: 220 10% 12%;
 
-    --muted: 30 10% 95%;
-    --muted-foreground: 20 8% 44%;
+    --muted: 215 12% 95%;
+    --muted-foreground: 215 8% 44%;
 
-    --accent: 28 80% 92%;
-    --accent-foreground: 28 80% 22%;
+    --accent: 215 60% 92%;
+    --accent-foreground: 215 60% 22%;
 
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 30 10% 88%;
-    --input: 30 10% 86%;
-    --ring: 28 90% 52%;
+    --border: 215 12% 88%;
+    --input: 215 12% 86%;
+    --ring: 215 70% 42%;
 
     --radius: 0.625rem;
 
-    --sidebar-background: 20 8% 10%;
-    --sidebar-foreground: 30 10% 82%;
-    --sidebar-primary: 28 90% 55%;
-    --sidebar-primary-foreground: 20 8% 8%;
-    --sidebar-accent: 20 6% 16%;
-    --sidebar-accent-foreground: 30 10% 88%;
-    --sidebar-border: 20 6% 18%;
-    --sidebar-ring: 28 90% 55%;
+    --sidebar-background: 225 20% 10%;
+    --sidebar-foreground: 215 10% 82%;
+    --sidebar-primary: 215 70% 50%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 225 12% 16%;
+    --sidebar-accent-foreground: 215 10% 88%;
+    --sidebar-border: 225 12% 18%;
+    --sidebar-ring: 215 70% 50%;
 
     --success: 142 35% 40%;
     --success-foreground: 0 0% 100%;
@@ -60,48 +60,49 @@
     --status-completed: 142 70% 42%;
     --status-overdue: 0 75% 55%;
 
-    /* Recurring customer accent gradient stops */
-    --recurring-from: 28 90% 52%;
-    --recurring-to: 14 100% 57%;
+    /* Recurring customer badge only — cool grey-green, not used for primary actions */
+    --secondary-accent: 160 20% 38%;
+    --recurring-from: 160 20% 38%;
+    --recurring-to: 160 25% 28%;
   }
 
   .dark {
-    --background: 20 6% 9%;
-    --foreground: 30 8% 93%;
+    --background: 225 20% 8%;
+    --foreground: 215 10% 92%;
 
-    --card: 20 6% 12%;
-    --card-foreground: 30 8% 93%;
+    --card: 225 15% 12%;
+    --card-foreground: 215 10% 92%;
 
-    --popover: 20 6% 12%;
-    --popover-foreground: 30 8% 93%;
+    --popover: 225 15% 12%;
+    --popover-foreground: 215 10% 92%;
 
-    --primary: 28 90% 58%;
-    --primary-foreground: 20 8% 8%;
+    --primary: 215 70% 45%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 20 6% 18%;
-    --secondary-foreground: 30 8% 93%;
+    --secondary: 225 12% 18%;
+    --secondary-foreground: 215 10% 92%;
 
-    --muted: 20 6% 18%;
-    --muted-foreground: 30 8% 52%;
+    --muted: 225 12% 18%;
+    --muted-foreground: 215 8% 52%;
 
-    --accent: 20 6% 18%;
-    --accent-foreground: 28 90% 65%;
+    --accent: 225 12% 18%;
+    --accent-foreground: 215 70% 65%;
 
     --destructive: 0 62% 30%;
     --destructive-foreground: 30 8% 93%;
 
-    --border: 20 6% 20%;
-    --input: 20 6% 20%;
-    --ring: 28 90% 58%;
+    --border: 225 12% 20%;
+    --input: 225 12% 20%;
+    --ring: 215 70% 45%;
 
-    --sidebar-background: 20 6% 7%;
-    --sidebar-foreground: 30 8% 78%;
-    --sidebar-primary: 28 90% 58%;
-    --sidebar-primary-foreground: 20 8% 8%;
-    --sidebar-accent: 20 6% 14%;
-    --sidebar-accent-foreground: 30 8% 83%;
-    --sidebar-border: 20 6% 14%;
-    --sidebar-ring: 28 90% 58%;
+    --sidebar-background: 225 20% 7%;
+    --sidebar-foreground: 215 8% 78%;
+    --sidebar-primary: 215 70% 50%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 225 12% 14%;
+    --sidebar-accent-foreground: 215 8% 83%;
+    --sidebar-border: 225 12% 14%;
+    --sidebar-ring: 215 70% 50%;
 
     --success: 142 35% 48%;
     --success-foreground: 0 0% 100%;
@@ -117,8 +118,10 @@
     --status-completed: 142 70% 48%;
     --status-overdue: 0 75% 60%;
 
-    --recurring-from: 28 90% 58%;
-    --recurring-to: 14 100% 60%;
+    /* Recurring customer badge only — cool grey-green, not used for primary actions */
+    --secondary-accent: 160 15% 45%;
+    --recurring-from: 160 15% 45%;
+    --recurring-to: 160 20% 35%;
   }
 }
 
@@ -153,7 +156,7 @@
     to { opacity: 1; transform: translateY(0); }
   }
 
-  /* Recurring customer subtle pulse glow */
+  /* Recurring customer subtle pulse glow — uses --secondary-accent (grey-green) */
   @keyframes recurring-glow {
     0%, 100% {
       box-shadow: 0 0 0 0 hsl(var(--recurring-from) / 0.55), 0 0 12px 0 hsl(var(--recurring-to) / 0.25);

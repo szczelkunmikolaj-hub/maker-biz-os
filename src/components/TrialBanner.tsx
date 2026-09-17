@@ -28,11 +28,11 @@ export function TrialBanner() {
 
   if (trialExpired) {
     return (
-      <div className="bg-orange-500/10 border-b border-orange-500/25 px-4 py-2 flex items-center justify-between shrink-0">
-        <span className="text-sm font-medium text-orange-700 dark:text-orange-400">
+      <div className="bg-destructive/10 border-b border-destructive/25 px-4 py-2 flex items-center justify-between shrink-0">
+        <span className="text-sm font-medium text-destructive">
           {t('tier.trialEndedBanner')}
         </span>
-        <Link to="/pricing" className="text-xs text-orange-700 dark:text-orange-400 underline hover:no-underline font-medium ml-4 shrink-0">
+        <Link to="/pricing" className="text-xs text-destructive underline hover:no-underline font-medium ml-4 shrink-0">
           {t('tier.upgradeCta')}
         </Link>
       </div>

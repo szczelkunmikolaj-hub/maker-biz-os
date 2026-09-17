@@ -186,16 +186,16 @@ export function Layout() {
           <GlobalStatusBar />
           {/* PAYMENTS_TODO: <TrialBanner /> */}
           {isDemoMode && !isGuest && (
-            <div className="bg-amber-500/12 border-b border-amber-500/30 px-4 py-2.5 flex items-center justify-between shrink-0">
+            <div className="bg-primary/8 border-b border-primary/25 px-4 py-2.5 flex items-center justify-between shrink-0">
               <div className="flex items-center gap-2.5">
-                <span className="inline-flex items-center rounded-full bg-amber-500/20 px-2 py-0.5 text-xs font-semibold text-amber-700 dark:text-amber-400 ring-1 ring-amber-500/30">
+                <span className="inline-flex items-center rounded-full bg-primary/15 px-2 py-0.5 text-xs font-semibold text-primary ring-1 ring-primary/25">
                   DEMO
                 </span>
-                <span className="text-sm text-amber-800 dark:text-amber-300">{t('demo.banner')}</span>
+                <span className="text-sm text-foreground/70">{t('demo.banner')}</span>
               </div>
               <button
                 onClick={toggleDemoMode}
-                className="text-xs font-semibold bg-amber-500/15 hover:bg-amber-500/25 text-amber-800 dark:text-amber-300 px-3 py-1.5 rounded-md transition-colors border border-amber-500/30"
+                className="text-xs font-semibold bg-primary/12 hover:bg-primary/20 text-primary px-3 py-1.5 rounded-md transition-colors border border-primary/25"
               >
                 Exit Demo
               </button>
