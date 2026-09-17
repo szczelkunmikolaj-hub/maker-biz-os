@@ -125,6 +125,7 @@ export interface AppSettings {
   onboardingCompleted?: boolean;
   // Quote calculator
   targetMarginPercent?: number;
+  hourlyRate?: number;
 }
 
 export const CURRENCIES = [
@@ -244,6 +245,23 @@ export const getProjectProfit = (p: Project, costPerGram: number) =>
 export const getProjectProfitMargin = (p: Project, costPerGram: number) => {
   if (!p.totalPrice || p.totalPrice === 0) return 0;
   return (getProjectProfit(p, costPerGram) / p.totalPrice) * 100;
+};
+
+export const getProjectEstimatedCost = (
+  p: Project,
+  settings: Pick<AppSettings, 'filamentCostPerGram' | 'hourlyRate'>
+) =>
+  getProjectTotalMaterial(p) * (settings.filamentCostPerGram || 0)
+  + getProjectTotalPrintTime(p) * (settings.hourlyRate ?? 2)
+  + getProjectExpensesTotal(p);
+
+export const getProjectEstimatedMargin = (
+  p: Project,
+  settings: Pick<AppSettings, 'filamentCostPerGram' | 'hourlyRate'>
+): number | null => {
+  const effectivePrice = getProjectPiecesTotal(p) || (p.totalPrice || 0);
+  if (effectivePrice <= 0) return null;
+  return (effectivePrice - getProjectEstimatedCost(p, settings)) / effectivePrice * 100;
 };
 
 export const getProjectProgress = (p: Project) => {

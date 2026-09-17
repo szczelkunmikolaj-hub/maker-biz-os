@@ -137,6 +137,19 @@ export default function SettingsPage() {
               Used as the default in the quote calculator. Suggested price = cost ÷ (1 − margin%).
             </p>
           </div>
+          <div>
+            <Label>Hourly rate ({settings.currency || 'EUR'}/h)</Label>
+            <Input
+              type="number"
+              min={0}
+              step={0.5}
+              value={settings.hourlyRate ?? 2}
+              onChange={e => update('hourlyRate', parseFloat(e.target.value) || 0)}
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              Labour/electricity cost per print-hour. Used when calculating estimated margin.
+            </p>
+          </div>
         </CardContent>
       </Card>
 

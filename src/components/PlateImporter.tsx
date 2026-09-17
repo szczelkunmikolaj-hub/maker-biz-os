@@ -180,7 +180,11 @@ export function PlateImporter({ project, compact = false, onImported }: Props) {
     (data: ParsedImport, name: string) => {
       const costPerGram = settings.filamentCostPerGram || 0;
       const prints = platesToPrints(data.plates);
-      const placeholderPrice = Math.round(data.totalFilamentGrams * costPerGram * 100) / 100;
+      const totalCost = data.totalFilamentGrams * costPerGram;
+      const targetMargin = (settings.targetMarginPercent ?? 40) / 100;
+      const placeholderPrice = totalCost > 0 && targetMargin < 1
+        ? Math.round((totalCost / (1 - targetMargin)) * 100) / 100
+        : Math.round(totalCost * 100) / 100;
       const newProject: Project = {
         id: crypto.randomUUID(),
         name,

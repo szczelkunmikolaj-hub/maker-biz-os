@@ -1,10 +1,10 @@
 import { useState, useMemo, useEffect } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { usePersistedState } from "@/hooks/usePersistedState";
 import { useApp } from "@/context/AppContext";
 import { useMonth } from "@/context/MonthContext";
-import { Project, CustomerSource, PaymentMethod, PrintTemplate, getProjectProgress, getProjectTotalPieces, getProjectPiecesTotal, getProjectExpensesTotal, getProjectTotalPrintTime, getProjectTotalMaterial } from "@/types";
+import { Project, CustomerSource, PaymentMethod, PrintTemplate, getProjectProgress, getProjectTotalPieces, getProjectPiecesTotal, getProjectExpensesTotal, getProjectTotalPrintTime, getProjectTotalMaterial, getProjectEstimatedMargin } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -57,7 +57,8 @@ function newProject(): Project {
 }
 
 export default function Projects() {
-  const { projects, addProject, updateProject, deleteProject, templates, addTemplate, deleteTemplate } = useApp();
+  const { projects, addProject, updateProject, deleteProject, duplicateProject: duplicateProjectCtx, templates, addTemplate, deleteTemplate, settings } = useApp();
+  const navigate = useNavigate();
   const { filterProjectsForWorkflow, mode } = useMonth();
   const { t } = useTranslation();
   // PAYMENTS_TODO: const { isPro, canAddProject } = useTier();
@@ -187,27 +188,7 @@ export default function Projects() {
   };
 
   const duplicateProject = (p: Project) => {
-    addProject({
-      ...p,
-      id: crypto.randomUUID(),
-      name: `${p.name} (Copy)`,
-      printed: false,
-      paid: false,
-      sent: false,
-      shippingDate: "",
-      kanbanStatus: "new-order",
-      completedAt: "",
-      paidAt: "",
-      stripePaymentLinkId: undefined,
-      stripePaymentLinkUrl: undefined,
-      prints: (p.prints || []).map(pr => ({
-        ...pr,
-        id: crypto.randomUUID(),
-        status: "not-printed" as const,
-        completedQuantity: 0,
-      })),
-      projectExpenses: (p.projectExpenses || []).map(e => ({ ...e, id: crypto.randomUUID() })),
-    });
+    duplicateProjectCtx(p.id);
   };
 
   const fireGuestGate = (message: string) => {
@@ -230,7 +211,7 @@ export default function Projects() {
   };
 
   if (selectedProject) {
-    return <ProjectDetail project={selectedProject} onBack={() => handleSelectProject(null)} />;
+    return <ProjectDetail project={selectedProject} onBack={() => navigate(-1)} />;
   }
 
   return (
@@ -402,8 +383,7 @@ export default function Projects() {
             const totalPieces = getProjectTotalPieces(p);
             const piecesTotal = getProjectPiecesTotal(p);
             const effectivePrice = piecesTotal > 0 ? piecesTotal : (p.totalPrice || 0);
-            const projExpenses = getProjectExpensesTotal(p);
-            const margin = effectivePrice > 0 ? ((effectivePrice - projExpenses) / effectivePrice) * 100 : 0;
+            const margin = getProjectEstimatedMargin(p, settings);
             const totalTime = getProjectTotalPrintTime(p);
 
             const status = deriveProjectStatus(p);
@@ -470,8 +450,8 @@ export default function Projects() {
                   <div className="flex items-baseline justify-between">
                     <span className="text-lg font-bold text-primary">€{effectivePrice.toFixed(2)}</span>
                     {effectivePrice > 0 && (
-                      <span className={`text-xs font-medium ${margin >= 60 ? 'text-emerald-600' : margin >= 30 ? 'text-yellow-600' : 'text-red-600'}`}>
-                        {margin.toFixed(0)}% {t('projects.margin')}
+                      <span className={`text-xs font-medium ${margin === null ? 'text-muted-foreground' : margin >= 60 ? 'text-emerald-600' : margin >= 30 ? 'text-yellow-600' : 'text-red-600'}`}>
+                        {margin === null ? '—' : `${margin.toFixed(0)}%`} Est. margin
                       </span>
                     )}
                   </div>

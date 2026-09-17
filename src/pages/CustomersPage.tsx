@@ -19,20 +19,10 @@ interface Customer {
   notes: string;
 }
 
-const NOTES_KEY = "pt_customer_notes";
-
-function loadNotes(): Record<string, string> {
-  try { return JSON.parse(localStorage.getItem(NOTES_KEY) || "{}"); } catch { return {}; }
-}
-function saveNotes(notes: Record<string, string>) {
-  localStorage.setItem(NOTES_KEY, JSON.stringify(notes));
-}
-
 export default function CustomersPage() {
-  const { projects } = useApp();
+  const { projects, customerNotes, updateCustomerNote } = useApp();
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
-  const [notes, setNotes] = useState<Record<string, string>>(loadNotes);
   const [selected, setSelected] = useState<Customer | null>(null);
   const [notesDraft, setNotesDraft] = useState("");
 
@@ -42,7 +32,7 @@ export default function CustomersPage() {
       const name = (p.customerName || "").trim();
       if (!name) return;
       if (!map.has(name)) {
-        map.set(name, { name, projects: [], totalSpent: 0, avgOrderValue: 0, notes: notes[name] || "" });
+        map.set(name, { name, projects: [], totalSpent: 0, avgOrderValue: 0, notes: customerNotes[name] || "" });
       }
       const c = map.get(name)!;
       c.projects.push(p);
@@ -51,10 +41,10 @@ export default function CustomersPage() {
     });
     map.forEach(c => {
       c.avgOrderValue = c.projects.length > 0 ? c.totalSpent / c.projects.length : 0;
-      c.notes = notes[c.name] || "";
+      c.notes = customerNotes[c.name] || "";
     });
     return Array.from(map.values()).sort((a, b) => b.totalSpent - a.totalSpent);
-  }, [projects, notes]);
+  }, [projects, customerNotes]);
 
   const filtered = useMemo(() => {
     if (!search) return customers;
@@ -64,14 +54,12 @@ export default function CustomersPage() {
 
   const openCustomer = (c: Customer) => {
     setSelected(c);
-    setNotesDraft(notes[c.name] || "");
+    setNotesDraft(customerNotes[c.name] || "");
   };
 
   const saveCustomerNotes = () => {
     if (!selected) return;
-    const updated = { ...notes, [selected.name]: notesDraft };
-    setNotes(updated);
-    saveNotes(updated);
+    updateCustomerNote(selected.name, notesDraft);
     setSelected(null);
   };
 

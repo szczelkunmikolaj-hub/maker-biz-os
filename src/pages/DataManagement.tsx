@@ -11,7 +11,7 @@ import { useToast } from '@/hooks/useToast';
 // PAYMENTS_TODO: import { UpgradeModal } from '@/components/UpgradeModal';
 // PAYMENTS_TODO: import { useTier } from '@/context/TierContext';
 import type { Project } from '@/types';
-import { normalizeProject } from '@/types';
+import { normalizeProject, getProjectPiecesTotal } from '@/types';
 
 function csvCell(v: any): string {
   const s = v === null || v === undefined ? '' : String(v);
@@ -40,7 +40,7 @@ function buildCSV(projects: Project[]): string {
       csvCell(p.id), csvCell(p.name), csvCell(p.customerName), csvCell(p.customerSource),
       csvCell(p.paymentMethod), csvCell(p.orderDate), csvCell(p.dueDate),
       csvCell(p.completedAt), csvCell(p.paidAt), csvCell(p.shippingDate),
-      csvCell(p.totalPrice), csvCell(p.printed), csvCell(p.paid), csvCell(p.sent),
+      csvCell(getProjectPiecesTotal(p) || p.totalPrice), csvCell(p.printed), csvCell(p.paid), csvCell(p.sent),
       csvCell(p.kanbanStatus), csvCell(p.isRecurringCustomer), csvCell(p.notes),
     ];
 

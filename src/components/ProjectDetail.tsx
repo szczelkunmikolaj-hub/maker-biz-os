@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useApp } from "@/context/AppContext";
-import { Project, Print, ProjectExpense, getProjectTotalPrintTime, getProjectTotalMaterial, getProjectProgress, getProjectExpensesTotal, getProjectPiecesTotal, getProjectTotalPieces, getEstimatedMaterialCost, PaymentMethod } from "@/types";
+import { Project, Print, ProjectExpense, getProjectTotalPrintTime, getProjectTotalMaterial, getProjectProgress, getProjectExpensesTotal, getProjectPiecesTotal, getProjectTotalPieces, getEstimatedMaterialCost, getProjectEstimatedCost, PaymentMethod } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -193,8 +193,8 @@ export default function ProjectDetail({ project, onBack }: Props) {
   const estimatedMatCost = getEstimatedMaterialCost(p, settings.filamentCostPerGram);
   const projectExpTotal = getProjectExpensesTotal(p);
   const projectForCalc = { ...p, totalPrice: effectiveTotal };
-  // Real profit excludes estimated material cost — only project expenses count
-  const profit = effectiveTotal - projectExpTotal;
+  const estimatedCost = getProjectEstimatedCost(p, settings);
+  const profit = effectiveTotal - estimatedCost;
   const profitMargin = effectiveTotal > 0 ? (profit / effectiveTotal) * 100 : 0;
   const progress = getProjectProgress(p);
 
@@ -300,7 +300,7 @@ export default function ProjectDetail({ project, onBack }: Props) {
         <Card>
           <CardContent className="p-3 space-y-1.5">
             <div className="flex justify-between text-xs">
-              <span className="text-muted-foreground">{t('projectDetail.profitMargin')}</span>
+              <span className="text-muted-foreground">Est. profit margin</span>
               <span className={`font-bold ${marginColor}`}>{profitMargin.toFixed(1)}%</span>
             </div>
             <div className="w-full bg-secondary rounded-full h-2 overflow-hidden">

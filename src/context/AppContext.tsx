@@ -33,6 +33,8 @@ interface AppContextType {
   deleteFilamentPurchase: (id: string) => void;
   totalFilamentPurchasesCost: number;
   allPrintNames: string[];
+  customerNotes: Record<string, string>;
+  updateCustomerNote: (customerId: string, note: string) => void;
   replaceAllData: (data: { projects: Project[]; expenses: Expense[]; templates: PrintTemplate[]; filamentPurchases: FilamentPurchase[]; settings: AppSettings }) => void;
   snapshotToLocalStorage: () => void;
 }
@@ -48,6 +50,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   invoicePrefix: 'INV',
   currency: 'EUR',
   targetMarginPercent: 40,
+  hourlyRate: 2,
 };
 
 const AppContext = createContext<AppContextType | null>(null);
@@ -71,6 +74,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [templates, setTemplates] = useState<PrintTemplate[]>([]);
   const [filamentPurchases, setFilamentPurchases] = useState<FilamentPurchase[]>([]);
   const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
+  const [customerNotes, setCustomerNotes] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const migratedRef = useRef(false);
 
@@ -96,6 +100,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setFilamentPurchases(loadJSON<FilamentPurchase[]>('pt_filament_purchases', []));
         const lsSettings = loadJSON<AppSettings | null>('pt_settings', null);
         if (lsSettings) setSettings(lsSettings);
+        const lsNotes = loadJSON<Record<string, string>>('pt_customer_notes', {});
+        setCustomerNotes(lsNotes);
       }
       setLoading(false);
       return;
@@ -104,12 +110,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     (async () => {
       setLoading(true);
       try {
-        const [pjs, exs, tps, fps, st] = await Promise.all([
+        const [pjs, exs, tps, fps, st, cn] = await Promise.all([
           supabase.from('projects').select('data').eq('user_id', userId),
           supabase.from('expenses').select('data').eq('user_id', userId),
           supabase.from('templates').select('data').eq('user_id', userId),
           supabase.from('filament_purchases').select('data').eq('user_id', userId),
           supabase.from('user_settings').select('data').eq('user_id', userId).maybeSingle(),
+          supabase.from('customer_notes').select('data').eq('user_id', userId).maybeSingle(),
         ]);
         if (cancelled) return;
 
@@ -127,6 +134,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         // so that flags like onboardingCompleted survive if the Supabase row is temporarily missing.
         const cachedSettings = loadJSON<AppSettings | null>('pt_settings', null);
         let nextSettings: AppSettings = (st.data?.data as unknown as AppSettings) || cachedSettings || DEFAULT_SETTINGS;
+
+        // Load customer notes — migrate from localStorage on first load if Supabase row is empty
+        const lsNotes = loadJSON<Record<string, string>>('pt_customer_notes', {});
+        let nextNotes: Record<string, string> = (cn.data?.data as unknown as Record<string, string>) || {};
+        if (Object.keys(nextNotes).length === 0 && Object.keys(lsNotes).length > 0) {
+          nextNotes = lsNotes;
+          await supabase.from('customer_notes').upsert({ user_id: userId, data: lsNotes as any });
+          localStorage.removeItem('pt_customer_notes');
+        }
 
         // Fetch profile separately — columns may not exist in all deployments, so we fall back gracefully
         let profileLang: string | undefined;
@@ -188,6 +204,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setTemplates(nextTemplates);
         setFilamentPurchases(nextFilament);
         setSettings(nextSettings);
+        setCustomerNotes(nextNotes);
         // Cache fresh Supabase data to localStorage so next load has a warm fallback
         localStorage.setItem('pt_projects', JSON.stringify(nextProjects));
         localStorage.setItem('pt_expenses', JSON.stringify(nextExpenses));
@@ -275,7 +292,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     normalized.kanbanStatus = deriveKanbanStatus(normalized);
     const allPrintsComplete = normalized.prints.length > 0 && normalized.prints.every(pr => (pr.completedQuantity || 0) >= (pr.quantity || 1));
     if (!normalized.completedAt && (normalized.printed || normalized.sent || allPrintsComplete)) normalized.completedAt = new Date().toISOString();
+    if (normalized.completedAt && !normalized.printed && !normalized.sent && !allPrintsComplete) normalized.completedAt = '';
     if (!normalized.paidAt && normalized.paid) normalized.paidAt = new Date().toISOString();
+    if (normalized.paidAt && !normalized.paid) normalized.paidAt = '';
 
     // Fire shipped email when project transitions to 'shipped' and has a customer email
     if (NOTIFICATIONS_ENABLED) {
@@ -335,6 +354,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         ...original, id: crypto.randomUUID(), name: `${baseName} ${next}`,
         orderDate: today, dueDate: '', shippingDate: '', completedAt: '', paidAt: '',
         printed: false, paid: false, sent: false, kanbanStatus: 'new-order',
+        stripePaymentLinkId: undefined, stripePaymentLinkUrl: undefined,
         prints: (original.prints || []).map(pr => ({ ...pr, id: crypto.randomUUID(), status: 'not-printed' as const, completedQuantity: 0 })),
         projectExpenses: (original.projectExpenses || []).map(e => ({ ...e, id: crypto.randomUUID() })),
       };
@@ -358,6 +378,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     });
   }, [userId]);
 
+  const updateCustomerNote = useCallback((customerId: string, note: string) => {
+    if (isDemoRef.current) return;
+    setCustomerNotes(prev => {
+      const next = { ...prev, [customerId]: note };
+      localStorage.setItem('pt_customer_notes', JSON.stringify(next));
+      if (userId) {
+        supabase.from('customer_notes').upsert({ user_id: userId, data: next as any }).then(({ error }) => {
+          if (error) console.error('[sync] customer_notes upsert:', error);
+        });
+      }
+      return next;
+    });
+  }, [userId]);
+
   const addTemplate = useCallback((t: PrintTemplate) => { if (isDemoRef.current) return; setTemplates(prev => [t, ...prev]); up('templates', t.id, t); }, [userId]);
   const deleteTemplate = useCallback((id: string) => { if (isDemoRef.current) return; setTemplates(prev => prev.filter(x => x.id !== id)); del('templates', id); }, [userId]);
 
@@ -377,14 +411,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setTemplates(data.templates);
     setFilamentPurchases(data.filamentPurchases);
     setSettings(data.settings);
-    if (!userId) {
-      localStorage.setItem('pt_projects', JSON.stringify(data.projects));
-      localStorage.setItem('pt_expenses', JSON.stringify(data.expenses));
-      localStorage.setItem('pt_templates', JSON.stringify(data.templates));
-      localStorage.setItem('pt_filament_purchases', JSON.stringify(data.filamentPurchases));
-      localStorage.setItem('pt_settings', JSON.stringify(data.settings));
-      return;
-    }
+    // Always write localStorage immediately so the fallback reflects the new data
+    localStorage.setItem('pt_projects', JSON.stringify(data.projects));
+    localStorage.setItem('pt_expenses', JSON.stringify(data.expenses));
+    localStorage.setItem('pt_templates', JSON.stringify(data.templates));
+    localStorage.setItem('pt_filament_purchases', JSON.stringify(data.filamentPurchases));
+    localStorage.setItem('pt_settings', JSON.stringify(data.settings));
+    if (!userId) return;
     await Promise.all([
       supabase.from('projects').delete().eq('user_id', userId),
       supabase.from('expenses').delete().eq('user_id', userId),
@@ -425,6 +458,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         : allPrintNames,
       addProject, updateProject, deleteProject, duplicateProject, moveProject,
       addExpense, updateExpense, deleteExpense, updateSettings,
+      customerNotes, updateCustomerNote,
       addTemplate, deleteTemplate,
       addFilamentPurchase, updateFilamentPurchase, deleteFilamentPurchase,
       replaceAllData, snapshotToLocalStorage,

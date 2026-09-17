@@ -63,11 +63,12 @@ function buildBuckets(grouping: ChartGrouping, interval: { start: Date; end: Dat
     }));
   }
   if (grouping === "week") {
+    const multiYear = interval.end.getFullYear() > interval.start.getFullYear();
     return eachWeekOfInterval(interval, { weekStartsOn: 1 }).map(d => ({
       start: startOfWeek(d, { weekStartsOn: 1 }),
       end: endOfWeek(d, { weekStartsOn: 1 }),
-      label: `W${format(d, "w")}`,
-      key: `W${format(d, "w")}`,
+      label: multiYear ? `W${format(d, "w")} '${format(d, "yy")}` : `W${format(d, "w")}`,
+      key: `W${format(d, "w")}-${format(d, "yyyy")}`,
     }));
   }
   if (grouping === "year") {
@@ -173,28 +174,31 @@ export default function Dashboard() {
     const buckets = buildBuckets(grouping, interval);
 
     if (!buckets) {
-      // All-time: group by month
-      const map = new Map<string, Record<string, any>>();
-      const paidSent = filteredProjects.filter(p => p.paid && p.sent);
-      paidSent.forEach(p => {
+      // All-time: discover date range from data, then bucket by the chosen grouping
+      const allDates: Date[] = [];
+      filteredProjects.forEach(p => {
         const ds = getEffectiveDate(p);
-        if (!ds) return;
-        const key = format(parseISO(ds), "yyyy-MM");
-        const label = format(parseISO(ds), "MMM yy");
-        if (!map.has(key)) map.set(key, { label });
-        const entry = map.get(key)!;
-        const vals = mapper([p], []);
-        Object.entries(vals).forEach(([k, v]) => { entry[k] = ((entry[k] as number) || 0) + v; });
+        if (ds) { try { allDates.push(parseISO(ds)); } catch {} }
       });
       filteredExpenses.forEach(e => {
-        const key = format(parseISO(e.date), "yyyy-MM");
-        const label = format(parseISO(e.date), "MMM yy");
-        if (!map.has(key)) map.set(key, { label });
-        const entry = map.get(key)!;
-        const vals = mapper([], [e]);
-        Object.entries(vals).forEach(([k, v]) => { entry[k] = ((entry[k] as number) || 0) + v; });
+        if (e.date) { try { allDates.push(parseISO(e.date)); } catch {} }
       });
-      return Array.from(map.entries()).sort(([a], [b]) => a.localeCompare(b)).map(([, v]) => v);
+      if (allDates.length === 0) return [];
+      const minDate = new Date(Math.min(...allDates.map(d => d.getTime())));
+      const allTimeBuckets = buildBuckets(grouping, { start: minDate, end: new Date() });
+      if (!allTimeBuckets) return [];
+      return allTimeBuckets.map(b => {
+        const bProjects = filteredProjects.filter(p => {
+          const ds = getEffectiveDate(p);
+          if (!ds) return false;
+          try { const d = parseISO(ds); return d >= b.start && d <= b.end; } catch { return false; }
+        });
+        const bExpenses = filteredExpenses.filter(e => {
+          try { const d = parseISO(e.date); return d >= b.start && d <= b.end; } catch { return false; }
+        });
+        const vals = mapper(bProjects, bExpenses);
+        return { label: b.label, ...vals };
+      });
     }
 
     return buckets.map(b => {
@@ -311,7 +315,7 @@ export default function Dashboard() {
       if (!ds) return false;
       try { return isWithinInterval(parseISO(ds), { start: weekStart, end: weekEnd }); } catch { return false; }
     }).reduce((s, p) => s + (p.totalPrice || 0), 0);
-    const hours = projects.flatMap(p => p.prints || []).reduce((s, pr) => {
+    const hours = weekProjects.flatMap(p => p.prints || []).reduce((s, pr) => {
       return s + (pr.estimatedPrintTime || 0) * (pr.completedQuantity || 0);
     }, 0);
     return { ordersReceived: weekProjects.length, shipped: shipped.length, revenue, hours };
@@ -495,6 +499,14 @@ export default function Dashboard() {
             <div className="flex justify-between text-sm"><span className="text-muted-foreground">{t('dashboard.onTime')}</span><span className="font-semibold text-emerald-600">{stats.onTime}</span></div>
             <div className="flex justify-between text-sm"><span className="text-muted-foreground">{t('dashboard.late')}</span><span className="font-semibold text-destructive">{stats.late}</span></div>
             <div className="flex justify-between text-sm"><span className="text-muted-foreground">{t('dashboard.avgTimeProject')}</span><span className="font-semibold">{stats.avgTimePerProject.toFixed(1)}h</span></div>
+            {stats.totalRevenue > 0 && (
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Actual margin</span>
+                <span className={`font-semibold ${(stats.netProfit / stats.totalRevenue) >= 0.3 ? 'text-emerald-600' : 'text-destructive'}`}>
+                  {(stats.netProfit / stats.totalRevenue * 100).toFixed(1)}%
+                </span>
+              </div>
+            )}
           </CardContent>
         </Card>
 

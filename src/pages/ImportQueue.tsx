@@ -97,7 +97,7 @@ interface ImportedJsonProject {
 }
 
 export default function ImportQueue() {
-  const { projects, addProject, updateProject } = useApp();
+  const { projects, addProject, updateProject, settings } = useApp();
   const { toast } = useToast();
   // PAYMENTS_TODO: const { isPro } = useTier();
   const [files, setFiles] = useState<ImportedFileEntry[]>([]);
@@ -358,6 +358,13 @@ export default function ImportQueue() {
         log.push(`📦 Updated "${projectName}" — added ${prints.length} prints`);
         updated++;
       } else {
+        const totalGrams = projectFiles.reduce((s, f) => s + f.filamentGrams * f.quantity, 0);
+        const costPerGram = settings.filamentCostPerGram || 0;
+        const totalCost = totalGrams * costPerGram;
+        const targetMargin = (settings.targetMarginPercent ?? 40) / 100;
+        const suggestedPrice = totalCost > 0 && targetMargin < 1
+          ? Math.round((totalCost / (1 - targetMargin)) * 100) / 100
+          : Math.round(totalCost * 100) / 100;
         const project: Project = {
           id: crypto.randomUUID(),
           name: projectName,
@@ -366,7 +373,7 @@ export default function ImportQueue() {
           paymentMethod: "Other",
           orderDate: new Date().toISOString().split("T")[0],
           dueDate: "",
-          totalPrice: 0,
+          totalPrice: suggestedPrice,
           printed: false,
           paid: false,
           sent: false,
