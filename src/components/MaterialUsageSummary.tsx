@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useApp } from "@/context/AppContext";
+import type { Project } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -60,8 +61,9 @@ function capitalizeWords(s: string): string {
 
 const SPOOL_SIZE_GRAMS = 1000;
 
-export default function MaterialUsageSummary() {
-  const { projects } = useApp();
+export default function MaterialUsageSummary({ projects: propProjects }: { projects?: Project[] }) {
+  const { projects: ctxProjects } = useApp();
+  const projects = propProjects ?? ctxProjects;
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const { t } = useTranslation();
 

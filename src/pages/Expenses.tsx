@@ -27,15 +27,15 @@ export default function Expenses() {
   const { expenses, addExpense, deleteExpense, projects } = useApp();
   const navigate = useNavigate();
   const { t } = useTranslation();
-  const { filterExpenses, mode } = useMonth();
+  const { filterExpenses, interval } = useMonth();
   const [showAdd, setShowAdd] = useState(false);
   const [draft, setDraft] = useState<Expense>(newExpense());
   const [catFilter, setCatFilter] = usePersistedState("expenses_cat_filter", "all");
 
   const filtered = useMemo(() => {
-    const monthFiltered = mode === 'all' ? expenses : filterExpenses(expenses);
-    return catFilter === "all" ? monthFiltered : monthFiltered.filter(e => e.category === catFilter);
-  }, [expenses, catFilter, mode, filterExpenses]);
+    const periodFiltered = filterExpenses(expenses);
+    return catFilter === "all" ? periodFiltered : periodFiltered.filter(e => e.category === catFilter);
+  }, [expenses, catFilter, filterExpenses]);
 
   const total = filtered.reduce((s, e) => s + (e.amount || 0), 0);
 
@@ -95,7 +95,7 @@ export default function Expenses() {
             <TableBody>
               {filtered.length === 0 && (
                 <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">
-                  {mode === 'month' ? t('expenses.noExpensesMonth') : t('expenses.noExpensesEmpty')}
+                  {interval ? t('expenses.noExpensesMonth') : t('expenses.noExpensesEmpty')}
                 </TableCell></TableRow>
               )}
               {filtered.map(e => (

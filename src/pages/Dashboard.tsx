@@ -16,23 +16,21 @@ import {
 import {
   DollarSign, TrendingUp, Package, Clock, Weight, Lightbulb,
   Printer, Award, BarChart3, AlertTriangle, Activity, ExternalLink,
-  CalendarClock, CheckCircle2, AlertCircle, Zap,
+  CalendarClock, CheckCircle2, AlertCircle,
 } from "lucide-react";
 import { useMemo, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  format, parseISO, isBefore, isEqual, startOfToday, startOfWeek, endOfWeek, eachMonthOfInterval, eachWeekOfInterval, eachDayOfInterval,
-  startOfMonth, endOfMonth, startOfYear, endOfYear, addDays, isWithinInterval,
+  format, parseISO, isBefore, startOfToday, eachMonthOfInterval, eachWeekOfInterval, eachDayOfInterval,
+  startOfMonth, endOfMonth, startOfYear, endOfYear, addDays,
 } from "date-fns";
 import ProductionSummary from "@/components/ProductionSummary";
 import MaterialUsageSummary from "@/components/MaterialUsageSummary";
-import ChartGroupingSelect, { type ChartGrouping } from "@/components/ChartGroupingSelect";
-import { usePersistedState } from "@/hooks/usePersistedState";
+import type { ChartGrouping } from "@/context/MonthContext";
 import { HelpTip } from "@/components/HelpTip";
 import { useDemo } from "@/context/DemoContext";
 // PAYMENTS_TODO: import { UpgradeModal } from "@/components/UpgradeModal";
 // PAYMENTS_TODO: import { useTier } from "@/context/TierContext";
-import { useState } from "react";
 // PAYMENTS_TODO: import { Lock } from "lucide-react";
 import { ActivationChecklist } from "@/components/ActivationChecklist";
 
@@ -90,17 +88,12 @@ function buildBuckets(grouping: ChartGrouping, interval: { start: Date; end: Dat
 
 export default function Dashboard() {
   const { projects, expenses, totalFilamentPurchasesCost } = useApp();
-  const { filterProjects, filterExpenses, interval, mode, label: periodLabel } = useMonth();
+  const { filterProjects, filterExpenses, interval, period, autoGrouping, label: periodLabel } = useMonth();
   const navigate = useNavigate();
   const { t } = useTranslation();
   const { isDemoMode } = useDemo();
   // PAYMENTS_TODO: const { isPro } = useTier();
   // PAYMENTS_TODO: const [showUpgrade, setShowUpgrade] = useState(false);
-
-  // Per-chart independent grouping — persisted
-  const [revenueGrouping, setRevenueGrouping] = usePersistedState<ChartGrouping>("dash_chart_revenue", "month");
-  const [profitGrouping, setProfitGrouping] = usePersistedState<ChartGrouping>("dash_chart_profit", "month");
-  const [hoursGrouping, setHoursGrouping] = usePersistedState<ChartGrouping>("dash_chart_hours", "month");
 
   const filteredProjects = useMemo(() => filterProjects(projects), [projects, filterProjects]);
   const filteredExpenses = useMemo(() => filterExpenses(expenses), [expenses, filterExpenses]);
@@ -111,7 +104,7 @@ export default function Dashboard() {
     const totalRevenue = paidSent.reduce((s, p) => s + (p.totalPrice || 0), 0);
     const projectExp = paidSent.reduce((s, p) => s + getProjectExpensesTotal(p), 0);
     const otherExp = filteredExpenses.reduce((s, e) => s + (e.amount || 0), 0);
-    const filCost = mode === "all" ? totalFilamentPurchasesCost : 0;
+    const filCost = period === "all-time" ? totalFilamentPurchasesCost : 0;
     const totalMaterial = filteredProjects.reduce((s, p) => s + getProjectTotalMaterial(p), 0);
 
     const completedProjects = filteredProjects.filter(p => getProjectProgress(p).percent === 100);
@@ -161,7 +154,7 @@ export default function Dashboard() {
       completionRate, avgProfitPerProject, avgTimePerProject,
       materialBreakdown, mostUsedMaterial, onTime, late,
     };
-  }, [filteredProjects, filteredExpenses, totalFilamentPurchasesCost, mode]);
+  }, [filteredProjects, filteredExpenses, totalFilamentPurchasesCost, period]);
 
   const globalProgress = useMemo(() => getGlobalPrintProgress(filteredProjects), [filteredProjects]);
   const suggestions = useMemo(() => getSuggestions(projects), [projects]);
@@ -216,25 +209,25 @@ export default function Dashboard() {
   }, [interval, filteredProjects, filteredExpenses]);
 
   // ── Chart data ──
-  const revenueOverTime = useMemo(() => buildTimeSeries(revenueGrouping, (ps) => {
+  const revenueOverTime = useMemo(() => buildTimeSeries(autoGrouping, (ps) => {
     const revenue = ps.filter(p => p.paid && p.sent).reduce((s, p) => s + (p.totalPrice || 0), 0);
     return { revenue: +revenue.toFixed(2) };
-  }), [buildTimeSeries, revenueGrouping]);
+  }), [buildTimeSeries, autoGrouping]);
 
-  const profitExpensesData = useMemo(() => buildTimeSeries(profitGrouping, (ps, es) => {
+  const profitExpensesData = useMemo(() => buildTimeSeries(autoGrouping, (ps, es) => {
     const paidSent = ps.filter(p => p.paid && p.sent);
     const revenue = paidSent.reduce((s, p) => s + (p.totalPrice || 0), 0);
     const pExp = paidSent.reduce((s, p) => s + getProjectExpensesTotal(p), 0);
     const eExp = es.reduce((s, e) => s + (e.amount || 0), 0);
     const totalExp = pExp + eExp;
     return { profit: +(revenue - totalExp).toFixed(2), expenses: +totalExp.toFixed(2) };
-  }), [buildTimeSeries, profitGrouping]);
+  }), [buildTimeSeries, autoGrouping]);
 
-  const hoursOverTime = useMemo(() => buildTimeSeries(hoursGrouping, (ps) => {
+  const hoursOverTime = useMemo(() => buildTimeSeries(autoGrouping, (ps) => {
     const hours = ps.reduce((s, p) =>
       s + (p.prints || []).reduce((ph, pr) => ph + (pr.estimatedPrintTime || 0) * (pr.completedQuantity || 0), 0), 0);
     return { hours: +hours.toFixed(1) };
-  }), [buildTimeSeries, hoursGrouping]);
+  }), [buildTimeSeries, autoGrouping]);
 
   const statusDistribution = useMemo(() => {
     return [
@@ -301,27 +294,6 @@ export default function Dashboard() {
     }).sort((a, b) => (a.dueDate || "").localeCompare(b.dueDate || ""));
   }, [projects, todayStr, today]);
 
-  const thisWeekStats = useMemo(() => {
-    const weekStart = startOfWeek(today, { weekStartsOn: 1 });
-    const weekEnd = endOfWeek(today, { weekStartsOn: 1 });
-    const weekProjects = projects.filter(p => {
-      if (!p.orderDate) return false;
-      try { return isWithinInterval(parseISO(p.orderDate), { start: weekStart, end: weekEnd }); } catch { return false; }
-    });
-    const shipped = weekProjects.filter(p => p.sent);
-    const revenue = projects.filter(p => {
-      if (!p.paid || !p.sent) return false;
-      const ds = p.shippingDate || p.orderDate;
-      if (!ds) return false;
-      try { return isWithinInterval(parseISO(ds), { start: weekStart, end: weekEnd }); } catch { return false; }
-    }).reduce((s, p) => s + (p.totalPrice || 0), 0);
-    const hours = weekProjects.flatMap(p => p.prints || []).reduce((s, pr) => {
-      return s + (pr.estimatedPrintTime || 0) * (pr.completedQuantity || 0);
-    }, 0);
-    return { ordersReceived: weekProjects.length, shipped: shipped.length, revenue, hours };
-  }, [projects, today]);
-
-  // Top 3 stat cards — all use filteredProjects so they respect the selected period
   const activeProjectsCount = filteredProjects.filter(p => !p.paid || !p.sent).length;
 
   return (
@@ -382,17 +354,23 @@ export default function Dashboard() {
             <BarChart3 className="h-7 w-7 text-primary" />
           </div>
           <div>
-            <p className="font-semibold text-base">No data yet</p>
-            <p className="text-sm text-muted-foreground mt-1">Add projects and mark them as paid & shipped to see your analytics.</p>
+            <p className="font-semibold text-base">No data for this period</p>
+            <p className="text-sm text-muted-foreground mt-1">
+              {period === 'all-time'
+                ? "Add projects and mark them as paid & shipped to see your analytics."
+                : `No projects or expenses found for ${periodLabel}. Try a different period or switch to All Time.`}
+            </p>
           </div>
-          <div className="text-left space-y-1.5 max-w-xs mx-auto">
-            {["Create your first project", "Add prints with time & material", "Mark paid & shipped when done", "Watch your analytics grow"].map((step, i) => (
-              <div key={i} className="flex items-center gap-2 text-sm">
-                <div className="h-5 w-5 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-bold text-primary shrink-0">{i + 1}</div>
-                <span className="text-muted-foreground">{step}</span>
-              </div>
-            ))}
-          </div>
+          {period === 'all-time' && (
+            <div className="text-left space-y-1.5 max-w-xs mx-auto">
+              {["Create your first project", "Add prints with time & material", "Mark paid & shipped when done", "Watch your analytics grow"].map((step, i) => (
+                <div key={i} className="flex items-center gap-2 text-sm">
+                  <div className="h-5 w-5 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-bold text-primary shrink-0">{i + 1}</div>
+                  <span className="text-muted-foreground">{step}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </CardContent></Card>
       )}
 
@@ -437,28 +415,6 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       )}
-
-      {/* This week summary */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {[
-          { label: "Orders received", value: thisWeekStats.ordersReceived, icon: Package, color: "text-primary" },
-          { label: "Shipped", value: thisWeekStats.shipped, icon: Zap, color: "text-sky-600" },
-          { label: "Revenue", value: `€${thisWeekStats.revenue.toFixed(2)}`, icon: DollarSign, color: "text-emerald-600" },
-          { label: "Hours printed", value: `${thisWeekStats.hours.toFixed(1)}h`, icon: Clock, color: "text-purple-600" },
-        ].map(s => (
-          <Card key={s.label} className="border-border/60">
-            <CardContent className="p-3 flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center shrink-0">
-                <s.icon className={`h-4 w-4 ${s.color}`} />
-              </div>
-              <div>
-                <p className="text-lg font-bold">{s.value}</p>
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wide">{s.label}</p>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
 
       {/* KPI Grid */}
       <div className="flex items-center gap-1.5 -mb-1">
@@ -540,8 +496,8 @@ export default function Dashboard() {
       </Card>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <ProductionSummary />
-        <MaterialUsageSummary />
+        <ProductionSummary projects={filteredProjects} />
+        <MaterialUsageSummary projects={filteredProjects} />
         {/* PAYMENTS_TODO: replace above with gated ternaries when payments are ready
         {isPro ? <ProductionSummary /> : (
           <div className="rounded-xl border bg-card p-6 flex flex-col items-center justify-center gap-3 min-h-[180px] cursor-pointer" onClick={() => setShowUpgrade(true)}>
@@ -586,10 +542,7 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card className="border-border/60">
           <CardHeader className="pb-2">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-sm">{t('dashboard.revenueOverTime')}</CardTitle>
-              <ChartGroupingSelect value={revenueGrouping} onChange={setRevenueGrouping} />
-            </div>
+            <CardTitle className="text-sm">{t('dashboard.revenueOverTime')}</CardTitle>
           </CardHeader>
           <CardContent>
             {revenueOverTime.length === 0 ? (
@@ -610,10 +563,7 @@ export default function Dashboard() {
 
         <Card className="border-border/60">
           <CardHeader className="pb-2">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-sm">{t('dashboard.profitVsExpenses')}</CardTitle>
-              <ChartGroupingSelect value={profitGrouping} onChange={setProfitGrouping} />
-            </div>
+            <CardTitle className="text-sm">{t('dashboard.profitVsExpenses')}</CardTitle>
           </CardHeader>
           <CardContent>
             {profitExpensesData.length === 0 ? (
@@ -639,10 +589,7 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card className="border-border/60">
           <CardHeader className="pb-2">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-sm">{t('dashboard.hoursPrintedOverTime')}</CardTitle>
-              <ChartGroupingSelect value={hoursGrouping} onChange={setHoursGrouping} />
-            </div>
+            <CardTitle className="text-sm">{t('dashboard.hoursPrintedOverTime')}</CardTitle>
           </CardHeader>
           <CardContent>
             {hoursOverTime.every(h => (h as any).hours === 0) ? (

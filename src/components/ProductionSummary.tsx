@@ -1,5 +1,5 @@
 import { useApp } from "@/context/AppContext";
-import { getWorkloadStats, WorkloadLevel } from "@/types";
+import { getWorkloadStats, WorkloadLevel, Project } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -15,8 +15,9 @@ function formatDuration(hours: number): string {
   return `${days}d ${h}h`;
 }
 
-export default function ProductionSummary() {
-  const { projects, settings } = useApp();
+export default function ProductionSummary({ projects: propProjects }: { projects?: Project[] }) {
+  const { projects: ctxProjects, settings } = useApp();
+  const projects = propProjects ?? ctxProjects;
   const { t } = useTranslation();
 
   const levelConfig: Record<WorkloadLevel, { label: string; emoji: string; color: string; badgeClass: string; accept: string; acceptLabel: string; message: string }> = {

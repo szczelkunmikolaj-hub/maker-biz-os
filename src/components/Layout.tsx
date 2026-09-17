@@ -3,9 +3,10 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useMonth } from "@/context/MonthContext";
+import type { PeriodOption } from "@/context/MonthContext";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, CalendarDays, Plus } from "lucide-react";
-import { Switch } from "@/components/ui/switch";
+import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { NotificationBell } from "@/components/NotificationBell";
 import { GlobalStatusBar } from "@/components/GlobalStatusBar";
 import { CommandPalette } from "@/components/CommandPalette";
@@ -40,7 +41,7 @@ function newQuickProject(): Project {
 export function Layout() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { mode, setMode, label, prevMonth, nextMonth } = useMonth();
+  const { period, setPeriod, prevPeriod, nextPeriod, label } = useMonth();
   const { isDemoMode, toggleDemoMode } = useDemo();
   const { t } = useTranslation();
   const { addProject, projects } = useApp();
@@ -151,34 +152,34 @@ export function Layout() {
             <SidebarTrigger className="shrink-0" />
             {title && <span className="ml-1 md:ml-3 text-sm font-medium text-muted-foreground truncate max-w-[120px] sm:max-w-none">{title}</span>}
 
-            {/* Global month selector */}
-            <div className="ml-auto flex items-center gap-1.5 md:gap-2 shrink-0">
-              <div className="flex items-center gap-1 md:gap-1.5">
-                <CalendarDays className="h-3.5 w-3.5 text-muted-foreground hidden sm:block" />
-                <label className="text-xs text-muted-foreground cursor-pointer select-none hidden sm:block" htmlFor="month-toggle">
-                  {mode === 'all' ? t('common.allTime') : t('common.monthly')}
-                </label>
-                <Switch
-                  id="month-toggle"
-                  checked={mode === 'month'}
-                  onCheckedChange={(checked) => setMode(checked ? 'month' : 'all')}
-                  className="h-5 w-9 [&>span]:h-4 [&>span]:w-4 data-[state=checked]:[&>span]:translate-x-4"
-                />
-              </div>
+            {/* Unified period selector */}
+            <div className="ml-auto flex items-center gap-1 md:gap-1.5 shrink-0">
+              <Select value={period} onValueChange={v => setPeriod(v as PeriodOption)}>
+                <SelectTrigger className="h-7 w-[115px] md:w-[130px] text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="this-week">This Week</SelectItem>
+                  <SelectItem value="this-month">This Month</SelectItem>
+                  <SelectItem value="last-3-months">Last 3 Months</SelectItem>
+                  <SelectItem value="this-year">This Year</SelectItem>
+                  <SelectItem value="all-time">All Time</SelectItem>
+                </SelectContent>
+              </Select>
 
-              {mode === 'month' && (
-                <div className="flex items-center gap-0.5 md:gap-1 ml-0.5 md:ml-1">
-                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={prevMonth}>
+              {period !== 'all-time' && (
+                <div className="flex items-center gap-0.5">
+                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={prevPeriod}>
                     <ChevronLeft className="h-3.5 w-3.5" />
                   </Button>
-                  <span className="text-xs md:text-sm font-medium min-w-[80px] md:min-w-[120px] text-center">{label}</span>
-                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={nextMonth}>
+                  <span className="text-[11px] font-medium min-w-[70px] md:min-w-[100px] text-center hidden sm:block">{label}</span>
+                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={nextPeriod}>
                     <ChevronRight className="h-3.5 w-3.5" />
                   </Button>
                 </div>
               )}
 
-              <div className="ml-0.5 md:ml-1 pl-1.5 md:pl-2 border-l">
+              <div className="pl-1 md:pl-1.5 border-l">
                 <NotificationBell />
               </div>
             </div>

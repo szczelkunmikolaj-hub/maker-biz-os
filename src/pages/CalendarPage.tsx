@@ -54,7 +54,7 @@ function isNewProject(orderDate: string): boolean {
 
 export default function CalendarPage() {
   const { projects } = useApp();
-  const { mode, selectedMonth: globalMonth } = useMonth();
+  const { calendarMonth } = useMonth();
   const navigate = useNavigate();
   const { t } = useTranslation();
 
@@ -67,12 +67,7 @@ export default function CalendarPage() {
     'shipping-deadline':    { label: t('calendar.shippingDeadline'),   color: 'hsl(280, 60%, 50%)',  bgClass: 'bg-purple-500/15 border-purple-500/30',  textClass: 'text-purple-700 dark:text-purple-400', icon: Truck },
   };
 
-  const initialDate = useMemo(() => {
-    if (mode === 'month') {
-      return parseISO(`${globalMonth}-01`);
-    }
-    return new Date();
-  }, [mode, globalMonth]);
+  const initialDate = useMemo(() => parseISO(`${calendarMonth}-01`), [calendarMonth]);
 
   const [currentMonth, setCurrentMonth] = useState(initialDate);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
