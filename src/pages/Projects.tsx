@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { usePersistedState } from "@/hooks/usePersistedState";
 import { useApp } from "@/context/AppContext";
 import { useMonth } from "@/context/MonthContext";
-import { Project, CustomerSource, PaymentMethod, PrintTemplate, getProjectProgress, getProjectTotalPieces, getProjectPiecesTotal, getProjectExpensesTotal, getProjectTotalPrintTime, getProjectTotalMaterial, getProjectEstimatedMargin } from "@/types";
+import { Project, Payment, CustomerSource, PaymentMethod, PrintTemplate, getProjectProgress, getProjectPiecesTotal, getProjectEstimatedMargin, getProjectPaymentStatus, getProjectBalance, cleanDisplayName } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -15,19 +15,18 @@ import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
-import { Plus, Search, Download, ArrowUpDown, Printer, Package, Clock, Calendar, CreditCard, Sparkles, Upload, ChevronDown, FileSpreadsheet, Wand2, BookTemplate, Trash2, Zap, Users, LayoutGrid, MoreHorizontal, Pencil, Copy } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Plus, Search, Download, ArrowUpDown, Printer, Package, Calendar, CreditCard, Sparkles, Upload, ChevronDown, FileSpreadsheet, Wand2, BookTemplate, Trash2, LayoutGrid, MoreHorizontal, Pencil, Copy } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import ProjectDetail from "@/components/ProjectDetail";
-import { parseISO, isBefore, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval } from "date-fns";
+import { parseISO, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval } from "date-fns";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { Dialog as ImportDialog, DialogContent as ImportDialogContent, DialogHeader as ImportDialogHeader, DialogTitle as ImportDialogTitle, DialogDescription as ImportDialogDescription } from "@/components/ui/dialog";
 import { PlateImporter } from "@/components/PlateImporter";
 import { RecurringBadge } from "@/components/RecurringBadge";
 import { StatusPill } from "@/components/StatusPill";
-import { ColorPills } from "@/components/ColorPills";
 import { PlatePreview } from "@/components/PlatePreview";
 import { deriveProjectStatus, getStatusMeta } from "@/lib/projectStatus";
-import { normalizeMaterial } from "@/lib/normalize";
 import posthog from "@/lib/posthog";
 import { ImportFromSpreadsheet } from "@/components/ImportFromSpreadsheet";
 import { ImportFromAI } from "@/components/ImportFromAI";
@@ -174,17 +173,41 @@ export default function Projects() {
     setShowAddTemplate(false);
   };
 
-  const toggleStatus = (id: string, field: 'printed' | 'paid' | 'sent') => {
+  const [paymentPopoverProjectId, setPaymentPopoverProjectId] = useState<string | null>(null);
+  const [paymentDraft, setPaymentDraft] = useState({ amount: '', date: new Date().toISOString().split('T')[0], method: 'Other' as PaymentMethod, notes: '' });
+
+  const toggleStatus = (id: string, field: 'printed' | 'sent') => {
     const proj = projects.find(p => p.id === id);
     if (proj) {
-      const newValue = !proj[field];
-      updateProject({ ...proj, [field]: newValue });
-      posthog.capture('project_status_updated', {
-        status_field: field,
-        new_value: newValue,
-        customer_source: proj.customerSource,
-      });
+      if (field === 'printed') {
+        const newPrinted = !proj.printed;
+        const updatedPrints = (proj.prints || []).map(pr => ({
+          ...pr,
+          completedQuantity: newPrinted ? (pr.quantity || 1) : 0,
+        }));
+        updateProject({ ...proj, printed: newPrinted, prints: updatedPrints });
+      } else {
+        const newValue = !proj[field];
+        updateProject({ ...proj, [field]: newValue });
+        posthog.capture('project_status_updated', { status_field: field, new_value: newValue, customer_source: proj.customerSource });
+      }
     }
+  };
+
+  const handleRecordPayment = (proj: Project) => {
+    const amt = parseFloat(paymentDraft.amount) || 0;
+    if (amt <= 0) return;
+    const payment: Payment = {
+      id: crypto.randomUUID(),
+      amount: amt,
+      date: paymentDraft.date,
+      method: paymentDraft.method,
+      ...(paymentDraft.notes ? { notes: paymentDraft.notes } : {}),
+    };
+    updateProject({ ...proj, payments: [...(proj.payments || []), payment] });
+    posthog.capture('payment_recorded', { amount: amt, method: paymentDraft.method, source: 'card_quick_action' });
+    setPaymentPopoverProjectId(null);
+    setPaymentDraft({ amount: '', date: new Date().toISOString().split('T')[0], method: 'Other', notes: '' });
   };
 
   const duplicateProject = (p: Project) => {
@@ -380,11 +403,11 @@ export default function Projects() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
           {filtered.map(p => {
             const prog = getProjectProgress(p);
-            const totalPieces = getProjectTotalPieces(p);
             const piecesTotal = getProjectPiecesTotal(p);
             const effectivePrice = piecesTotal > 0 ? piecesTotal : (p.totalPrice || 0);
             const margin = getProjectEstimatedMargin(p, settings);
-            const totalTime = getProjectTotalPrintTime(p);
+            const payStatus = getProjectPaymentStatus(p);
+            const balance = getProjectBalance(p);
 
             const status = deriveProjectStatus(p);
             const meta = getStatusMeta(status);
@@ -412,7 +435,7 @@ export default function Projects() {
                         noHover
                       />
                       <div className="min-w-0 flex-1">
-                        <p className="font-semibold text-sm truncate group-hover:text-primary transition-colors">{p.name}</p>
+                        <p className="font-semibold text-sm truncate group-hover:text-primary transition-colors">{cleanDisplayName(p.name) || p.name}</p>
                         <p className="text-xs text-muted-foreground truncate">{p.customerName}</p>
                       </div>
                     </div>
@@ -446,11 +469,19 @@ export default function Projects() {
                     </div>
                   </div>
 
-                  {/* Price */}
-                  <div className="flex items-baseline justify-between">
-                    <span className="text-lg font-bold text-primary">€{effectivePrice.toFixed(2)}</span>
+                  {/* Price + payment status + margin */}
+                  <div className="flex items-baseline justify-between gap-2">
+                    <div className="flex items-baseline gap-1.5 min-w-0">
+                      <span className="text-lg font-bold text-primary">€{effectivePrice.toFixed(2)}</span>
+                      {payStatus === 'paid' && effectivePrice > 0 && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 font-medium shrink-0">Paid</span>
+                      )}
+                      {payStatus === 'partial' && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-700 dark:text-amber-400 font-medium shrink-0">€{Math.max(0, balance).toFixed(2)} due</span>
+                      )}
+                    </div>
                     {effectivePrice > 0 && (
-                      <span className={`text-xs font-medium ${margin === null ? 'text-muted-foreground' : margin >= 60 ? 'text-emerald-600' : margin >= 30 ? 'text-yellow-600' : 'text-red-600'}`}>
+                      <span className={`text-xs font-medium shrink-0 ${margin === null ? 'text-muted-foreground' : margin >= 60 ? 'text-emerald-600' : margin >= 30 ? 'text-yellow-600' : 'text-red-600'}`}>
                         {margin === null ? '—' : `${margin.toFixed(0)}%`} Est. margin
                       </span>
                     )}
@@ -461,50 +492,21 @@ export default function Projects() {
                     <div className="space-y-1">
                       <Progress value={prog.percent} className="h-1.5" />
                       <div className="flex justify-between text-[10px] text-muted-foreground">
-                        <span>{prog.completedPieces}/{prog.totalPieces} {t('projects.pieces')}</span>
+                        <span>{prog.completedPieces}/{prog.totalPieces} {prog.totalPieces === 1 ? 'piece' : 'pieces'}</span>
                         <span>{prog.percent}%</span>
                       </div>
                     </div>
                   )}
 
-                  {/* Meta info */}
-                  <div className="flex flex-wrap gap-x-3 gap-y-1 text-[10px] text-muted-foreground items-center">
-                    {(() => {
-                      const grams = getProjectTotalMaterial(p);
-                      const mats = Array.from(new Set((p.prints || [])
-                        .map(pr => normalizeMaterial(pr.material))
-                        .filter(Boolean)));
-                      const matLabel = mats.length === 0 ? null : mats.length === 1 ? mats[0] : `${mats[0]} +${mats.length - 1}`;
-                      if (!matLabel && grams === 0) return null;
-                      return (
-                        <span className="inline-flex items-center gap-1 rounded-full border border-border bg-muted/40 px-1.5 py-0.5 font-medium text-foreground/80">
-                          {matLabel || "—"}{grams > 0 && <span className="text-muted-foreground">· {Math.round(grams)}g</span>}
-                        </span>
-                      );
-                    })()}
-                    {totalPieces > 0 && (
-                      <span className="flex items-center gap-0.5"><Package className="h-3 w-3" />{totalPieces} {t('projects.pieces')}</span>
-                    )}
-                    {totalTime > 0 && (
-                      <span className="flex items-center gap-0.5"><Clock className="h-3 w-3" />{totalTime.toFixed(0)}h</span>
-                    )}
-                    {p.dueDate && (
-                      <span className={`flex items-center gap-0.5 ${isLate ? 'text-red-600 font-medium' : ''}`}>
-                        <Calendar className="h-3 w-3" />{p.dueDate}
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Badges row */}
+                  {/* Badges + due date */}
                   <div className="flex items-center gap-1.5 flex-wrap">
                     {isRecurring && <RecurringBadge />}
                     <Badge variant="outline" className="text-[9px] px-1.5 py-0">{p.customerSource}</Badge>
-                    {(() => {
-                      const allColors = (p.prints || []).map(pr => pr.color).filter(Boolean).join(", ");
-                      const allPalettes = (p.prints || []).flatMap(pr => pr.colorPalette || []);
-                      if (!allColors) return null;
-                      return <ColorPills color={allColors} palette={allPalettes.length ? allPalettes : undefined} size="xs" showLabel={false} />;
-                    })()}
+                    {p.dueDate && (
+                      <span className={`text-[10px] flex items-center gap-0.5 ${isLate ? 'text-red-600 font-medium' : 'text-muted-foreground'}`}>
+                        <Calendar className="h-3 w-3" />{p.dueDate}
+                      </span>
+                    )}
                   </div>
 
                   {/* Quick actions */}
@@ -515,12 +517,49 @@ export default function Projects() {
                     >
                       <Printer className="h-3 w-3" />{p.printed ? '✓' : ''} {t('common.printed')}
                     </button>
-                    <button
-                      className={`flex items-center gap-1 text-[10px] px-2 py-1 rounded-md border transition-colors ${p.paid ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30' : 'bg-muted/50 text-muted-foreground border-border hover:bg-muted'}`}
-                      onClick={() => toggleStatus(p.id, 'paid')}
+                    <Popover
+                      open={paymentPopoverProjectId === p.id}
+                      onOpenChange={open => {
+                        if (!open) { setPaymentPopoverProjectId(null); return; }
+                        const remaining = Math.max(0, getProjectBalance(p));
+                        setPaymentDraft({
+                          amount: remaining > 0 ? remaining.toFixed(2) : '',
+                          date: new Date().toISOString().split('T')[0],
+                          method: (p.paymentMethod as PaymentMethod) || 'Other',
+                          notes: '',
+                        });
+                        setPaymentPopoverProjectId(p.id);
+                      }}
                     >
-                      <CreditCard className="h-3 w-3" />{p.paid ? '✓' : ''} {t('common.paid')}
-                    </button>
+                      <PopoverTrigger asChild>
+                        <button
+                          className={`flex items-center gap-1 text-[10px] px-2 py-1 rounded-md border transition-colors ${p.paid ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30' : 'bg-muted/50 text-muted-foreground border-border hover:bg-muted'}`}
+                        >
+                          <CreditCard className="h-3 w-3" />{p.paid ? '✓' : ''} {t('common.paid')}
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-60 p-3" align="start" onClick={e => e.stopPropagation()}>
+                        <div className="space-y-2">
+                          <p className="text-xs font-semibold">Record payment</p>
+                          <div>
+                            <Label className="text-[10px] text-muted-foreground">Amount (€)</Label>
+                            <Input type="number" step="0.01" value={paymentDraft.amount} onChange={e => setPaymentDraft(d => ({ ...d, amount: e.target.value }))} className="h-7 text-xs mt-0.5" />
+                          </div>
+                          <div>
+                            <Label className="text-[10px] text-muted-foreground">Date</Label>
+                            <Input type="date" value={paymentDraft.date} onChange={e => setPaymentDraft(d => ({ ...d, date: e.target.value }))} className="h-7 text-xs mt-0.5" />
+                          </div>
+                          <div>
+                            <Label className="text-[10px] text-muted-foreground">Method</Label>
+                            <Select value={paymentDraft.method} onValueChange={v => setPaymentDraft(d => ({ ...d, method: v as PaymentMethod }))}>
+                              <SelectTrigger className="h-7 text-xs mt-0.5"><SelectValue /></SelectTrigger>
+                              <SelectContent>{PAYMENT_METHODS.map(m => <SelectItem key={m} value={m} className="text-xs">{m}</SelectItem>)}</SelectContent>
+                            </Select>
+                          </div>
+                          <Button size="sm" className="w-full h-7 text-xs" onClick={() => handleRecordPayment(p)}>Save payment</Button>
+                        </div>
+                      </PopoverContent>
+                    </Popover>
                     <button
                       className={`flex items-center gap-1 text-[10px] px-2 py-1 rounded-md border transition-colors ${p.sent ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30' : 'bg-muted/50 text-muted-foreground border-border hover:bg-muted'}`}
                       onClick={() => toggleStatus(p.id, 'sent')}

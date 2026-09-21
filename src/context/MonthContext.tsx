@@ -6,7 +6,7 @@ import {
   startOfMonth, endOfMonth, addMonths,
   startOfYear, endOfYear, addYears,
 } from 'date-fns';
-import { Project, Expense, getEffectiveDate } from '@/types';
+import { Project, Expense, FilamentPurchase, getEffectiveDate } from '@/types';
 
 export type PeriodOption = 'this-week' | 'this-month' | 'last-3-months' | 'this-year' | 'all-time';
 export type ChartGrouping = 'day' | 'week' | 'month' | 'year';
@@ -27,6 +27,7 @@ interface MonthContextType {
   filterProjects: (projects: Project[]) => Project[];
   filterProjectsForWorkflow: (projects: Project[]) => Project[];
   filterExpenses: (expenses: Expense[]) => Expense[];
+  filterFilamentPurchases: (fps: FilamentPurchase[]) => FilamentPurchase[];
   interval: { start: Date; end: Date } | null;
   /** 'yyyy-MM' string for CalendarPage to sync to the right month */
   calendarMonth: string;
@@ -146,11 +147,16 @@ export function MonthProvider({ children }: { children: React.ReactNode }) {
     return expenses.filter(e => isInPeriod(e.date));
   }, [interval, isInPeriod]);
 
+  const filterFilamentPurchases = useCallback((fps: FilamentPurchase[]): FilamentPurchase[] => {
+    if (!interval) return fps;
+    return fps.filter(fp => isInPeriod(fp.purchaseDate));
+  }, [interval, isInPeriod]);
+
   return (
     <MonthContext.Provider value={{
       period, setPeriod, offset, prevPeriod, nextPeriod,
       label, autoGrouping, isInPeriod,
-      filterProjects, filterProjectsForWorkflow, filterExpenses,
+      filterProjects, filterProjectsForWorkflow, filterExpenses, filterFilamentPurchases,
       interval, calendarMonth, mode,
     }}>
       {children}

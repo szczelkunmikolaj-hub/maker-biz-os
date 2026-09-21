@@ -4,7 +4,7 @@ import { useMonth } from "@/context/MonthContext";
 import {
   getProjectTotalMaterial, getGlobalPrintProgress, getSuggestions,
   getProjectExpensesTotal, getProjectProgress, getProjectTotalPrintTime,
-  getEffectiveDate,
+  getEffectiveDate, getProjectBalance,
 } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -23,16 +23,15 @@ import { useTranslation } from "react-i18next";
 import {
   format, parseISO, isBefore, startOfToday, eachMonthOfInterval, eachWeekOfInterval, eachDayOfInterval,
   startOfMonth, endOfMonth, startOfYear, endOfYear, addDays,
+  startOfWeek, endOfWeek,
 } from "date-fns";
 import ProductionSummary from "@/components/ProductionSummary";
 import MaterialUsageSummary from "@/components/MaterialUsageSummary";
 import type { ChartGrouping } from "@/context/MonthContext";
 import { HelpTip } from "@/components/HelpTip";
 import { useDemo } from "@/context/DemoContext";
-// PAYMENTS_TODO: import { UpgradeModal } from "@/components/UpgradeModal";
-// PAYMENTS_TODO: import { useTier } from "@/context/TierContext";
-// PAYMENTS_TODO: import { Lock } from "lucide-react";
 import { ActivationChecklist } from "@/components/ActivationChecklist";
+import { getCurrencySymbol } from "@/types";
 
 function DemoHint({ text }: { text: string }) {
   return (
@@ -87,16 +86,17 @@ function buildBuckets(grouping: ChartGrouping, interval: { start: Date; end: Dat
 }
 
 export default function Dashboard() {
-  const { projects, expenses, totalFilamentPurchasesCost } = useApp();
-  const { filterProjects, filterExpenses, interval, period, autoGrouping, label: periodLabel } = useMonth();
+  const { projects, expenses, filamentPurchases, settings } = useApp();
+  const { filterProjects, filterExpenses, filterFilamentPurchases, interval, period, autoGrouping, label: periodLabel } = useMonth();
   const navigate = useNavigate();
   const { t } = useTranslation();
   const { isDemoMode } = useDemo();
-  // PAYMENTS_TODO: const { isPro } = useTier();
-  // PAYMENTS_TODO: const [showUpgrade, setShowUpgrade] = useState(false);
+
+  const currencySymbol = getCurrencySymbol(settings.currency);
 
   const filteredProjects = useMemo(() => filterProjects(projects), [projects, filterProjects]);
   const filteredExpenses = useMemo(() => filterExpenses(expenses), [expenses, filterExpenses]);
+  const filteredFilament = useMemo(() => filterFilamentPurchases(filamentPurchases), [filamentPurchases, filterFilamentPurchases]);
 
   // ── Core stats ──
   const stats = useMemo(() => {
@@ -104,7 +104,8 @@ export default function Dashboard() {
     const totalRevenue = paidSent.reduce((s, p) => s + (p.totalPrice || 0), 0);
     const projectExp = paidSent.reduce((s, p) => s + getProjectExpensesTotal(p), 0);
     const otherExp = filteredExpenses.reduce((s, e) => s + (e.amount || 0), 0);
-    const filCost = period === "all-time" ? totalFilamentPurchasesCost : 0;
+    // Filament cost now always period-filtered (not just all-time)
+    const filCost = filteredFilament.reduce((s, fp) => s + (fp.totalCost || 0), 0);
     const totalMaterial = filteredProjects.reduce((s, p) => s + getProjectTotalMaterial(p), 0);
 
     const completedProjects = filteredProjects.filter(p => getProjectProgress(p).percent === 100);
@@ -122,7 +123,7 @@ export default function Dashboard() {
     const completionRate = filteredProjects.length > 0
       ? (completedProjects.length / filteredProjects.length) * 100 : 0;
     const avgProfitPerProject = paidSent.length > 0
-      ? (totalRevenue - projectExp - otherExp) / paidSent.length : 0;
+      ? (totalRevenue - projectExp - otherExp - filCost) / paidSent.length : 0;
     const projectsWithPrints = filteredProjects.filter(p => (p.prints || []).length > 0);
     const avgTimePerProject = projectsWithPrints.length > 0
       ? projectsWithPrints.reduce((s, p) => s + getProjectTotalPrintTime(p), 0) / projectsWithPrints.length : 0;
@@ -143,9 +144,12 @@ export default function Dashboard() {
     }).length;
     const late = paidSent.length - onTime;
 
+    const totalExpenses = projectExp + otherExp + filCost;
+    const netProfit = totalRevenue - totalExpenses;
+
     return {
-      totalRevenue, totalExpenses: projectExp + otherExp + filCost,
-      netProfit: totalRevenue - projectExp - otherExp - filCost,
+      totalRevenue, totalExpenses, netProfit,
+      filCost, otherExp: projectExp + otherExp,
       totalOrders: filteredProjects.length, totalMaterial,
       completedProjects: completedProjects.length,
       activeProjects: filteredProjects.length - completedProjects.length,
@@ -154,7 +158,13 @@ export default function Dashboard() {
       completionRate, avgProfitPerProject, avgTimePerProject,
       materialBreakdown, mostUsedMaterial, onTime, late,
     };
-  }, [filteredProjects, filteredExpenses, totalFilamentPurchasesCost, period]);
+  }, [filteredProjects, filteredExpenses, filteredFilament]);
+
+  // Outstanding balance across ALL projects (global, not period-filtered)
+  const outstandingBalance = useMemo(() =>
+    projects.reduce((s, p) => s + Math.max(0, getProjectBalance(p)), 0),
+    [projects]
+  );
 
   const globalProgress = useMemo(() => getGlobalPrintProgress(filteredProjects), [filteredProjects]);
   const suggestions = useMemo(() => getSuggestions(projects), [projects]);
@@ -162,12 +172,11 @@ export default function Dashboard() {
   // ── Generic time-series builder ──
   const buildTimeSeries = useCallback((
     grouping: ChartGrouping,
-    mapper: (projectsInBucket: typeof filteredProjects, expensesInBucket: typeof filteredExpenses) => Record<string, number>,
+    mapper: (projectsInBucket: typeof filteredProjects, expensesInBucket: typeof filteredExpenses, filamentInBucket: typeof filteredFilament) => Record<string, number>,
   ) => {
     const buckets = buildBuckets(grouping, interval);
 
     if (!buckets) {
-      // All-time: discover date range from data, then bucket by the chosen grouping
       const allDates: Date[] = [];
       filteredProjects.forEach(p => {
         const ds = getEffectiveDate(p);
@@ -175,6 +184,9 @@ export default function Dashboard() {
       });
       filteredExpenses.forEach(e => {
         if (e.date) { try { allDates.push(parseISO(e.date)); } catch {} }
+      });
+      filteredFilament.forEach(fp => {
+        if (fp.purchaseDate) { try { allDates.push(parseISO(fp.purchaseDate)); } catch {} }
       });
       if (allDates.length === 0) return [];
       const minDate = new Date(Math.min(...allDates.map(d => d.getTime())));
@@ -189,7 +201,10 @@ export default function Dashboard() {
         const bExpenses = filteredExpenses.filter(e => {
           try { const d = parseISO(e.date); return d >= b.start && d <= b.end; } catch { return false; }
         });
-        const vals = mapper(bProjects, bExpenses);
+        const bFilament = filteredFilament.filter(fp => {
+          try { const d = parseISO(fp.purchaseDate); return d >= b.start && d <= b.end; } catch { return false; }
+        });
+        const vals = mapper(bProjects, bExpenses, bFilament);
         return { label: b.label, ...vals };
       });
     }
@@ -203,10 +218,13 @@ export default function Dashboard() {
       const bExpenses = filteredExpenses.filter(e => {
         try { const d = parseISO(e.date); return d >= b.start && d <= b.end; } catch { return false; }
       });
-      const vals = mapper(bProjects, bExpenses);
+      const bFilament = filteredFilament.filter(fp => {
+        try { const d = parseISO(fp.purchaseDate); return d >= b.start && d <= b.end; } catch { return false; }
+      });
+      const vals = mapper(bProjects, bExpenses, bFilament);
       return { label: b.label, ...vals };
     });
-  }, [interval, filteredProjects, filteredExpenses]);
+  }, [interval, filteredProjects, filteredExpenses, filteredFilament]);
 
   // ── Chart data ──
   const revenueOverTime = useMemo(() => buildTimeSeries(autoGrouping, (ps) => {
@@ -214,12 +232,13 @@ export default function Dashboard() {
     return { revenue: +revenue.toFixed(2) };
   }), [buildTimeSeries, autoGrouping]);
 
-  const profitExpensesData = useMemo(() => buildTimeSeries(autoGrouping, (ps, es) => {
+  const profitExpensesData = useMemo(() => buildTimeSeries(autoGrouping, (ps, es, fps) => {
     const paidSent = ps.filter(p => p.paid && p.sent);
     const revenue = paidSent.reduce((s, p) => s + (p.totalPrice || 0), 0);
     const pExp = paidSent.reduce((s, p) => s + getProjectExpensesTotal(p), 0);
     const eExp = es.reduce((s, e) => s + (e.amount || 0), 0);
-    const totalExp = pExp + eExp;
+    const fExp = fps.reduce((s, fp) => s + (fp.totalCost || 0), 0);
+    const totalExp = pExp + eExp + fExp;
     return { profit: +(revenue - totalExp).toFixed(2), expenses: +totalExp.toFixed(2) };
   }), [buildTimeSeries, autoGrouping]);
 
@@ -260,20 +279,27 @@ export default function Dashboard() {
       ? stats.netProfit / stats.totalPrintsCompleted : 0;
 
     return [
-      { label: t('dashboard.bestDay'), value: bestDay ? `${format(parseISO(bestDay[0]), "MMM d, yyyy")} — €${bestDay[1].toFixed(2)}` : "—" },
+      { label: t('dashboard.bestDay'), value: bestDay ? `${format(parseISO(bestDay[0]), "MMM d, yyyy")} — ${currencySymbol}${bestDay[1].toFixed(2)}` : "—" },
       { label: t('dashboard.mostUsedMaterial'), value: stats.mostUsedMaterial },
       { label: t('dashboard.busiestWeek'), value: busiestWeek ? `${busiestWeek[0]} (${busiestWeek[1]} ${t('dashboard.ordersLabel')})` : "—" },
-      { label: t('dashboard.avgProfitPrint'), value: `€${avgProfitPerPrint.toFixed(2)}` },
+      { label: t('dashboard.avgProfitPrint'), value: `${currencySymbol}${avgProfitPerPrint.toFixed(2)}` },
     ];
-  }, [filteredProjects, stats, t]);
+  }, [filteredProjects, stats, t, currencySymbol]);
+
+  // Expenses breakdown text: "€74 (Filament €45 · Other €29)"
+  const expensesBreakdown = useMemo(() => {
+    if (stats.filCost === 0) return `${currencySymbol}${stats.totalExpenses.toFixed(2)}`;
+    return `${currencySymbol}${stats.totalExpenses.toFixed(2)} (Filament ${currencySymbol}${stats.filCost.toFixed(2)} · Other ${currencySymbol}${stats.otherExp.toFixed(2)})`;
+  }, [stats, currencySymbol]);
 
   const kpis = [
-    { label: t('dashboard.revenue'), value: `€${stats.totalRevenue.toFixed(2)}`, icon: DollarSign, color: "text-emerald-600" },
-    { label: t('dashboard.netProfit'), value: `€${stats.netProfit.toFixed(2)}`, icon: TrendingUp, color: stats.netProfit >= 0 ? "text-emerald-600" : "text-destructive" },
-    { label: t('dashboard.expenses'), value: `€${stats.totalExpenses.toFixed(2)}`, icon: AlertTriangle, color: "text-destructive" },
+    { label: t('dashboard.revenue'), value: `${currencySymbol}${stats.totalRevenue.toFixed(2)}`, icon: DollarSign, color: "text-emerald-600" },
+    { label: t('dashboard.netProfit'), value: `${currencySymbol}${stats.netProfit.toFixed(2)}`, icon: TrendingUp, color: stats.netProfit >= 0 ? "text-emerald-600" : "text-destructive" },
+    { label: t('dashboard.expenses'), value: `${currencySymbol}${stats.totalExpenses.toFixed(2)}`, icon: AlertTriangle, color: "text-destructive", subtitle: stats.filCost > 0 ? `Filament ${currencySymbol}${stats.filCost.toFixed(2)} · Other ${currencySymbol}${stats.otherExp.toFixed(2)}` : undefined },
     { label: t('dashboard.orders'), value: stats.totalOrders, icon: Package, color: "text-primary" },
     { label: t('dashboard.hoursPrinted'), value: `${stats.totalHoursPrinted.toFixed(1)}h`, icon: Clock, color: "text-primary" },
     { label: t('dashboard.materialUsed'), value: `${stats.totalMaterial.toFixed(0)}g`, icon: Weight, color: "text-primary" },
+    ...(outstandingBalance > 0 ? [{ label: 'Outstanding balance', value: `${currencySymbol}${outstandingBalance.toFixed(2)}`, icon: AlertTriangle, color: "text-yellow-600", subtitle: 'Across all unpaid orders' }] : []),
   ];
 
   const tooltipStyle = { borderRadius: 8, fontSize: 12, border: "1px solid hsl(var(--border))" };
@@ -309,7 +335,7 @@ export default function Dashboard() {
         </p>
       </div>
 
-      {/* Quick stats bar — all three respect the selected period */}
+      {/* Quick stats bar */}
       <div className="grid grid-cols-3 gap-3">
         <div className="rounded-xl border bg-card px-4 py-3 flex items-center gap-3">
           <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
@@ -328,7 +354,7 @@ export default function Dashboard() {
             <DollarSign className="h-4 w-4 text-emerald-600" />
           </div>
           <div>
-            <p className="text-xl font-bold">€{stats.totalRevenue.toFixed(0)}</p>
+            <p className="text-xl font-bold">{currencySymbol}{stats.totalRevenue.toFixed(0)}</p>
             <p className="text-xs text-muted-foreground flex items-center">
               {isDemoMode ? 'Your real revenue will appear here' : `Revenue · ${periodLabel}`}
               {isDemoMode && <DemoHint text="Your real revenue will appear here" />}
@@ -404,7 +430,7 @@ export default function Dashboard() {
                     {p.customerName && <span className="text-xs text-muted-foreground truncate">· {p.customerName}</span>}
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
-                    {p.totalPrice > 0 && <span className="text-xs font-medium text-primary">€{p.totalPrice.toFixed(2)}</span>}
+                    {p.totalPrice > 0 && <span className="text-xs font-medium text-primary">{currencySymbol}{p.totalPrice.toFixed(2)}</span>}
                     <Badge variant={isOverdue ? "destructive" : "outline"} className="text-[10px] px-1.5">
                       {isOverdue ? `${Math.floor((today.getTime() - parseISO(p.dueDate).getTime()) / 86400000)}d overdue` : 'due today'}
                     </Badge>
@@ -421,7 +447,7 @@ export default function Dashboard() {
         <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t('dashboard.keyMetrics')}</span>
         <HelpTip text={t('dashboard.keyMetricsHint')} />
       </div>
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
         {kpis.map(k => (
           <Card key={k.label} className="hover:shadow-md transition-shadow border-border/60">
             <CardContent className="p-4">
@@ -432,6 +458,9 @@ export default function Dashboard() {
               </div>
               <p className="text-xl font-bold tracking-tight">{k.value}</p>
               <span className="text-xs text-muted-foreground">{k.label}</span>
+              {(k as any).subtitle && (
+                <p className="text-[10px] text-muted-foreground mt-0.5 leading-tight">{(k as any).subtitle}</p>
+              )}
             </CardContent>
           </Card>
         ))}
@@ -472,7 +501,7 @@ export default function Dashboard() {
             <div className="flex justify-between text-sm"><span className="text-muted-foreground">{t('dashboard.active')}</span><span className="font-semibold">{stats.activeProjects}</span></div>
             <div className="flex justify-between text-sm"><span className="text-muted-foreground">{t('dashboard.completed')}</span><span className="font-semibold text-emerald-600">{stats.completedProjects}</span></div>
             <div className="flex justify-between text-sm"><span className="text-muted-foreground">{t('dashboard.overdue')}</span><span className="font-semibold text-destructive">{stats.overdueProjects}</span></div>
-            <div className="flex justify-between text-sm"><span className="text-muted-foreground">{t('dashboard.avgProfitProject')}</span><span className="font-semibold">€{stats.avgProfitPerProject.toFixed(2)}</span></div>
+            <div className="flex justify-between text-sm"><span className="text-muted-foreground">{t('dashboard.avgProfitProject')}</span><span className="font-semibold">{currencySymbol}{stats.avgProfitPerProject.toFixed(2)}</span></div>
           </CardContent>
         </Card>
       </div>
@@ -498,28 +527,7 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <ProductionSummary projects={filteredProjects} />
         <MaterialUsageSummary projects={filteredProjects} />
-        {/* PAYMENTS_TODO: replace above with gated ternaries when payments are ready
-        {isPro ? <ProductionSummary /> : (
-          <div className="rounded-xl border bg-card p-6 flex flex-col items-center justify-center gap-3 min-h-[180px] cursor-pointer" onClick={() => setShowUpgrade(true)}>
-            <Lock className="h-6 w-6 text-muted-foreground" />
-            <div className="text-center">
-              <div className="font-medium text-sm">{t('tier.featureProductionSummaryTitle')}</div>
-              <div className="text-xs text-muted-foreground mt-1">{t('tier.upgradeCta')}</div>
-            </div>
-          </div>
-        )}
-        {isPro ? <MaterialUsageSummary /> : (
-          <div className="rounded-xl border bg-card p-6 flex flex-col items-center justify-center gap-3 min-h-[180px] cursor-pointer" onClick={() => setShowUpgrade(true)}>
-            <Lock className="h-6 w-6 text-muted-foreground" />
-            <div className="text-center">
-              <div className="font-medium text-sm">{t('tier.featureMaterialSummaryTitle')}</div>
-              <div className="text-xs text-muted-foreground mt-1">{t('tier.upgradeCta')}</div>
-            </div>
-          </div>
-        )}
-        */}
       </div>
-      {/* PAYMENTS_TODO: <UpgradeModal open={showUpgrade} onClose={() => setShowUpgrade(false)} feature="production_summary" /> */}
 
       {/* Smart Insight Cards */}
       <Card className="border-border/60">
@@ -554,7 +562,7 @@ export default function Dashboard() {
                   <XAxis dataKey="label" className="text-xs" tick={{ fontSize: 11 }} />
                   <YAxis className="text-xs" tick={{ fontSize: 11 }} />
                   <Tooltip contentStyle={tooltipStyle} />
-                  <Line type="monotone" dataKey="revenue" stroke="hsl(215,70%,45%)" strokeWidth={2} dot={{ r: 3 }} name={`${t('dashboard.revenue')} (€)`} />
+                  <Line type="monotone" dataKey="revenue" stroke="hsl(215,70%,45%)" strokeWidth={2} dot={{ r: 3 }} name={`${t('dashboard.revenue')} (${currencySymbol})`} />
                 </LineChart>
               </ResponsiveContainer>
             )}
@@ -673,7 +681,7 @@ export default function Dashboard() {
                     <XAxis type="number" className="text-xs" tick={{ fontSize: 11 }} />
                     <YAxis type="category" dataKey="name" className="text-xs" width={80} tick={{ fontSize: 11 }} />
                     <Tooltip contentStyle={tooltipStyle} />
-                    <Bar dataKey="revenue" fill="hsl(215,70%,45%)" radius={[0, 4, 4, 0]} name={`${t('dashboard.revenue')} (€)`} />
+                    <Bar dataKey="revenue" fill="hsl(215,70%,45%)" radius={[0, 4, 4, 0]} name={`${t('dashboard.revenue')} (${currencySymbol})`} />
                   </BarChart>
                 </ResponsiveContainer>
               );
@@ -703,7 +711,7 @@ export default function Dashboard() {
                   <p className="text-xs text-muted-foreground">{p.customerName}</p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-sm font-bold text-primary">€{(p.totalPrice || 0).toFixed(2)}</span>
+                  <span className="text-sm font-bold text-primary">{currencySymbol}{(p.totalPrice || 0).toFixed(2)}</span>
                   <ExternalLink className="h-3.5 w-3.5 text-muted-foreground" />
                 </div>
               </div>

@@ -32,6 +32,14 @@ export type CustomerSource = 'Wallapop' | 'Instagram' | 'Website' | 'Other';
 export type PaymentMethod = 'Cash' | 'PayPal' | 'Bank Transfer' | 'Bizum' | 'Other';
 export type ExpenseCategory = 'Filament' | 'Shipping' | 'Equipment' | 'Tools' | 'Project Expense' | 'Other';
 
+export interface Payment {
+  id: string;
+  amount: number;
+  date: string;
+  method: PaymentMethod;
+  notes?: string;
+}
+
 export interface FilamentPurchase {
   id: string;
   purchaseDate: string;
@@ -68,6 +76,8 @@ export interface Project {
   prints: Print[];
   kanbanStatus: KanbanStatus;
   projectExpenses: ProjectExpense[];
+  /** Payment log — each entry is one deposit/payment. paid is DERIVED from this. */
+  payments?: Payment[];
   completedAt?: string;
   paidAt?: string;
   isRecurringCustomer?: boolean;
@@ -153,21 +163,76 @@ export function getCurrencySymbol(currency?: string): string {
 
 export type WorkloadLevel = 'low' | 'moderate' | 'high';
 
+// ── Filename cleaning utilities ──────────────────────────────────────────────
+
+/** Strip 3D print file extensions from a name (for display only). */
+export function cleanDisplayName(raw: string | null | undefined): string {
+  if (!raw) return '';
+  return raw
+    .replace(/(\.(gcode|3mf|stl|obj|amf|step|stp))+$/gi, '')
+    .replace(/\.gcode\.3mf$/gi, '')
+    .trim();
+}
+
+/**
+ * Clean a plate name for display.
+ * If the stored name is a Bambu-generated filename list
+ * (e.g. "Plate 1 — model.stl_A, model.stl_B"), shows "Plate N · M models" instead.
+ */
+export function cleanPlateName(raw: string | null | undefined, idx: number, models?: { name: string }[]): string {
+  if (!raw) return `Plate ${idx + 1}`;
+  // Bambu Studio auto-generated pattern: contains .stl_ / .3mf_ suffixes or "Plate N — "
+  const isBambuList = /\.(stl|obj|amf|3mf|gcode)_/i.test(raw) || /^Plate \d+\s*—/.test(raw);
+  if (isBambuList) {
+    const numMatch = raw.match(/^Plate (\d+)/i);
+    const num = numMatch ? numMatch[1] : String(idx + 1);
+    const count = (models || []).length;
+    return `Plate ${num}${count > 0 ? ` · ${count} model${count !== 1 ? 's' : ''}` : ''}`;
+  }
+  return cleanDisplayName(raw) || `Plate ${idx + 1}`;
+}
+
+// ── Print helpers ────────────────────────────────────────────────────────────
+
+/** Derive a display status for a print plate from its quantities. */
+export function getPrintDerivedStatus(pr: Pick<Print, 'completedQuantity' | 'quantity'>): { label: string; done: boolean; partial: boolean } {
+  const qty = pr.quantity || 1;
+  const done = pr.completedQuantity || 0;
+  if (done >= qty) return { label: 'Printed', done: true, partial: false };
+  if (done > 0) return { label: `In progress (${done}/${qty})`, done: false, partial: true };
+  return { label: 'Not printed', done: false, partial: false };
+}
+
 // Normalize legacy prints that may lack quantity/status fields
 export function normalizePrint(pr: Partial<Print> & { id: string; name: string }): Print {
+  const qty = pr.quantity && pr.quantity >= 1 ? pr.quantity : 1;
+  let completedQty = pr.completedQuantity || 0;
+
+  // Migration: trust completedQuantity if > 0; otherwise derive from explicit status
+  if (completedQty === 0 && pr.status === 'completed') {
+    completedQty = qty;
+  }
+  completedQty = Math.min(qty, Math.max(0, completedQty));
+
+  // Derive status from completedQuantity
+  const derivedStatus: Print['status'] =
+    completedQty >= qty ? 'completed' : completedQty > 0 ? 'printing' : 'not-printed';
+
   return {
     id: pr.id,
     name: pr.name || '',
     estimatedPrintTime: pr.estimatedPrintTime || 0,
     materialUsed: pr.materialUsed || 0,
     printer: pr.printer || '',
-    status: pr.status || 'not-printed',
-    quantity: pr.quantity && pr.quantity >= 1 ? pr.quantity : 1,
-    completedQuantity: pr.completedQuantity || 0,
+    status: derivedStatus,
+    quantity: qty,
+    completedQuantity: completedQty,
     color: pr.color || '',
     material: pr.material || '',
     pricePerPiece: pr.pricePerPiece || 0,
     models: pr.models || [],
+    colorPalette: pr.colorPalette,
+    thumbnail: pr.thumbnail,
   };
 }
 
@@ -179,19 +244,69 @@ export const getProjectPiecesTotal = (p: Project) =>
 export const getProjectTotalPieces = (p: Project) =>
   (p.prints || []).reduce((sum, pr) => sum + (pr.quantity || 1), 0);
 
+// ── Payment helpers ──────────────────────────────────────────────────────────
+
+export const getProjectPaymentsTotal = (p: Project): number =>
+  (p.payments || []).reduce((s, pay) => s + (pay.amount || 0), 0);
+
+export const getProjectBalance = (p: Project): number => {
+  const price = getProjectPiecesTotal(p) || (p.totalPrice || 0);
+  return price - getProjectPaymentsTotal(p);
+};
+
+export type PaymentStatus = 'unpaid' | 'partial' | 'paid';
+
+export const getProjectPaymentStatus = (p: Project): PaymentStatus => {
+  const price = getProjectPiecesTotal(p) || (p.totalPrice || 0);
+  if (price <= 0) return 'paid';
+  const paid = getProjectPaymentsTotal(p);
+  if (paid <= 0) return 'unpaid';
+  if (paid >= price) return 'paid';
+  return 'partial';
+};
+
 // Normalize a project ensuring all fields exist
 export function normalizeProject(p: any): Project {
-  return {
+  const base: any = {
     ...p,
+    orderDate: p.orderDate || '',
     dueDate: p.dueDate || '',
+    shippingDate: p.shippingDate || '',
     prints: (p.prints || []).map(normalizePrint),
     projectExpenses: p.projectExpenses || [],
+    payments: p.payments || [],
     paymentMethod: p.paymentMethod || 'Other',
     kanbanStatus: p.kanbanStatus || 'new-order',
     completedAt: p.completedAt || '',
     paidAt: p.paidAt || '',
     isRecurringCustomer: p.isRecurringCustomer || false,
   };
+
+  const allPrintsComplete = base.prints.length > 0 &&
+    base.prints.every((pr: any) => (pr.completedQuantity || 0) >= (pr.quantity || 1));
+
+  // Derive printed from plate completion
+  if (allPrintsComplete) base.printed = true;
+
+  if (!base.completedAt && (base.printed || base.sent || allPrintsComplete)) {
+    base.completedAt = base.orderDate;
+  }
+
+  // Derive paid from payments if payments exist
+  if (base.payments.length > 0) {
+    const paymentsTotal = base.payments.reduce((s: number, pay: any) => s + (pay.amount || 0), 0);
+    const effectiveTotal = base.prints.reduce((s: number, pr: any) => s + (pr.pricePerPiece || 0) * (pr.quantity || 1), 0) || (base.totalPrice || 0);
+    base.paid = effectiveTotal <= 0 || paymentsTotal >= effectiveTotal;
+  }
+
+  if (!base.paidAt && base.paid) {
+    base.paidAt = base.orderDate;
+  }
+  if (base.paidAt && !base.paid) base.paidAt = '';
+  if (!base.shippingDate && base.sent) {
+    base.shippingDate = base.orderDate;
+  }
+  return base;
 }
 
 // Real profit: revenue minus actual filament purchases and other expenses (NOT estimated material cost)
@@ -260,23 +375,27 @@ export const getProjectEstimatedMargin = (
   settings: Pick<AppSettings, 'filamentCostPerGram' | 'hourlyRate'>
 ): number | null => {
   const effectivePrice = getProjectPiecesTotal(p) || (p.totalPrice || 0);
+  // No material or time data → can't estimate margin
   if (effectivePrice <= 0) return null;
+  const totalMat = getProjectTotalMaterial(p);
+  const totalTime = getProjectTotalPrintTime(p);
+  if (totalMat === 0 && totalTime === 0) return null;
   return (effectivePrice - getProjectEstimatedCost(p, settings)) / effectivePrice * 100;
 };
 
 export const getProjectProgress = (p: Project) => {
   const prints = p.prints || [];
   const totalPieces = prints.reduce((s, pr) => s + (pr.quantity || 1), 0);
-  const completedPieces = prints.reduce((s, pr) => s + (pr.completedQuantity || 0), 0);
+  const completedPieces = prints.reduce((s, pr) => s + Math.min(pr.completedQuantity || 0, pr.quantity || 1), 0);
 
-  // If project is marked as printed/paid/sent, treat as 100%
-  if (p.printed || p.paid || p.sent) {
+  // If project is shipped, treat as 100%
+  if (p.sent) {
     return { totalPieces, completedPieces: totalPieces, percent: 100 };
   }
 
   // Check if all individual prints are completed
   const allCompleted = totalPieces > 0 && prints.every(pr => (pr.completedQuantity || 0) >= (pr.quantity || 1));
-  if (allCompleted) {
+  if (allCompleted || p.printed) {
     return { totalPieces, completedPieces: totalPieces, percent: 100 };
   }
 

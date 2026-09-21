@@ -1,6 +1,6 @@
 // AppContext — central state, synced to Supabase
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
-import { Project, Expense, AppSettings, KanbanStatus, PrintTemplate, FilamentPurchase, normalizeProject } from '@/types';
+import { Project, Expense, AppSettings, KanbanStatus, PrintTemplate, FilamentPurchase, Payment, normalizeProject, getProjectPiecesTotal } from '@/types';
 import { deriveKanbanStatus, applyKanbanStatus } from '@/types/sync';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
@@ -199,6 +199,33 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           await supabase.from('profiles').upsert({ id: userId, migrated_at: new Date().toISOString() });
         }
 
+        // Payment migration: projects with paid=true but no payments → create synthetic payment
+        const toMigrate = nextProjects.filter(p =>
+          p.paid && !(p.payments || []).length && ((getProjectPiecesTotal(p) || p.totalPrice || 0) > 0)
+        );
+        if (toMigrate.length > 0) {
+          const migrated = toMigrate.map(p => {
+            const paymentDate = (p.paidAt || '').split('T')[0] || p.orderDate || new Date().toISOString().split('T')[0];
+            const effectiveTotal = getProjectPiecesTotal(p) || (p.totalPrice || 0);
+            const payment: Payment = {
+              id: crypto.randomUUID(),
+              amount: effectiveTotal,
+              date: paymentDate,
+              method: p.paymentMethod || 'Other',
+            };
+            return { ...p, payments: [payment] };
+          });
+          nextProjects = nextProjects.map(p => {
+            const m = migrated.find(x => x.id === p.id);
+            return m ? normalizeProject(m) : p;
+          });
+          if (userId) {
+            await supabase.from('projects').upsert(
+              migrated.map(p => ({ id: p.id, user_id: userId, data: p as any }))
+            ).then(({ error }) => { if (error) console.error('[sync] payment migration upsert:', error); });
+          }
+        }
+
         setProjects(nextProjects);
         setExpenses(nextExpenses);
         setTemplates(nextTemplates);
@@ -328,7 +355,27 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const moveProject = useCallback((id: string, status: KanbanStatus) => {
     if (isDemoRef.current) return;
     setProjects(prev => {
-      const next = prev.map(x => x.id === id ? { ...x, ...applyKanbanStatus(status, x) } : x);
+      const project = prev.find(x => x.id === id);
+      let updates = applyKanbanStatus(status, project);
+
+      // For paid/shipped transitions, create a payment if none exist and price > 0
+      if ((status === 'paid' || status === 'shipped') && project) {
+        const payments = project.payments || [];
+        if (payments.length === 0) {
+          const effectiveTotal = getProjectPiecesTotal(project) || (project.totalPrice || 0);
+          if (effectiveTotal > 0) {
+            const payment: Payment = {
+              id: crypto.randomUUID(),
+              amount: effectiveTotal,
+              date: new Date().toISOString().split('T')[0],
+              method: project.paymentMethod || 'Other',
+            };
+            updates = { ...updates, payments: [payment] };
+          }
+        }
+      }
+
+      const next = prev.map(x => x.id === id ? normalizeProject({ ...x, ...updates }) : x);
       const updated = next.find(x => x.id === id);
       if (updated) up('projects', id, updated);
       return next;

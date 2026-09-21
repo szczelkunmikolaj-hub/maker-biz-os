@@ -14,7 +14,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2, Download, ExternalLink } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Plus, Trash2, Download, ExternalLink, X, AlertTriangle, Spool } from "lucide-react";
 import posthog from "@/lib/posthog";
 
 const CATS: ExpenseCategory[] = ["Filament", "Shipping", "Equipment", "Tools", "Project Expense", "Other"];
@@ -24,20 +25,33 @@ function newExpense(): Expense {
 }
 
 export default function Expenses() {
-  const { expenses, addExpense, deleteExpense, projects } = useApp();
+  const { expenses, addExpense, deleteExpense, projects, filamentPurchases } = useApp();
   const navigate = useNavigate();
   const { t } = useTranslation();
-  const { filterExpenses, interval } = useMonth();
+  const { filterExpenses, filterFilamentPurchases, interval } = useMonth();
   const [showAdd, setShowAdd] = useState(false);
   const [draft, setDraft] = useState<Expense>(newExpense());
   const [catFilter, setCatFilter] = usePersistedState("expenses_cat_filter", "all");
+  const [doubleCostDismissed, setDoubleCostDismissed] = useState(false);
 
-  const filtered = useMemo(() => {
+  const filteredExpenses = useMemo(() => {
     const periodFiltered = filterExpenses(expenses);
     return catFilter === "all" ? periodFiltered : periodFiltered.filter(e => e.category === catFilter);
   }, [expenses, catFilter, filterExpenses]);
 
-  const total = filtered.reduce((s, e) => s + (e.amount || 0), 0);
+  const filteredFilament = useMemo(() => filterFilamentPurchases(filamentPurchases), [filamentPurchases, filterFilamentPurchases]);
+
+  // Show filament rows when "all" or "Filament" category filter selected
+  const showFilamentRows = catFilter === "all" || catFilter === "Filament";
+
+  const expensesTotal = filteredExpenses.reduce((s, e) => s + (e.amount || 0), 0);
+  const filamentTotal = showFilamentRows ? filteredFilament.reduce((s, fp) => s + (fp.totalCost || 0), 0) : 0;
+  const total = expensesTotal + filamentTotal;
+
+  // Double-counting warning: expenses with category "Filament" AND filament purchases both exist
+  const hasFilamentCategory = expenses.some(e => e.category === "Filament");
+  const hasFilamentPurchases = filamentPurchases.length > 0;
+  const showDoubleCountWarning = hasFilamentCategory && hasFilamentPurchases && !doubleCostDismissed;
 
   const handleAdd = () => {
     if (!draft.name) return;
@@ -68,6 +82,21 @@ export default function Expenses() {
         </div>
       </div>
 
+      {showDoubleCountWarning && (
+        <Alert className="border-yellow-500/30 bg-yellow-500/10">
+          <AlertTriangle className="h-4 w-4 text-yellow-600" />
+          <AlertDescription className="flex items-center justify-between gap-2">
+            <span className="text-sm">
+              You have expenses with category "Filament" <em>and</em> filament purchases logged separately — spending may be counted twice.{' '}
+              <button className="underline text-primary" onClick={() => navigate('/filament')}>Review Filament tab</button>
+            </span>
+            <button onClick={() => setDoubleCostDismissed(true)} className="shrink-0 text-muted-foreground hover:text-foreground">
+              <X className="h-4 w-4" />
+            </button>
+          </AlertDescription>
+        </Alert>
+      )}
+
       <div className="flex items-center gap-3 flex-wrap">
         <Select value={catFilter} onValueChange={setCatFilter}>
           <SelectTrigger className="w-[160px] min-h-[44px]"><SelectValue /></SelectTrigger>
@@ -76,7 +105,12 @@ export default function Expenses() {
             {CATS.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
           </SelectContent>
         </Select>
-        <span className="text-sm text-muted-foreground">{t('expenses.total')}: <strong className="text-foreground">€{total.toFixed(2)}</strong></span>
+        <span className="text-sm text-muted-foreground">
+          {t('expenses.total')}: <strong className="text-foreground">€{total.toFixed(2)}</strong>
+          {showFilamentRows && filteredFilament.length > 0 && (
+            <span className="ml-1 text-xs">(Other €{expensesTotal.toFixed(2)} · Filament €{filamentTotal.toFixed(2)})</span>
+          )}
+        </span>
       </div>
 
       <Card>
@@ -93,12 +127,17 @@ export default function Expenses() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.length === 0 && (
+              {filteredExpenses.length === 0 && !showFilamentRows && (
                 <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">
                   {interval ? t('expenses.noExpensesMonth') : t('expenses.noExpensesEmpty')}
                 </TableCell></TableRow>
               )}
-              {filtered.map(e => (
+              {filteredExpenses.length === 0 && showFilamentRows && filteredFilament.length === 0 && (
+                <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                  {interval ? t('expenses.noExpensesMonth') : t('expenses.noExpensesEmpty')}
+                </TableCell></TableRow>
+              )}
+              {filteredExpenses.map(e => (
                 <TableRow key={e.id}>
                   <TableCell className="text-sm">{e.date}</TableCell>
                   <TableCell className="font-medium">{e.name}</TableCell>
@@ -119,6 +158,36 @@ export default function Expenses() {
                   </TableCell>
                   <TableCell className="text-right font-mono">€{(e.amount || 0).toFixed(2)}</TableCell>
                   <TableCell><Button size="icon" variant="ghost" className="text-destructive h-8 w-8" onClick={() => { deleteExpense(e.id); posthog.capture('expense_deleted', { category: e.category, amount: e.amount }); }}><Trash2 className="h-4 w-4" /></Button></TableCell>
+                </TableRow>
+              ))}
+              {/* Filament purchases as read-only rows */}
+              {showFilamentRows && filteredFilament.map(fp => (
+                <TableRow key={`fp-${fp.id}`} className="bg-muted/30">
+                  <TableCell className="text-sm">{fp.purchaseDate}</TableCell>
+                  <TableCell className="font-medium text-sm">
+                    <span className="inline-flex items-center gap-1.5">
+                      {fp.brand ? `${fp.brand} ${fp.materialType}` : fp.materialType}
+                      {fp.numberOfSpools > 1 && <span className="text-muted-foreground">({fp.numberOfSpools}×{fp.spoolWeight}g)</span>}
+                    </span>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="secondary" className="text-xs bg-primary/10 text-primary border-primary/20">
+                      Filament
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-sm text-muted-foreground">
+                    <button
+                      className="text-primary hover:underline cursor-pointer inline-flex items-center gap-1 text-xs"
+                      onClick={() => navigate('/filament')}
+                    >
+                      Filament tab
+                      <ExternalLink className="h-3 w-3" />
+                    </button>
+                  </TableCell>
+                  <TableCell className="text-right font-mono">€{(fp.totalCost || 0).toFixed(2)}</TableCell>
+                  <TableCell>
+                    <span className="text-[10px] text-muted-foreground px-2">read-only</span>
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
