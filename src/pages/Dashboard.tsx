@@ -419,7 +419,7 @@ export default function Dashboard() {
                 <div
                   key={p.id}
                   className="flex items-center justify-between gap-3 rounded-lg border bg-card px-3 py-2 cursor-pointer hover:border-primary/40 transition-colors"
-                  onClick={() => navigate(`/projects?id=${p.id}`)}
+                  onClick={() => navigate(`/projects?id=${p.id}`, { state: { from: '/' } })}
                 >
                   <div className="flex items-center gap-2 min-w-0">
                     {isOverdue
@@ -704,7 +704,7 @@ export default function Dashboard() {
               <div
                 key={p.id}
                 className="flex items-center justify-between p-2.5 rounded-lg border cursor-pointer hover:bg-accent/20 hover:border-primary/40 transition-colors"
-                onClick={() => navigate(`/projects?id=${p.id}`)}
+                onClick={() => navigate(`/projects?id=${p.id}`, { state: { from: '/' } })}
               >
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-medium truncate">{p.name}</p>

@@ -161,7 +161,7 @@ export default function CustomersPage() {
                 <div
                   key={p.id}
                   className="flex items-center justify-between rounded-lg border px-3 py-2 cursor-pointer hover:border-primary/40 transition-colors"
-                  onClick={() => { setSelected(null); navigate(`/projects?id=${p.id}`); }}
+                  onClick={() => { setSelected(null); navigate(`/projects?id=${p.id}`, { state: { from: '/customers' } }); }}
                 >
                   <div>
                     <p className="text-sm font-medium">{p.name}</p>

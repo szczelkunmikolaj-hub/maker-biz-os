@@ -119,7 +119,7 @@ export function Layout() {
     addProject(proj);
     setShowQuickAdd(false);
     setQuickDraft(newQuickProject());
-    navigate(`/projects?id=${proj.id}`);
+    navigate(`/projects?id=${proj.id}`, { state: { from: window.location.pathname } });
   }, [quickDraft, addProject, navigate]);
 
   const PAGE_TITLES: Record<string, string> = {

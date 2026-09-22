@@ -82,20 +82,22 @@ export default function Projects() {
   const [templateDraft, setTemplateDraft] = useState<PrintTemplate>(newTemplate());
   const [dateRange, setDateRange] = usePersistedState<DateRange>("projects_date_range", "all");
 
-  // Sync URL param to selectedId
+  // Sync URL param to selectedId — also clears on back-navigation
   useEffect(() => {
     const urlId = searchParams.get('id');
     if (urlId && projects.find(p => p.id === urlId)) {
       setSelectedId(urlId);
+    } else if (!urlId) {
+      setSelectedId(null);
     }
   }, [searchParams, projects]);
 
   const handleSelectProject = (id: string | null) => {
     setSelectedId(id);
     if (id) {
-      setSearchParams({ id });
+      setSearchParams({ id }, { replace: false });
     } else {
-      setSearchParams({});
+      setSearchParams({}, { replace: true });
     }
   };
 

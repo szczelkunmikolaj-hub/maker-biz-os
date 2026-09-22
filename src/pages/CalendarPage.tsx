@@ -74,7 +74,7 @@ export default function CalendarPage() {
   const [typeFilter, setTypeFilter] = usePersistedState<EventType | 'all'>('calendar_type_filter', 'all');
 
   const openProject = (projectId: string) => {
-    navigate(`/projects?id=${projectId}`);
+    navigate(`/projects?id=${projectId}`, { state: { from: '/calendar' } });
   };
 
   const events = useMemo(() => {

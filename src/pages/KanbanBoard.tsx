@@ -54,7 +54,7 @@ export default function KanbanBoard() {
     if (proj) updateProject({ ...proj, [field]: !proj[field] });
   };
 
-  const openProject = (id: string) => navigate(`/projects?id=${id}`);
+  const openProject = (id: string) => navigate(`/projects?id=${id}`, { state: { from: '/kanban' } });
 
   return (
     <div className="space-y-4">

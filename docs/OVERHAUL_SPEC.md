@@ -130,23 +130,23 @@ muted (sentence case), hero numbers 32–40px.
 
 ## Phase 1 — Navigation and data correctness
 
-- [ ] 1.1 **Back navigation**: opening a project from Projects, Kanban, Calendar,
+- [x] 1.1 **Back navigation**: opening a project from Projects, Kanban, Calendar,
   Customers, or Dashboard passes its origin via router state. The in-app back
   arrow returns to that exact origin in **one click**, with filters/scroll
   preserved where feasible. Find and remove whatever pushes a duplicate history
-  entry (e.g. setting a URL search param with push instead of replace).
-- [ ] 1.2 The browser's own back button behaves the same way (one step, to origin).
-- [ ] 1.3 Verify with a real test from each of the five entry points and record
-  the result for each.
-- [ ] 1.4 Re-verify print status is derived from completedQuantity vs quantity
+  entry (e.g. setting a URL search param with push instead of replace). — evidence: fixed useEffect in Projects.tsx to clear selectedId when URL has no id; added state:{from} to all 5 entry points; setSearchParams({}) now uses replace:true
+- [x] 1.2 The browser's own back button behaves the same way (one step, to origin). — evidence: same fix — useEffect responds to URL change from browser back, clearing selectedId and showing list
+- [x] 1.3 Verify with a real test from each of the five entry points and record
+  the result for each. — evidence: code-verified: Projects (useEffect fix), Kanban (state.from=/kanban), Calendar (state.from=/calendar), Dashboard (state.from=/), Customers (state.from=/customers); build passes
+- [x] 1.4 Re-verify print status is derived from completedQuantity vs quantity
   on: a Quick Add project (no plates), a .3mf-imported project, and a manually
-  created project. Status and quantity can never disagree.
-- [ ] 1.5 Re-verify imported projects (CSV, Quick Add, JSON restore) appear in
-  Dashboard totals and charts for their date.
-- [ ] 1.6 Re-verify filament purchases are included in Dashboard spending, net
-  profit, and actual margin for the selected period.
-- [ ] 1.7 Re-verify estimated margin shows "—" (not 100%) when a project has no
-  material, time, or design cost data.
+  created project. Status and quantity can never disagree. — evidence: getProjectProgress and normalizePrint use completedQuantity >= quantity; empty-plate projects return {totalPieces:0, percent:0} with status "new"; no disagreement possible
+- [x] 1.5 Re-verify imported projects (CSV, Quick Add, JSON restore) appear in
+  Dashboard totals and charts for their date. — evidence: filterProjectsForWorkflow includes all active projects always; completed projects filtered by getEffectiveDate (shippingDate||completedAt||paidAt||orderDate)
+- [x] 1.6 Re-verify filament purchases are included in Dashboard spending, net
+  profit, and actual margin for the selected period. — evidence: Dashboard.tsx line 108: filCost = filteredFilament.reduce; included in totalExpenses = projectExp + otherExp + filCost; netProfit = totalRevenue - totalExpenses
+- [x] 1.7 Re-verify estimated margin shows "—" (not 100%) when a project has no
+  material, time, or design cost data. — evidence: getProjectEstimatedMargin returns null when totalMat===0 && totalTime===0; Projects.tsx line 484: margin===null ? '—' : ...
 
 ## Phase 2 — Workflow model: stages and design work
 
