@@ -181,18 +181,18 @@ muted (sentence case), hero numbers 32–40px.
 
 ## Phase 3 — Payments
 
-- [ ] 3.1 Payment panel shows Total, Paid, Balance due, and the payment badge.
-- [ ] 3.2 **"Mark as paid"** is a one-click primary action: records a payment
+- [x] 3.1 Payment panel shows Total, Paid, Balance due, and the payment badge. — evidence: summary row with Total/Paid/Balance + PaymentBadge; screenshot confirms in both desktop and mobile views
+- [x] 3.2 **"Mark as paid"** is a one-click primary action: records a payment
   for the full remaining balance, today's date, the project's payment method.
-  Shows a toast "Marked as paid · €X" with **Undo** for ~6 seconds.
-- [ ] 3.3 A chevron beside it opens **"Record payment"**: amount as fixed € or
-  percentage of total (for deposits, e.g. 50%), date, method, note.
-- [ ] 3.4 The payments list is collapsed by default ("2 payments ›") and expands
-  to show each payment with edit/delete.
-- [ ] 3.5 "Mark as paid" and "Record payment" are also available from the
-  project card menu and the Kanban card menu, with the same Undo behaviour.
-- [ ] 3.6 Payment badge (Unpaid / Partially paid · €X left / Paid) is identical
-  everywhere it appears.
+  Shows a toast "Marked as paid · €X" with **Undo** for ~6 seconds. — evidence: markAsPaid() in ProjectDetail.tsx uses appToast with 6s duration and undo action; projectRef tracks latest state for undo
+- [x] 3.3 A chevron beside it opens **"Record payment"**: amount as fixed € or
+  percentage of total (for deposits, e.g. 50%), date, method, note. — evidence: ChevronDown button toggles showRecordForm; amountType state switches between fixed/percent; recordFormAmount computed accordingly
+- [x] 3.4 The payments list is collapsed by default ("2 payments ›") and expands
+  to show each payment with edit/delete. — evidence: paymentsExpanded state false by default; collapsed toggle shows count; expanded shows edit (pencil) + delete (trash) per row; inline edit form
+- [x] 3.5 "Mark as paid" and "Record payment" are also available from the
+  project card menu and the Kanban card menu, with the same Undo behaviour. — evidence: DropdownMenu added to Projects.tsx card and KanbanBoard.tsx card; uses useMarkAsPaid hook and RecordPaymentDialog; screenshot shows consistent menus
+- [x] 3.6 Payment badge (Unpaid / Partially paid · €X left / Paid) is identical
+  everywhere it appears. — evidence: shared PaymentBadge.tsx component using CSS tokens --pay-unpaid/--pay-partial/--pay-paid; replaces 3 different inline implementations in ProjectDetail, Projects, KanbanBoard
 
 ## Phase 4 — Project detail page redesign
 

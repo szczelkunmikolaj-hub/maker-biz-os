@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { usePersistedState } from "@/hooks/usePersistedState";
 import { useApp } from "@/context/AppContext";
 import { useMonth } from "@/context/MonthContext";
-import { Project, Payment, CustomerSource, PaymentMethod, PrintTemplate, getProjectProgress, getProjectPiecesTotal, getProjectEstimatedMargin, getProjectPaymentStatus, getProjectBalance, cleanDisplayName, normalizeStage, STAGE_META, getProgressSummary } from "@/types";
+import { Project, Payment, CustomerSource, PaymentMethod, PrintTemplate, getProjectProgress, getProjectPiecesTotal, getProjectEstimatedMargin, getProjectPaymentStatus, getProjectBalance, cleanDisplayName, normalizeStage, STAGE_META, getProgressSummary, getCurrencySymbol } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -16,7 +16,7 @@ import { Progress } from "@/components/ui/progress";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Plus, Search, Download, ArrowUpDown, Printer, Package, Calendar, CreditCard, Sparkles, Upload, ChevronDown, FileSpreadsheet, Wand2, BookTemplate, Trash2, LayoutGrid, MoreHorizontal, Pencil, Copy } from "lucide-react";
+import { Plus, Search, Download, ArrowUpDown, Printer, Package, Calendar, CreditCard, Sparkles, Upload, ChevronDown, FileSpreadsheet, Wand2, BookTemplate, Trash2, LayoutGrid, MoreHorizontal, Pencil, Copy, DollarSign } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import ProjectDetail from "@/components/ProjectDetail";
 import { parseISO, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval } from "date-fns";
@@ -28,6 +28,9 @@ import { StatusPill } from "@/components/StatusPill";
 import { PlatePreview } from "@/components/PlatePreview";
 import { deriveProjectStatus, getStatusMeta } from "@/lib/projectStatus";
 import posthog from "@/lib/posthog";
+import { PaymentBadge } from "@/components/PaymentBadge";
+import { RecordPaymentDialog } from "@/components/RecordPaymentDialog";
+import { useMarkAsPaid } from "@/hooks/useMarkAsPaid";
 import { ImportFromSpreadsheet } from "@/components/ImportFromSpreadsheet";
 import { ImportFromAI } from "@/components/ImportFromAI";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -81,6 +84,8 @@ export default function Projects() {
   const [showAddTemplate, setShowAddTemplate] = useState(false);
   const [templateDraft, setTemplateDraft] = useState<PrintTemplate>(newTemplate());
   const [dateRange, setDateRange] = usePersistedState<DateRange>("projects_date_range", "all");
+  const [recordPaymentProject, setRecordPaymentProject] = useState<Project | null>(null);
+  const markAsPaid = useMarkAsPaid();
 
   // Sync URL param to selectedId — also clears on back-navigation
   useEffect(() => {
@@ -413,6 +418,7 @@ export default function Projects() {
             const stage = normalizeStage(p);
             const stageMeta = STAGE_META[stage];
             const summary = getProgressSummary(p);
+            const currencySymbol = getCurrencySymbol(settings.currency);
 
             const status = deriveProjectStatus(p);
             const meta = getStatusMeta(status);
@@ -458,7 +464,18 @@ export default function Projects() {
                             <MoreHorizontal className="h-3.5 w-3.5" />
                           </button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-40">
+                        <DropdownMenuContent align="end" className="w-48">
+                          {balance > 0 && (
+                            <>
+                              <DropdownMenuItem onClick={() => markAsPaid(p)}>
+                                <CreditCard className="h-3.5 w-3.5 mr-2" />Mark as paid
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={e => { e.stopPropagation(); setRecordPaymentProject(p); }}>
+                                <DollarSign className="h-3.5 w-3.5 mr-2" />Record payment
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                            </>
+                          )}
                           <DropdownMenuItem onClick={() => handleSelectProject(p.id)}>
                             <Pencil className="h-3.5 w-3.5 mr-2" />Edit
                           </DropdownMenuItem>
@@ -479,14 +496,9 @@ export default function Projects() {
 
                   {/* Price + payment status + margin */}
                   <div className="flex items-baseline justify-between gap-2">
-                    <div className="flex items-baseline gap-1.5 min-w-0">
-                      <span className="text-lg font-bold text-primary">€{effectivePrice.toFixed(2)}</span>
-                      {payStatus === 'paid' && effectivePrice > 0 && (
-                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 font-medium shrink-0">Paid</span>
-                      )}
-                      {payStatus === 'partial' && (
-                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-700 dark:text-amber-400 font-medium shrink-0">€{Math.max(0, balance).toFixed(2)} due</span>
-                      )}
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <span className="text-lg font-bold text-primary tabular-nums">{currencySymbol}{effectivePrice.toFixed(2)}</span>
+                      <PaymentBadge status={payStatus} balance={Math.max(0, balance)} currency={currencySymbol} />
                     </div>
                     {effectivePrice > 0 && (
                       <span className={`text-xs font-medium shrink-0 ${margin === null ? 'text-muted-foreground' : margin >= 60 ? 'text-emerald-600' : margin >= 30 ? 'text-yellow-600' : 'text-red-600'}`}>
@@ -753,6 +765,13 @@ export default function Projects() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      {recordPaymentProject && (
+        <RecordPaymentDialog
+          project={recordPaymentProject}
+          open={!!recordPaymentProject}
+          onClose={() => setRecordPaymentProject(null)}
+        />
+      )}
     </Tabs>
   );
 }

@@ -1,18 +1,20 @@
 import { useApp } from "@/context/AppContext";
 import { useMonth } from "@/context/MonthContext";
-import { ProductionStage, normalizeStage, STAGE_META, STAGE_ORDER, getProjectProgress, getProjectPaymentStatus, getProjectPiecesTotal, getProjectBalance, getProgressSummary } from "@/types";
+import { ProductionStage, normalizeStage, STAGE_META, getProjectProgress, getProjectPaymentStatus, getProjectPiecesTotal, getProjectBalance, getProgressSummary } from "@/types";
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { usePersistedState } from "@/hooks/usePersistedState";
 import { PlatePreview } from "@/components/PlatePreview";
+import { PaymentBadge } from "@/components/PaymentBadge";
+import { RecordPaymentDialog } from "@/components/RecordPaymentDialog";
+import { useMarkAsPaid } from "@/hooks/useMarkAsPaid";
 import { isBefore, isAfter, subDays, parseISO, startOfToday } from "date-fns";
 import posthog from "@/lib/posthog";
-
-function PayBadge({ status, balance, currency }: { status: 'unpaid' | 'partial' | 'paid'; balance: number; currency: string }) {
-  if (status === 'paid') return <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-[hsl(142_30%_40%/0.12)] text-[hsl(142,30%,32%)]">Paid</span>;
-  if (status === 'partial') return <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-[hsl(38_85%_46%/0.12)] text-[hsl(38,85%,36%)]">Partial · {currency}{balance.toFixed(0)} left</span>;
-  return <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-[hsl(215_14%_52%/0.12)] text-[hsl(215,14%,40%)]">Unpaid</span>;
-}
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { CreditCard, DollarSign, MoreHorizontal } from "lucide-react";
+import type { Project } from "@/types";
 
 const STAGE_COLS: ProductionStage[] = ['new', 'in-design', 'awaiting-approval', 'printing', 'ready', 'delivered'];
 
@@ -33,6 +35,8 @@ export default function KanbanBoard() {
   const [showAll, setShowAll] = usePersistedState<boolean>("kanban_show_all", true);
   const [showAllDelivered, setShowAllDelivered] = useState(false);
   const [collapsed, setCollapsed] = usePersistedState<Record<string, boolean>>("kanban_collapsed", {});
+  const [recordPaymentProject, setRecordPaymentProject] = useState<Project | null>(null);
+  const markAsPaid = useMarkAsPaid();
   const currency = settings.currency === 'USD' ? '$' : settings.currency === 'GBP' ? '£' : '€';
 
   const visibleProjects = useMemo(() => {
@@ -145,11 +149,34 @@ export default function KanbanBoard() {
                               <p className="font-semibold text-xs truncate leading-tight group-hover:text-[hsl(215,70%,45%)] transition-colors">{p.name}</p>
                               <p className="text-[10px] text-muted-foreground truncate">{p.customerName}</p>
                             </div>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild onClick={e => e.stopPropagation()}>
+                                <button className="h-5 w-5 flex items-center justify-center rounded hover:bg-accent transition-colors text-muted-foreground opacity-0 group-hover:opacity-100 shrink-0">
+                                  <MoreHorizontal className="h-3 w-3" />
+                                </button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="w-44" onClick={e => e.stopPropagation()}>
+                                {balance > 0 && (
+                                  <>
+                                    <DropdownMenuItem onClick={() => markAsPaid(p)}>
+                                      <CreditCard className="h-3.5 w-3.5 mr-2" />Mark as paid
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => setRecordPaymentProject(p)}>
+                                      <DollarSign className="h-3.5 w-3.5 mr-2" />Record payment
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                  </>
+                                )}
+                                <DropdownMenuItem onClick={() => openProject(p.id)}>
+                                  Open
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           </div>
 
                           <div className="flex items-center justify-between mt-1.5 gap-1">
                             <span className="text-sm font-bold tabular-nums">{currency}{price.toFixed(2)}</span>
-                            <PayBadge status={payStatus} balance={balance} currency={currency} />
+                            <PaymentBadge status={payStatus} balance={balance} currency={currency} />
                           </div>
 
                           {summary && (
@@ -190,6 +217,13 @@ export default function KanbanBoard() {
           })}
         </div>
       </div>
+      {recordPaymentProject && (
+        <RecordPaymentDialog
+          project={recordPaymentProject}
+          open={!!recordPaymentProject}
+          onClose={() => setRecordPaymentProject(null)}
+        />
+      )}
     </div>
   );
 }

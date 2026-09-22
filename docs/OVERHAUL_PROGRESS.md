@@ -1,7 +1,7 @@
 # Overhaul Progress
 
 ## Current phase
-Phase 1 — Navigation and data correctness
+Phase 4 — Project detail page redesign
 
 ## Log
 
@@ -12,6 +12,31 @@ Phase 1 — Navigation and data correctness
 - Installed playwright devDependency, created scripts/screenshots.mjs
   - Decision: uses `vite preview` instead of `vite dev` because `base64-js` ESM default-export error in dev mode causes blank pages
 - Captured 28 screenshots (14 routes × desktop+mobile)
+
+### Phase 1 — Navigation and data correctness (complete)
+- Fixed useEffect in Projects.tsx to clear selectedId when URL id param absent (back nav)
+- Added router state {from} to all 5 entry points (Projects, Kanban, Calendar, Dashboard, Customers)
+- setSearchParams({}) now uses replace:true
+- Verified all 4 data-correctness items (kanbanStatus, date filtering, filament costs, margin null)
+
+### Phase 2 — Workflow model: stages and design work (complete)
+- ProductionStage type + normalizeStage() idempotent normalizer in types/index.ts
+- STAGE_META / STAGE_ORDER constants; moveProject updated; Kanban rebuilt to 6-column layout
+- MonthContext uses normalizeStage; delivered stage sets sent+shippingDate
+- Stage CSS tokens in index.css (light + dark)
+- DesignItem interface + designItems?: DesignItem[] in Project type; design section in ProjectDetail
+- designRate: 20 in DEFAULT_SETTINGS; getProjectEstimatedCost updated; Settings shows both rates
+- New project dropdown reordered; zero-plate projects render cleanly; progress bar guarded
+- getProgressSummary() shared function used in detail, cards, and Kanban
+
+### Phase 3 — Payments (complete)
+- PaymentBadge.tsx shared component using CSS tokens --pay-unpaid/--pay-partial/--pay-paid
+- RecordPaymentDialog.tsx reusable dialog with fixed/% amount toggle, date, method, note
+- useMarkAsPaid.ts hook: records full balance, shows undo toast (6s) with project ref tracking
+- ProjectDetail.tsx payment section rewritten: summary row + badge, Mark as paid button, chevron-revealed Record payment form (fixed/%), collapsed payments list (edit+delete per row)
+- Projects.tsx card menu: Mark as paid + Record payment actions added
+- KanbanBoard.tsx: card dropdown with payment actions; replaced PayBadge inline with PaymentBadge
+- Screenshots verified: desktop and mobile payment sections look correct
 
 ## Decisions made
 - Use `vite preview` (build output) for screenshots instead of dev server — dev server has base64-js ESM issue causing blank renders

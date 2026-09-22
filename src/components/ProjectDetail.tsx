@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useApp } from "@/context/AppContext";
@@ -35,6 +35,8 @@ import { StatusPill } from "@/components/StatusPill";
 import { normalizeMaterial } from "@/lib/normalize";
 import { deriveProjectStatus } from "@/lib/projectStatus";
 import posthog from "@/lib/posthog";
+import { useToast } from "@/hooks/useToast";
+import { PaymentBadge } from "@/components/PaymentBadge";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -73,14 +75,6 @@ function newPayment(method: PaymentMethod = "Other"): Payment {
 const PAYMENT_METHODS: PaymentMethod[] = ["Cash", "PayPal", "Bank Transfer", "Bizum", "Other"];
 const SOURCES = ["Wallapop", "Instagram", "Website", "Other"] as const;
 
-function PaymentStatusBadge({ status }: { status: PaymentStatus }) {
-  const config = {
-    unpaid: { label: 'Unpaid', cls: 'bg-red-500/15 text-red-700 dark:text-red-400 border-red-500/30 border' },
-    partial: { label: 'Partially paid', cls: 'bg-yellow-500/15 text-yellow-700 dark:text-yellow-400 border-yellow-500/30 border' },
-    paid: { label: 'Paid', cls: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30 border' },
-  }[status];
-  return <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${config.cls}`}>{config.label}</span>;
-}
 
 interface Props { project: Project; onBack: () => void; }
 
@@ -88,6 +82,7 @@ export default function ProjectDetail({ project, onBack }: Props) {
   const { updateProject, deleteProject, duplicateProject, settings, templates, addExpense, allPrintNames } = useApp();
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const toast = useToast();
   const [showTemplates, setShowTemplates] = useState(false);
   const [showInvoice, setShowInvoice] = useState(false);
   const [trackingCopied, setTrackingCopied] = useState(false);
@@ -100,8 +95,17 @@ export default function ProjectDetail({ project, onBack }: Props) {
   const [detailsDraft, setDetailsDraft] = useState<Partial<Project>>({});
   const [expandedPlateId, setExpandedPlateId] = useState<string | null>(null);
   const [expandedModelsPlateId, setExpandedModelsPlateId] = useState<string | null>(null);
-  const [showPaymentForm, setShowPaymentForm] = useState(false);
+  // Payment section state
+  const [paymentsExpanded, setPaymentsExpanded] = useState(false);
+  const [showRecordForm, setShowRecordForm] = useState(false);
+  const [amountType, setAmountType] = useState<'fixed' | 'percent'>('fixed');
   const [paymentDraft, setPaymentDraft] = useState<Payment>(newPayment(project.paymentMethod || "Other"));
+  const [editingPaymentId, setEditingPaymentId] = useState<string | null>(null);
+  const [editPaymentDraft, setEditPaymentDraft] = useState<Payment | null>(null);
+
+  // Ref to always get the latest project for undo
+  const projectRef = useRef(project);
+  useEffect(() => { projectRef.current = project; }, [project]);
 
   const p = project;
   const save = (updated: Project) => { updateProject(updated); };
@@ -267,15 +271,57 @@ export default function ProjectDetail({ project, onBack }: Props) {
   };
 
   // ── Payments ──
-  const addPaymentRecord = () => {
-    if (paymentDraft.amount <= 0) return;
-    save({ ...p, payments: [...(p.payments || []), paymentDraft] });
+  // recordFormAmount depends on effectiveTotal which is computed below — see derived values
+  const addPaymentRecord = (resolvedAmount: number) => {
+    if (resolvedAmount <= 0) return;
+    const payment = { ...paymentDraft, amount: resolvedAmount };
+    save({ ...p, payments: [...(p.payments || []), payment] });
     setPaymentDraft(newPayment(p.paymentMethod || "Other"));
-    setShowPaymentForm(false);
+    setAmountType('fixed');
+    setShowRecordForm(false);
   };
 
   const removePaymentRecord = (id: string) => {
     save({ ...p, payments: (p.payments || []).filter(pay => pay.id !== id) });
+  };
+
+  const startEditPayment = (pay: Payment) => {
+    setEditingPaymentId(pay.id);
+    setEditPaymentDraft({ ...pay });
+  };
+
+  const saveEditPayment = () => {
+    if (!editPaymentDraft || !editingPaymentId) return;
+    save({ ...p, payments: (p.payments || []).map(pay => pay.id === editingPaymentId ? editPaymentDraft : pay) });
+    setEditingPaymentId(null);
+    setEditPaymentDraft(null);
+  };
+
+  const cancelEditPayment = () => {
+    setEditingPaymentId(null);
+    setEditPaymentDraft(null);
+  };
+
+  const markAsPaid = () => {
+    if (balance <= 0) return;
+    const paymentId = crypto.randomUUID();
+    const payment: Payment = {
+      id: paymentId,
+      amount: balance,
+      date: new Date().toISOString().split('T')[0],
+      method: p.paymentMethod || 'Other',
+    };
+    save({ ...p, payments: [...(p.payments || []), payment] });
+    toast.success(`Marked as paid · ${currencySymbol}${balance.toFixed(2)}`, {
+      duration: 6000,
+      action: {
+        label: 'Undo',
+        onClick: () => {
+          const latest = projectRef.current;
+          save({ ...latest, payments: (latest.payments || []).filter(pay => pay.id !== paymentId) });
+        },
+      },
+    });
   };
 
   // ── Tracking / Stripe ──
@@ -336,6 +382,9 @@ export default function ProjectDetail({ project, onBack }: Props) {
     : "text-muted-foreground";
 
   const allPrinted = p.prints.length > 0 && p.prints.every(pr => (pr.completedQuantity || 0) >= (pr.quantity || 1));
+  const recordFormAmount = amountType === 'percent'
+    ? (paymentDraft.amount || 0) / 100 * effectiveTotal
+    : (paymentDraft.amount || 0);
 
   return (
     <div className="space-y-4 pb-8">
@@ -443,10 +492,7 @@ export default function ProjectDetail({ project, onBack }: Props) {
           </span>
         </div>
         <div className="flex items-center gap-1.5">
-          <PaymentStatusBadge status={paymentStatus} />
-          {balance > 0 && (
-            <span className="text-xs text-muted-foreground">{currencySymbol}{balance.toFixed(2)} due</span>
-          )}
+          <PaymentBadge status={paymentStatus} balance={Math.max(0, balance)} currency={currencySymbol} />
         </div>
         {progress.totalPieces > 0 && (
           <div className="flex items-center gap-2">
@@ -604,60 +650,82 @@ export default function ProjectDetail({ project, onBack }: Props) {
 
       {/* ── PAYMENTS SECTION ── */}
       <Card>
-        <CardHeader className="flex-row items-center justify-between pb-2">
+        <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">
             <CreditCard className="h-4 w-4 text-primary" />Payments
           </CardTitle>
-          <Button size="sm" variant="outline" onClick={() => setShowPaymentForm(v => !v)}>
-            <Plus className="h-4 w-4 mr-1" />Add payment
-          </Button>
         </CardHeader>
         <CardContent className="space-y-3">
           {/* Summary row */}
-          <div className="flex gap-4 rounded-lg border bg-muted/30 px-3 py-2.5 text-sm">
-            <div className="text-center">
-              <p className="text-[10px] text-muted-foreground">Total price</p>
-              <p className="font-bold">{currencySymbol}{effectiveTotal.toFixed(2)}</p>
+          <div className="flex items-center gap-4 rounded-lg border bg-muted/30 px-3 py-2.5">
+            <div>
+              <p className="text-[10px] text-muted-foreground">Total</p>
+              <p className="font-bold text-sm tabular-nums">{currencySymbol}{effectiveTotal.toFixed(2)}</p>
             </div>
-            <div className="text-center">
+            <div>
               <p className="text-[10px] text-muted-foreground">Paid</p>
-              <p className="font-bold text-emerald-600">{currencySymbol}{paymentsTotal.toFixed(2)}</p>
+              <p className="font-bold text-sm tabular-nums">{currencySymbol}{paymentsTotal.toFixed(2)}</p>
             </div>
-            <div className="text-center">
-              <p className="text-[10px] text-muted-foreground">Balance due</p>
-              <p className={`font-bold ${balance > 0 ? 'text-red-600' : 'text-emerald-600'}`}>{currencySymbol}{Math.max(0, balance).toFixed(2)}</p>
+            <div>
+              <p className="text-[10px] text-muted-foreground">Balance</p>
+              <p className="font-bold text-sm tabular-nums">{currencySymbol}{Math.max(0, balance).toFixed(2)}</p>
+            </div>
+            <div className="ml-auto">
+              <PaymentBadge status={paymentStatus} balance={Math.max(0, balance)} currency={currencySymbol} />
             </div>
           </div>
 
-          {/* Payment list */}
-          {(p.payments || []).length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-2">No payments recorded</p>
-          ) : (
-            <div className="space-y-1.5">
-              {(p.payments || []).map(pay => (
-                <div key={pay.id} className="flex items-center justify-between gap-2 rounded-lg border px-3 py-2">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <span className="font-mono font-medium text-sm">{currencySymbol}{pay.amount.toFixed(2)}</span>
-                    <span className="text-xs text-muted-foreground">{pay.date}</span>
-                    <Badge variant="outline" className="text-[10px] shrink-0">{pay.method}</Badge>
-                    {pay.notes && <span className="text-xs text-muted-foreground truncate">{pay.notes}</span>}
-                  </div>
-                  <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive shrink-0" onClick={() => removePaymentRecord(pay.id)}>
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
-                </div>
-              ))}
+          {/* Mark as paid + Record payment chevron */}
+          {balance > 0 && (
+            <div className="flex items-center gap-1">
+              <Button size="sm" className="flex-1" onClick={markAsPaid}>
+                Mark as paid · {currencySymbol}{balance.toFixed(2)}
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="px-2"
+                title="Record partial payment"
+                onClick={() => setShowRecordForm(v => !v)}
+              >
+                <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-150 ${showRecordForm ? 'rotate-180' : ''}`} />
+              </Button>
             </div>
           )}
 
-          {/* Add payment inline form */}
-          {showPaymentForm && (
+          {/* Record payment form (chevron-revealed) */}
+          {showRecordForm && (
             <div className="grid gap-2 grid-cols-2 rounded-lg border p-3 bg-muted/20">
-              <div>
+              <div className="col-span-2">
                 <Label className="text-xs">Amount</Label>
-                <Input type="number" step="0.01" placeholder="0.00"
-                  value={paymentDraft.amount || ''}
-                  onChange={e => setPaymentDraft(d => ({ ...d, amount: parseFloat(e.target.value) || 0 }))} />
+                <div className="flex gap-1 my-1">
+                  <button
+                    className={`text-xs px-2 py-0.5 rounded border transition-colors ${amountType === 'fixed' ? 'bg-primary text-primary-foreground border-primary' : 'border-border hover:bg-accent'}`}
+                    onClick={() => setAmountType('fixed')}
+                  >
+                    {currencySymbol} Fixed
+                  </button>
+                  <button
+                    className={`text-xs px-2 py-0.5 rounded border transition-colors ${amountType === 'percent' ? 'bg-primary text-primary-foreground border-primary' : 'border-border hover:bg-accent'} disabled:opacity-40`}
+                    onClick={() => setAmountType('percent')}
+                    disabled={effectiveTotal <= 0}
+                  >
+                    % of total
+                  </button>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <Input
+                    type="number"
+                    step="0.01"
+                    placeholder="0.00"
+                    value={paymentDraft.amount || ''}
+                    onChange={e => setPaymentDraft(d => ({ ...d, amount: parseFloat(e.target.value) || 0 }))}
+                    className="flex-1"
+                  />
+                  {amountType === 'percent' && effectiveTotal > 0 && (
+                    <span className="text-xs text-muted-foreground shrink-0">= {currencySymbol}{recordFormAmount.toFixed(2)}</span>
+                  )}
+                </div>
               </div>
               <div>
                 <Label className="text-xs">Date</Label>
@@ -671,17 +739,94 @@ export default function ProjectDetail({ project, onBack }: Props) {
                   <SelectContent>{PAYMENT_METHODS.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
-              <div>
+              <div className="col-span-2">
                 <Label className="text-xs">Note (optional)</Label>
                 <Input placeholder="Deposit, invoice #…"
                   value={paymentDraft.notes || ''}
                   onChange={e => setPaymentDraft(d => ({ ...d, notes: e.target.value }))} />
               </div>
               <div className="col-span-2 flex gap-2">
-                <Button size="sm" onClick={addPaymentRecord} disabled={paymentDraft.amount <= 0}>Record payment</Button>
-                <Button size="sm" variant="outline" onClick={() => { setShowPaymentForm(false); setPaymentDraft(newPayment(p.paymentMethod || 'Other')); }}>Cancel</Button>
+                <Button size="sm" onClick={() => addPaymentRecord(recordFormAmount)} disabled={recordFormAmount <= 0}>
+                  Record payment
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => { setShowRecordForm(false); setPaymentDraft(newPayment(p.paymentMethod || 'Other')); setAmountType('fixed'); }}>
+                  Cancel
+                </Button>
               </div>
             </div>
+          )}
+
+          {/* Payments list — collapsed by default */}
+          {(p.payments || []).length > 0 ? (
+            <div>
+              <button
+                className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                onClick={() => setPaymentsExpanded(v => !v)}
+              >
+                <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-150 ${paymentsExpanded ? 'rotate-180' : ''}`} />
+                {(p.payments || []).length} {(p.payments || []).length === 1 ? 'payment' : 'payments'}
+              </button>
+
+              {paymentsExpanded && (
+                <div className="space-y-1.5 mt-2">
+                  {(p.payments || []).map(pay => (
+                    <div key={pay.id}>
+                      {editingPaymentId === pay.id && editPaymentDraft ? (
+                        <div className="grid gap-2 grid-cols-2 rounded-lg border p-2.5 bg-muted/20">
+                          <div>
+                            <Label className="text-xs">Amount</Label>
+                            <Input type="number" step="0.01"
+                              value={editPaymentDraft.amount || ''}
+                              onChange={e => setEditPaymentDraft(d => d ? { ...d, amount: parseFloat(e.target.value) || 0 } : d)} />
+                          </div>
+                          <div>
+                            <Label className="text-xs">Date</Label>
+                            <Input type="date" value={editPaymentDraft.date}
+                              onChange={e => setEditPaymentDraft(d => d ? { ...d, date: e.target.value } : d)} />
+                          </div>
+                          <div>
+                            <Label className="text-xs">Method</Label>
+                            <Select value={editPaymentDraft.method} onValueChange={v => setEditPaymentDraft(d => d ? { ...d, method: v as PaymentMethod } : d)}>
+                              <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
+                              <SelectContent>{PAYMENT_METHODS.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent>
+                            </Select>
+                          </div>
+                          <div>
+                            <Label className="text-xs">Note</Label>
+                            <Input placeholder="Optional"
+                              value={editPaymentDraft.notes || ''}
+                              onChange={e => setEditPaymentDraft(d => d ? { ...d, notes: e.target.value } : d)} />
+                          </div>
+                          <div className="col-span-2 flex gap-2">
+                            <Button size="sm" onClick={saveEditPayment}>Save</Button>
+                            <Button size="sm" variant="outline" onClick={cancelEditPayment}>Cancel</Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-between gap-2 rounded-lg border px-3 py-2">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <span className="font-mono font-medium text-sm tabular-nums">{currencySymbol}{pay.amount.toFixed(2)}</span>
+                            <span className="text-xs text-muted-foreground">{pay.date}</span>
+                            <Badge variant="outline" className="text-[10px] shrink-0">{pay.method}</Badge>
+                            {pay.notes && <span className="text-xs text-muted-foreground truncate">{pay.notes}</span>}
+                          </div>
+                          <div className="flex items-center gap-0.5 shrink-0">
+                            <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground hover:text-foreground" onClick={() => startEditPayment(pay)}>
+                              <Pencil className="h-3 w-3" />
+                            </Button>
+                            <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => removePaymentRecord(pay.id)}>
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : (
+            <p className="text-xs text-muted-foreground text-center py-1">No payments recorded</p>
           )}
         </CardContent>
       </Card>
