@@ -4,11 +4,13 @@ import { useTranslation } from "react-i18next";
 import { useApp } from "@/context/AppContext";
 import {
   Project, Print, ProjectExpense, Payment, PaymentMethod, PaymentStatus,
+  DesignItem, DesignItemStatus,
   getProjectTotalPrintTime, getProjectTotalMaterial, getProjectProgress,
   getProjectExpensesTotal, getProjectPiecesTotal, getProjectTotalPieces,
   getProjectEstimatedCost, getProjectEstimatedMargin, getProjectPaymentsTotal,
   getProjectBalance, getProjectPaymentStatus, getPrintDerivedStatus,
   cleanDisplayName, cleanPlateName, getCurrencySymbol,
+  normalizeStage, STAGE_META, STAGE_ORDER, getProgressSummary,
 } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -53,6 +55,17 @@ function newProjectExpense(): ProjectExpense {
   return { id: crypto.randomUUID(), name: "", amount: 0, category: "Other", notes: "" };
 }
 
+function newDesignItem(): DesignItem {
+  return { id: crypto.randomUUID(), description: "", estimatedHours: 0, actualHours: 0, status: "not-started" };
+}
+
+const DESIGN_STATUS_LABELS: Record<DesignItemStatus, string> = {
+  'not-started': 'Not started',
+  'in-progress': 'In progress',
+  'awaiting-approval': 'Awaiting approval',
+  'approved': 'Approved',
+};
+
 function newPayment(method: PaymentMethod = "Other"): Payment {
   return { id: crypto.randomUUID(), amount: 0, date: new Date().toISOString().split("T")[0], method };
 }
@@ -93,6 +106,33 @@ export default function ProjectDetail({ project, onBack }: Props) {
   const p = project;
   const save = (updated: Project) => { updateProject(updated); };
   const set = (partial: Partial<Project>) => save({ ...p, ...partial });
+
+  // ── Design work helpers ──
+  const designItems = p.designItems || [];
+  const addDesignItem = () => {
+    const item = newDesignItem();
+    set({ designItems: [...designItems, item] });
+  };
+  const updateDesignItem = (id: string, changes: Partial<DesignItem>) => {
+    set({ designItems: designItems.map(d => d.id === id ? { ...d, ...changes } : d) });
+  };
+  const removeDesignItem = (id: string) => {
+    set({ designItems: designItems.filter(d => d.id !== id) });
+  };
+
+  // ── Stage helpers ──
+  const currentStage = normalizeStage(p);
+  const stageMeta = STAGE_META[currentStage];
+  const nextStageMeta = stageMeta.next ? STAGE_META[stageMeta.next] : null;
+  const setStage = (stage: typeof currentStage) => {
+    const updates: Partial<Project> = { stage };
+    if (stage === 'delivered') {
+      updates.sent = true;
+      if (!p.shippingDate) updates.shippingDate = new Date().toISOString().split('T')[0];
+    }
+    if (stage === 'printing' || stage === 'ready') updates.printed = stage !== 'new';
+    set(updates as Project);
+  };
 
   const currencySymbol = getCurrencySymbol(settings.currency);
 
@@ -316,13 +356,22 @@ export default function ProjectDetail({ project, onBack }: Props) {
           <div className="min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <h1 className="text-lg md:text-xl font-bold truncate">{displayName}</h1>
-              <StatusPill status={projectStatus} />
+              {/* Stage badge */}
+              <span className="text-[11px] font-medium px-2 py-0.5 rounded-full" style={{ background: `color-mix(in srgb, var(${stageMeta.token}) 12%, transparent)`, color: `var(${stageMeta.token})` }}>
+                {stageMeta.label}
+              </span>
               {p.isRecurringCustomer && <RecurringBadge size="md" />}
             </div>
             <p className="text-sm text-muted-foreground truncate">{p.customerName || <span className="italic">No customer</span>}</p>
           </div>
         </div>
         <div className="flex items-center gap-1.5 shrink-0 flex-wrap">
+          {/* Next step button */}
+          {nextStageMeta && (
+            <Button size="sm" className="text-xs gap-1 min-h-[36px] bg-[hsl(215,70%,45%)] hover:bg-[hsl(215,70%,38%)] text-white" onClick={() => setStage(nextStageMeta.key)}>
+              {nextStageMeta.label} <MoveRight className="h-3.5 w-3.5" />
+            </Button>
+          )}
           <Button size="sm" variant="outline" className="text-xs gap-1 min-h-[36px]" onClick={copyTrackingLink}>
             {trackingCopied ? <Check className="h-3.5 w-3.5 text-green-600" /> : <Link2 className="h-3.5 w-3.5" />}
             {trackingCopied ? "Copied!" : "Tracking link"}
@@ -822,6 +871,55 @@ export default function ProjectDetail({ project, onBack }: Props) {
               </div>
             );
           })}
+        </CardContent>
+      </Card>
+
+      {/* ── DESIGN WORK ── */}
+      <Card>
+        <CardHeader className="flex-row items-center justify-between pb-2">
+          <CardTitle className="text-base">Design work</CardTitle>
+          <Button size="sm" variant="outline" onClick={addDesignItem}><Plus className="h-4 w-4 mr-1" />Add item</Button>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          {designItems.length === 0 && (
+            <p className="text-sm text-muted-foreground text-center py-4">No design items. Add one to track design time and get it costed in the margin.</p>
+          )}
+          {designItems.map(d => (
+            <div key={d.id} className="border rounded-lg p-3 space-y-2">
+              <div className="flex items-start gap-2">
+                <Input
+                  placeholder="Design task description"
+                  value={d.description}
+                  onChange={e => updateDesignItem(d.id, { description: e.target.value })}
+                  className="flex-1 text-sm"
+                />
+                <Button size="icon" variant="ghost" className="text-destructive h-8 w-8 shrink-0" onClick={() => removeDesignItem(d.id)}>
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                <div>
+                  <Label className="text-xs">Est. hours</Label>
+                  <Input type="number" step="0.5" min={0} value={d.estimatedHours || ''} onChange={e => updateDesignItem(d.id, { estimatedHours: parseFloat(e.target.value) || 0 })} className="text-sm" />
+                </div>
+                <div>
+                  <Label className="text-xs">Actual hours</Label>
+                  <Input type="number" step="0.5" min={0} value={d.actualHours || ''} onChange={e => updateDesignItem(d.id, { actualHours: parseFloat(e.target.value) || 0 })} className="text-sm" />
+                </div>
+                <div>
+                  <Label className="text-xs">Status</Label>
+                  <Select value={d.status} onValueChange={v => updateDesignItem(d.id, { status: v as DesignItemStatus })}>
+                    <SelectTrigger className="text-xs"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {(Object.entries(DESIGN_STATUS_LABELS) as [DesignItemStatus, string][]).map(([k, v]) => (
+                        <SelectItem key={k} value={k}>{v}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
+          ))}
         </CardContent>
       </Card>
 

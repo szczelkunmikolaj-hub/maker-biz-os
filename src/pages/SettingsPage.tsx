@@ -138,7 +138,7 @@ export default function SettingsPage() {
             </p>
           </div>
           <div>
-            <Label>Hourly rate ({settings.currency || 'EUR'}/h)</Label>
+            <Label>Machine rate ({settings.currency || 'EUR'}/hour of printing)</Label>
             <Input
               type="number"
               min={0}
@@ -147,7 +147,20 @@ export default function SettingsPage() {
               onChange={e => update('hourlyRate', parseFloat(e.target.value) || 0)}
             />
             <p className="text-xs text-muted-foreground mt-1">
-              Labour/electricity cost per print-hour. Used when calculating estimated margin.
+              Electricity + machine depreciation per print-hour. Used in estimated margin.
+            </p>
+          </div>
+          <div>
+            <Label>Design rate ({settings.currency || 'EUR'}/hour of your time)</Label>
+            <Input
+              type="number"
+              min={0}
+              step={1}
+              value={settings.designRate ?? 20}
+              onChange={e => update('designRate', parseFloat(e.target.value) || 0)}
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              Your hourly rate for design work. Used to cost design items in margin calculations.
             </p>
           </div>
         </CardContent>

@@ -6,13 +6,13 @@ import {
   startOfMonth, endOfMonth, addMonths,
   startOfYear, endOfYear, addYears,
 } from 'date-fns';
-import { Project, Expense, FilamentPurchase, getEffectiveDate } from '@/types';
+import { Project, Expense, FilamentPurchase, getEffectiveDate, normalizeStage } from '@/types';
 
 export type PeriodOption = 'this-week' | 'this-month' | 'last-3-months' | 'this-year' | 'all-time';
 export type ChartGrouping = 'day' | 'week' | 'month' | 'year';
 
 function isProjectActive(p: Project): boolean {
-  return !p.printed || !p.paid || !p.sent || p.kanbanStatus !== 'shipped';
+  return normalizeStage(p) !== 'delivered';
 }
 
 interface MonthContextType {

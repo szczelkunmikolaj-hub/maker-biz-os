@@ -1,6 +1,6 @@
 // AppContext — central state, synced to Supabase
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
-import { Project, Expense, AppSettings, KanbanStatus, PrintTemplate, FilamentPurchase, Payment, normalizeProject, getProjectPiecesTotal } from '@/types';
+import { Project, Expense, AppSettings, KanbanStatus, ProductionStage, PrintTemplate, FilamentPurchase, Payment, normalizeProject, normalizeStage, getProjectPiecesTotal } from '@/types';
 import { deriveKanbanStatus, applyKanbanStatus } from '@/types/sync';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
@@ -25,7 +25,7 @@ interface AppContextType {
   updateExpense: (e: Expense) => void;
   deleteExpense: (id: string) => void;
   updateSettings: (s: AppSettings) => void;
-  moveProject: (id: string, status: KanbanStatus) => void;
+  moveProject: (id: string, status: KanbanStatus | ProductionStage) => void;
   addTemplate: (t: PrintTemplate) => void;
   deleteTemplate: (id: string) => void;
   addFilamentPurchase: (fp: FilamentPurchase) => void;
@@ -51,6 +51,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   currency: 'EUR',
   targetMarginPercent: 40,
   hourlyRate: 2,
+  designRate: 20,
 };
 
 const AppContext = createContext<AppContextType | null>(null);
@@ -352,11 +353,28 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     del('projects', id);
   }, [userId]);
 
-  const moveProject = useCallback((id: string, status: KanbanStatus) => {
+  const moveProject = useCallback((id: string, status: KanbanStatus | ProductionStage) => {
     if (isDemoRef.current) return;
+    // Map new stage values to legacy kanbanStatus for backward compat
+    const legacyStatusMap: Record<string, KanbanStatus> = {
+      'new': 'new-order', 'in-design': 'new-order', 'awaiting-approval': 'new-order',
+      'printing': 'printing', 'ready': 'finished', 'delivered': 'shipped',
+    };
+    const legacyStatus: KanbanStatus = legacyStatusMap[status] ?? (status as KanbanStatus);
+    // New stage to persist
+    const newStageValues: ProductionStage[] = ['new', 'in-design', 'awaiting-approval', 'printing', 'ready', 'delivered'];
+    const newStage: ProductionStage | undefined = newStageValues.includes(status as ProductionStage)
+      ? (status as ProductionStage) : undefined;
+
     setProjects(prev => {
       const project = prev.find(x => x.id === id);
-      let updates = applyKanbanStatus(status, project);
+      let updates: Partial<Project> = applyKanbanStatus(legacyStatus, project);
+      if (newStage) updates.stage = newStage;
+      // When delivering: set sent=true and shippingDate if empty
+      if (newStage === 'delivered') {
+        updates.sent = true;
+        if (!project?.shippingDate) updates.shippingDate = new Date().toISOString().split('T')[0];
+      }
 
       // For paid/shipped transitions, create a payment if none exist and price > 0
       if ((status === 'paid' || status === 'shipped') && project) {

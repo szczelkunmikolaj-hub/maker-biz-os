@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { usePersistedState } from "@/hooks/usePersistedState";
 import { useApp } from "@/context/AppContext";
 import { useMonth } from "@/context/MonthContext";
-import { Project, Payment, CustomerSource, PaymentMethod, PrintTemplate, getProjectProgress, getProjectPiecesTotal, getProjectEstimatedMargin, getProjectPaymentStatus, getProjectBalance, cleanDisplayName } from "@/types";
+import { Project, Payment, CustomerSource, PaymentMethod, PrintTemplate, getProjectProgress, getProjectPiecesTotal, getProjectEstimatedMargin, getProjectPaymentStatus, getProjectBalance, cleanDisplayName, normalizeStage, STAGE_META, getProgressSummary } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -261,19 +261,19 @@ export default function Projects() {
                 <ChevronDown className="h-3 w-3 ml-1 opacity-70" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuItem onClick={() => setShowAdd(true)}>
-                <Plus className="h-4 w-4 mr-2" />
-                <div className="flex-1">
-                  <div className="text-sm font-medium">{t('projects.manualProject')}</div>
-                  <div className="text-[11px] text-muted-foreground">{t('projects.manualProjectDesc')}</div>
-                </div>
-              </DropdownMenuItem>
+            <DropdownMenuContent align="end" className="w-60">
               <DropdownMenuItem onClick={() => setImportMode("full")}>
                 <Sparkles className="h-4 w-4 mr-2" />
                 <div className="flex-1">
-                  <div className="text-sm font-medium">{t('projects.importFull')}</div>
-                  <div className="text-[11px] text-muted-foreground">{t('projects.importFullDesc')}</div>
+                  <div className="text-sm font-medium">Start from a sliced file</div>
+                  <div className="text-[11px] text-muted-foreground">Import .3mf, .gcode, or .stl</div>
+                </div>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setShowAdd(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                <div className="flex-1">
+                  <div className="text-sm font-medium">Start with design work / blank</div>
+                  <div className="text-[11px] text-muted-foreground">Add plates and files later</div>
                 </div>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
@@ -410,6 +410,9 @@ export default function Projects() {
             const margin = getProjectEstimatedMargin(p, settings);
             const payStatus = getProjectPaymentStatus(p);
             const balance = getProjectBalance(p);
+            const stage = normalizeStage(p);
+            const stageMeta = STAGE_META[stage];
+            const summary = getProgressSummary(p);
 
             const status = deriveProjectStatus(p);
             const meta = getStatusMeta(status);
@@ -441,8 +444,11 @@ export default function Projects() {
                         <p className="text-xs text-muted-foreground truncate">{p.customerName}</p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-1 shrink-0" onClick={e => e.stopPropagation()}>
-                      <StatusPill status={status} />
+                    <div className="flex items-center gap-1 shrink-0 flex-col items-end" onClick={e => e.stopPropagation()}>
+                      {/* Stage badge */}
+                      <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full whitespace-nowrap" style={{ background: `color-mix(in srgb, var(${stageMeta.token}) 12%, transparent)`, color: `var(${stageMeta.token})` }}>
+                        {stageMeta.label}
+                      </span>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <button
@@ -489,15 +495,18 @@ export default function Projects() {
                     )}
                   </div>
 
-                  {/* Progress bar */}
+                  {/* Progress */}
                   {prog.totalPieces > 0 && (
                     <div className="space-y-1">
                       <Progress value={prog.percent} className="h-1.5" />
                       <div className="flex justify-between text-[10px] text-muted-foreground">
-                        <span>{prog.completedPieces}/{prog.totalPieces} {prog.totalPieces === 1 ? 'piece' : 'pieces'}</span>
+                        <span>{summary || `${prog.completedPieces}/${prog.totalPieces} ${prog.totalPieces === 1 ? 'piece' : 'pieces'}`}</span>
                         <span>{prog.percent}%</span>
                       </div>
                     </div>
+                  )}
+                  {prog.totalPieces === 0 && summary && (
+                    <p className="text-[10px] text-muted-foreground">{summary}</p>
                   )}
 
                   {/* Badges + due date */}

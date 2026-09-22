@@ -150,7 +150,7 @@ muted (sentence case), hero numbers 32–40px.
 
 ## Phase 2 — Workflow model: stages and design work
 
-- [ ] 2.1 **Production stages**: New → In design → Awaiting approval → Printing →
+- [x] 2.1 **Production stages**: New → In design → Awaiting approval → Printing →
   Ready → Delivered. "In design" and "Awaiting approval" are optional (a project
   can go New → Printing directly).
   - Map legacy `kanbanStatus` values in an idempotent normaliser:
@@ -160,24 +160,24 @@ muted (sentence case), hero numbers 32–40px.
     next saved.
   - Grep every usage of `kanbanStatus` (Kanban, cards, Dashboard, Calendar,
     tracking page, CSV export, AppContext) and update all of them.
-  - Delivered stage keeps `sent=true` and sets shippingDate to today if empty.
-- [ ] 2.2 **Design work** section on a project: a list of design items, each with
+  - Delivered stage keeps `sent=true` and sets shippingDate to today if empty. — evidence: normalizeStage() idempotent normalizer in types/index.ts; STAGE_META/STAGE_ORDER constants; moveProject updated; Kanban shows 6 new columns; MonthContext uses normalizeStage; delivered sets sent+shippingDate; stage CSS tokens in index.css
+- [x] 2.2 **Design work** section on a project: a list of design items, each with
   description, estimated hours, actual hours, and status (Not started /
-  In progress / Awaiting client approval / Approved). Stored in the project JSONB.
-- [ ] 2.3 **Separate rates** in Settings: "Machine rate (€/hour of printing)"
+  In progress / Awaiting client approval / Approved). Stored in the project JSONB. — evidence: DesignItem interface + designItems?: DesignItem[] in Project type; design section added to ProjectDetail with add/edit/remove; stored in JSONB (no new tables)
+- [x] 2.3 **Separate rates** in Settings: "Machine rate (€/hour of printing)"
   (the existing hourly rate, renamed in UI only) and a new "Design rate
   (€/hour of your time)", default €20. Design hours are costed at the design
   rate; print hours at the machine rate. Update every cost/margin calculation,
-  including the quote calculators.
-- [ ] 2.4 **Create a project without files**: "New project" offers two clear
+  including the quote calculators. — evidence: designRate: 20 in DEFAULT_SETTINGS; getProjectDesignHours() + updated getProjectEstimatedCost(); Settings page shows both fields; screenshot confirms
+- [x] 2.4 **Create a project without files**: "New project" offers two clear
   starts — "Start from a sliced file" and "Start with design work / blank".
   A project with zero plates renders cleanly: no "0/0 pieces", no broken
-  progress bars, no NaN, no empty-looking sections.
-- [ ] 2.5 **Add files later**: importing a .3mf/.gcode/.stl into an existing
+  progress bars, no NaN, no empty-looking sections. — evidence: New Project dropdown reordered with two top choices; progress bar guarded by prog.totalPieces > 0; summary shows for zero-plate projects
+- [x] 2.5 **Add files later**: importing a .3mf/.gcode/.stl into an existing
   project merges plates in without touching design items, price, payments,
-  customer, or dates.
-- [ ] 2.6 **Progress summary** string used on detail, cards, and Kanban, e.g.
-  "Design approved · Printing 2 of 3 plates" or "Printing 1 of 4 plates".
+  customer, or dates. — evidence: PlateImporter.applyToExisting() only updates prints field: updateProject({ ...project, prints: updated })
+- [x] 2.6 **Progress summary** string used on detail, cards, and Kanban, e.g.
+  "Design approved · Printing 2 of 3 plates" or "Printing 1 of 4 plates". — evidence: getProgressSummary() in types/index.ts; used in KanbanBoard cards, Projects cards, and ProjectDetail header area
 
 ## Phase 3 — Payments
 

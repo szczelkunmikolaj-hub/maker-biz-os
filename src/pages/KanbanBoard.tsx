@@ -1,176 +1,194 @@
 import { useApp } from "@/context/AppContext";
 import { useMonth } from "@/context/MonthContext";
-import { useTranslation } from "react-i18next";
-import { KanbanStatus, getProjectTotalPrintTime, getProjectTotalMaterial, getProjectProgress } from "@/types";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Progress } from "@/components/ui/progress";
-import { Switch } from "@/components/ui/switch";
+import { ProductionStage, normalizeStage, STAGE_META, STAGE_ORDER, getProjectProgress, getProjectPaymentStatus, getProjectPiecesTotal, getProjectBalance, getProgressSummary } from "@/types";
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { Clock, Weight, Layers, ArrowRight } from "lucide-react";
 import { usePersistedState } from "@/hooks/usePersistedState";
-import { RecurringBadge } from "@/components/RecurringBadge";
-import { ColorPills } from "@/components/ColorPills";
 import { PlatePreview } from "@/components/PlatePreview";
+import { isBefore, isAfter, subDays, parseISO, startOfToday } from "date-fns";
 import posthog from "@/lib/posthog";
 
-export default function KanbanBoard() {
-  const { projects, moveProject, updateProject } = useApp();
-  const { filterProjectsForWorkflow, mode } = useMonth();
-  const { t } = useTranslation();
+function PayBadge({ status, balance, currency }: { status: 'unpaid' | 'partial' | 'paid'; balance: number; currency: string }) {
+  if (status === 'paid') return <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-[hsl(142_30%_40%/0.12)] text-[hsl(142,30%,32%)]">Paid</span>;
+  if (status === 'partial') return <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-[hsl(38_85%_46%/0.12)] text-[hsl(38,85%,36%)]">Partial · {currency}{balance.toFixed(0)} left</span>;
+  return <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-[hsl(215_14%_52%/0.12)] text-[hsl(215,14%,40%)]">Unpaid</span>;
+}
 
-  const COLUMNS: { status: KanbanStatus; label: string; dotColor: string; bgClass: string }[] = [
-    { status: "new-order", label: t('kanban.newOrder'),  dotColor: "bg-status-new",        bgClass: "bg-status-new/5 border-status-new/20" },
-    { status: "printing",  label: t('kanban.printing'),  dotColor: "bg-status-printing",   bgClass: "bg-status-printing/5 border-status-printing/20" },
-    { status: "finished",  label: t('kanban.finished'),  dotColor: "bg-status-ready",      bgClass: "bg-status-ready/5 border-status-ready/20" },
-    { status: "paid",      label: t('kanban.paid'),      dotColor: "bg-status-postprocessing", bgClass: "bg-status-postprocessing/5 border-status-postprocessing/20" },
-    { status: "shipped",   label: t('kanban.shipped'),   dotColor: "bg-status-completed",  bgClass: "bg-status-completed/5 border-status-completed/20" },
-  ];
+const STAGE_COLS: ProductionStage[] = ['new', 'in-design', 'awaiting-approval', 'printing', 'ready', 'delivered'];
+
+const COL_STYLE: Record<ProductionStage, { dot: string; bg: string; border: string }> = {
+  'new':               { dot: 'bg-[hsl(215,14%,52%)]', bg: 'bg-[hsl(215,14%,52%/0.04)]', border: 'border-[hsl(215,14%,52%/0.2)]' },
+  'in-design':         { dot: 'bg-[hsl(262,45%,56%)]', bg: 'bg-[hsl(262,45%,56%/0.04)]', border: 'border-[hsl(262,45%,56%/0.2)]' },
+  'awaiting-approval': { dot: 'bg-[hsl(38,85%,46%)]',  bg: 'bg-[hsl(38,85%,46%/0.04)]',  border: 'border-[hsl(38,85%,46%/0.2)]' },
+  'printing':          { dot: 'bg-[hsl(215,70%,45%)]', bg: 'bg-[hsl(215,70%,45%/0.04)]', border: 'border-[hsl(215,70%,45%/0.2)]' },
+  'ready':             { dot: 'bg-[hsl(188,60%,36%)]', bg: 'bg-[hsl(188,60%,36%/0.04)]', border: 'border-[hsl(188,60%,36%/0.2)]' },
+  'delivered':         { dot: 'bg-[hsl(142,30%,40%)]', bg: 'bg-[hsl(142,30%,40%/0.04)]', border: 'border-[hsl(142,30%,40%/0.2)]' },
+};
+
+export default function KanbanBoard() {
+  const { projects, moveProject, settings } = useApp();
+  const { filterProjectsForWorkflow, mode } = useMonth();
   const navigate = useNavigate();
   const [dragging, setDragging] = useState<string | null>(null);
   const [showAll, setShowAll] = usePersistedState<boolean>("kanban_show_all", true);
+  const [showAllDelivered, setShowAllDelivered] = useState(false);
+  const [collapsed, setCollapsed] = usePersistedState<Record<string, boolean>>("kanban_collapsed", {});
+  const currency = settings.currency === 'USD' ? '$' : settings.currency === 'GBP' ? '£' : '€';
 
   const visibleProjects = useMemo(() => {
     return (showAll || mode === 'all') ? projects : filterProjectsForWorkflow(projects);
   }, [projects, showAll, mode, filterProjectsForWorkflow]);
 
-  const handleDragStart = (id: string) => setDragging(id);
-  const handleDrop = (status: KanbanStatus) => {
-    if (dragging) {
-      const proj = projects.find(p => p.id === dragging);
-      posthog.capture('project_kanban_moved', {
-        from_status: proj?.kanbanStatus,
-        to_status: status,
-      });
-      moveProject(dragging, status);
-      setDragging(null);
-    }
-  };
+  const colItems = useMemo(() => {
+    const today = startOfToday();
+    const cutoff = subDays(today, 14);
+    return Object.fromEntries(STAGE_COLS.map(stage => {
+      let items = visibleProjects.filter(p => normalizeStage(p) === stage);
+      if (stage === 'delivered' && !showAllDelivered) {
+        items = items.filter(p => {
+          const d = p.shippingDate || p.completedAt;
+          return !d || isAfter(parseISO(d), cutoff);
+        });
+      }
+      return [stage, items];
+    }));
+  }, [visibleProjects, showAllDelivered]);
 
-  const toggleField = (id: string, field: 'printed' | 'paid' | 'sent') => {
-    const proj = projects.find(p => p.id === id);
-    if (proj) updateProject({ ...proj, [field]: !proj[field] });
+  const handleDrop = (stage: ProductionStage) => {
+    if (!dragging) return;
+    const proj = projects.find(p => p.id === dragging);
+    if (proj && normalizeStage(proj) !== stage) {
+      posthog.capture('project_kanban_moved', { from_stage: normalizeStage(proj), to_stage: stage });
+      moveProject(dragging, stage);
+    }
+    setDragging(null);
   };
 
   const openProject = (id: string) => navigate(`/projects?id=${id}`, { state: { from: '/kanban' } });
 
+  const today = startOfToday();
+
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">{t('kanban.title')}</h1>
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <h1 className="text-2xl font-semibold">Kanban board</h1>
         {mode === 'month' && (
           <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer select-none">
-            <Switch checked={showAll} onCheckedChange={setShowAll} className="h-5 w-9 [&>span]:h-4 [&>span]:w-4 data-[state=checked]:[&>span]:translate-x-4" />
-            {t('kanban.showAllProjects')}
+            <input type="checkbox" className="rounded" checked={showAll} onChange={e => setShowAll(e.target.checked)} />
+            Show all projects
           </label>
         )}
       </div>
-      <div className="overflow-x-auto -mx-4 px-4 pb-2 touch-pan-x md:overflow-visible md:mx-0 md:px-0 md:pb-0">
-      <div className="grid grid-cols-5 gap-4 min-h-[65vh] w-[900px] md:w-auto">
-        {COLUMNS.map(col => {
-          const items = visibleProjects.filter(p => p.kanbanStatus === col.status);
-          return (
-            <div
-              key={col.status}
-              className={`rounded-xl border p-3 space-y-2.5 transition-colors ${col.bgClass} ${
-                dragging ? 'border-dashed border-2' : ''
-              }`}
-              onDragOver={e => e.preventDefault()}
-              onDrop={() => handleDrop(col.status)}
-            >
-              <div className="flex items-center justify-between mb-1 px-1">
-                <div className="flex items-center gap-2">
-                  <div className={`w-2.5 h-2.5 rounded-full ${col.dotColor}`} />
-                  <span className="text-sm font-semibold">{col.label}</span>
-                </div>
-                <span className="text-xs text-muted-foreground font-medium bg-background/80 rounded-full px-2 py-0.5">{items.length}</span>
-              </div>
-              {items.map(p => {
-                const progress = getProjectProgress(p);
-                const totalTime = getProjectTotalPrintTime(p);
-                const totalMaterial = getProjectTotalMaterial(p);
-                return (
-                  <Card
-                    key={p.id}
-                    draggable
-                    onDragStart={() => handleDragStart(p.id)}
-                    className={`cursor-grab active:cursor-grabbing hover:border-primary/50 hover:shadow-md transition-all group ${
-                      p.isRecurringCustomer ? "ring-1 ring-recurring-from/30" : ""
-                    }`}
+
+      <div className="overflow-x-auto -mx-4 px-4 pb-2">
+        <div className="grid gap-3 min-h-[65vh]" style={{ gridTemplateColumns: `repeat(${STAGE_COLS.length}, minmax(180px, 1fr))`, minWidth: 900 }}>
+          {STAGE_COLS.map(stage => {
+            const meta = STAGE_META[stage];
+            const style = COL_STYLE[stage];
+            const items = colItems[stage] || [];
+            const totalValue = items.reduce((s, p) => s + (getProjectPiecesTotal(p) || p.totalPrice || 0), 0);
+            const isCollapsed = collapsed[stage];
+
+            return (
+              <div
+                key={stage}
+                className={`rounded-xl border p-2.5 space-y-2 transition-colors ${style.bg} ${style.border} ${dragging ? 'border-dashed border-2' : ''}`}
+                onDragOver={e => e.preventDefault()}
+                onDrop={() => handleDrop(stage)}
+              >
+                {/* Column header */}
+                <div className="flex items-center justify-between px-0.5 mb-1">
+                  <button
+                    className="flex items-center gap-1.5 text-left"
+                    onClick={() => setCollapsed(prev => ({ ...prev, [stage]: !isCollapsed }))}
                   >
-                    <CardContent className="p-3 space-y-2">
-                      <div className="cursor-pointer" onClick={() => openProject(p.id)}>
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="flex items-start gap-2 min-w-0 flex-1">
+                    <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${style.dot}`} />
+                    <span className="text-sm font-semibold">{meta.label}</span>
+                    <span className="text-[10px] text-muted-foreground bg-background/80 rounded-full px-1.5 py-0.5 font-medium">{items.length}</span>
+                  </button>
+                  {totalValue > 0 && (
+                    <span className="text-[10px] text-muted-foreground font-medium">{currency}{totalValue.toFixed(0)}</span>
+                  )}
+                </div>
+
+                {!isCollapsed && (
+                  <>
+                    {items.map(p => {
+                      const progress = getProjectProgress(p);
+                      const payStatus = getProjectPaymentStatus(p);
+                      const balance = getProjectBalance(p);
+                      const price = getProjectPiecesTotal(p) || p.totalPrice || 0;
+                      const summary = getProgressSummary(p);
+                      const due = p.dueDate ? parseISO(p.dueDate) : null;
+                      const isOverdue = due && isBefore(due, today) && progress.percent < 100;
+                      const isDueSoon = due && !isOverdue && isBefore(due, new Date(today.getTime() + 2 * 86400000));
+
+                      return (
+                        <div
+                          key={p.id}
+                          draggable
+                          onDragStart={() => setDragging(p.id)}
+                          onDragEnd={() => setDragging(null)}
+                          className="bg-card border border-border rounded-lg p-2.5 cursor-grab active:cursor-grabbing hover:border-[hsl(215,70%,45%/0.5)] hover:shadow-sm transition-all group"
+                          onClick={() => openProject(p.id)}
+                        >
+                          <div className="flex items-start gap-2 min-w-0">
                             <PlatePreview
                               thumbnail={p.coverThumbnail || p.prints?.[0]?.thumbnail}
-                              color={(p.prints || []).map(pr => pr.color).filter(Boolean).join(", ") || undefined}
+                              color={(p.prints || []).map(pr => pr.color).filter(Boolean).join(', ') || undefined}
                               palette={(p.prints || []).flatMap(pr => pr.colorPalette || [])}
                               label={p.name}
                               size="sm"
                               noHover
                             />
                             <div className="min-w-0 flex-1">
-                              <div className="flex items-center gap-1.5 flex-wrap">
-                                <p className="font-semibold text-sm truncate group-hover:text-primary transition-colors">{p.name}</p>
-                                {p.isRecurringCustomer && <RecurringBadge />}
-                              </div>
-                              <p className="text-xs text-muted-foreground truncate">{p.customerName}</p>
+                              <p className="font-semibold text-xs truncate leading-tight group-hover:text-[hsl(215,70%,45%)] transition-colors">{p.name}</p>
+                              <p className="text-[10px] text-muted-foreground truncate">{p.customerName}</p>
                             </div>
                           </div>
-                          <ArrowRight className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0 mt-1" />
-                        </div>
-                        <p className="text-sm font-bold text-primary mt-1">€{p.totalPrice.toFixed(2)}</p>
-                        <div className="flex items-center gap-3 text-[10px] text-muted-foreground mt-1 flex-wrap">
-                          {(p.prints || []).length > 0 && (
-                            <span className="flex items-center gap-0.5"><Layers className="h-3 w-3" />{(p.prints || []).length}</span>
-                          )}
-                          {totalTime > 0 && (
-                            <span className="flex items-center gap-0.5"><Clock className="h-3 w-3" />{totalTime.toFixed(0)}h</span>
-                          )}
-                          {totalMaterial > 0 && (
-                            <span className="flex items-center gap-0.5"><Weight className="h-3 w-3" />{totalMaterial.toFixed(0)}g</span>
-                          )}
-                          {(() => {
-                            const allColors = (p.prints || []).map(pr => pr.color).filter(Boolean).join(", ");
-                            const allPalettes = (p.prints || []).flatMap(pr => pr.colorPalette || []);
-                            if (!allColors) return null;
-                            return <ColorPills color={allColors} palette={allPalettes.length ? allPalettes : undefined} size="xs" showLabel={false} />;
-                          })()}
-                        </div>
-                        {progress.totalPieces > 0 && (
-                          <div className="flex items-center gap-1.5 mt-1.5">
-                            <Progress value={progress.percent} className="h-1 flex-1" />
-                            <span className="text-[10px] text-muted-foreground">{progress.percent}%</span>
+
+                          <div className="flex items-center justify-between mt-1.5 gap-1">
+                            <span className="text-sm font-bold tabular-nums">{currency}{price.toFixed(2)}</span>
+                            <PayBadge status={payStatus} balance={balance} currency={currency} />
                           </div>
-                        )}
-                        {p.dueDate && (
-                          <p className="text-[10px] text-muted-foreground mt-1">Due: {p.dueDate}</p>
-                        )}
+
+                          {summary && (
+                            <p className="text-[10px] text-muted-foreground mt-1 leading-tight">{summary}</p>
+                          )}
+
+                          {p.dueDate && (
+                            <div className={`mt-1.5 text-[10px] font-medium px-1.5 py-0.5 rounded-full w-fit ${
+                              isOverdue ? 'bg-[hsl(0,68%,50%/0.12)] text-[hsl(0,68%,44%)]' :
+                              isDueSoon ? 'bg-[hsl(38,85%,46%/0.12)] text-[hsl(38,85%,36%)]' :
+                              'bg-muted text-muted-foreground'
+                            }`}>
+                              {isOverdue ? 'Overdue · ' : isDueSoon ? 'Due soon · ' : 'Due '}{p.dueDate}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+
+                    {stage === 'delivered' && !showAllDelivered && visibleProjects.filter(p => normalizeStage(p) === 'delivered').length > items.length && (
+                      <button
+                        className="w-full text-[10px] text-primary underline text-center py-1"
+                        onClick={e => { e.stopPropagation(); setShowAllDelivered(true); }}
+                      >
+                        Show all delivered
+                      </button>
+                    )}
+
+                    {items.length === 0 && (
+                      <div className="text-xs text-muted-foreground text-center py-8 border-2 border-dashed rounded-lg border-border/50">
+                        Drop here
                       </div>
-                      <div className="flex gap-3 pt-1.5 border-t" onClick={e => e.stopPropagation()}>
-                        {(["printed", "paid", "sent"] as const).map(field => (
-                          <label key={field} className="flex items-center gap-1 cursor-pointer">
-                            <Checkbox checked={p[field]} onCheckedChange={() => toggleField(p.id, field)} />
-                            <span className="text-[10px]">{field === 'sent' ? t('kanban.shippedLabel') : field === 'paid' ? t('kanban.paidLabel') : t('kanban.printedLabel')}</span>
-                          </label>
-                        ))}
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })}
-              {items.length === 0 && (
-                <div className="text-xs text-muted-foreground text-center py-10 border-2 border-dashed rounded-lg">
-                  {t('kanban.dropHere')}
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            );
+          })}
+        </div>
       </div>
     </div>
   );

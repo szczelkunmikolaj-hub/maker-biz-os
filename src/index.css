@@ -64,6 +64,21 @@
     --secondary-accent: 160 20% 38%;
     --recurring-from: 160 20% 38%;
     --recurring-to: 160 25% 28%;
+
+    /* Production stage tokens (Part B spec) — full HSL colors for inline style use */
+    --stage-new: hsl(215, 14%, 52%);
+    --stage-design: hsl(262, 45%, 56%);
+    --stage-approval: hsl(38, 85%, 46%);
+    --stage-printing: hsl(215, 70%, 45%);
+    --stage-ready: hsl(188, 60%, 36%);
+    --stage-delivered: hsl(142, 30%, 40%);
+    --pay-unpaid: hsl(215, 14%, 52%);
+    --pay-partial: hsl(38, 85%, 46%);
+    --pay-paid: hsl(142, 30%, 40%);
+    --danger: hsl(0, 68%, 50%);
+    --canvas: hsl(220, 16%, 96%);
+    --text: hsl(222, 28%, 14%);
+    --text-muted: hsl(220, 9%, 42%);
   }
 
   .dark {
@@ -122,6 +137,21 @@
     --secondary-accent: 160 15% 45%;
     --recurring-from: 160 15% 45%;
     --recurring-to: 160 20% 35%;
+
+    /* Production stage tokens — dark mode (+12% lightness approx) */
+    --stage-new: hsl(215, 14%, 64%);
+    --stage-design: hsl(262, 45%, 68%);
+    --stage-approval: hsl(38, 85%, 58%);
+    --stage-printing: hsl(215, 70%, 57%);
+    --stage-ready: hsl(188, 60%, 48%);
+    --stage-delivered: hsl(142, 30%, 52%);
+    --pay-unpaid: hsl(215, 14%, 64%);
+    --pay-partial: hsl(38, 85%, 58%);
+    --pay-paid: hsl(142, 30%, 52%);
+    --danger: hsl(0, 68%, 62%);
+    --canvas: hsl(220, 16%, 10%);
+    --text: hsl(222, 28%, 92%);
+    --text-muted: hsl(220, 9%, 58%);
   }
 }
 

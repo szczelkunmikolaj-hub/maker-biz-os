@@ -28,9 +28,27 @@ export interface Print {
 }
 
 export type KanbanStatus = 'new-order' | 'printing' | 'finished' | 'paid' | 'shipped';
+export type ProductionStage = 'new' | 'in-design' | 'awaiting-approval' | 'printing' | 'ready' | 'delivered';
 export type CustomerSource = 'Wallapop' | 'Instagram' | 'Website' | 'Other';
 export type PaymentMethod = 'Cash' | 'PayPal' | 'Bank Transfer' | 'Bizum' | 'Other';
 export type ExpenseCategory = 'Filament' | 'Shipping' | 'Equipment' | 'Tools' | 'Project Expense' | 'Other';
+export type DesignItemStatus = 'not-started' | 'in-progress' | 'awaiting-approval' | 'approved';
+
+export interface DesignItem {
+  id: string;
+  description: string;
+  estimatedHours: number;
+  actualHours: number;
+  status: DesignItemStatus;
+}
+
+export interface TimelineEvent {
+  id: string;
+  type: 'created' | 'stage-changed' | 'payment' | 'payment-undone' | 'file-imported' | 'note' | 'delivered';
+  date: string;
+  label: string;
+  note?: string;
+}
 
 export interface Payment {
   id: string;
@@ -75,7 +93,13 @@ export interface Project {
   notes: string;
   prints: Print[];
   kanbanStatus: KanbanStatus;
+  /** New production stage — normalizeStage() reads this, falls back to kanbanStatus mapping. */
+  stage?: ProductionStage;
   projectExpenses: ProjectExpense[];
+  /** Design work items stored in project JSONB. */
+  designItems?: DesignItem[];
+  /** Timeline events for the project (created, stage changed, payment, etc.). */
+  timelineEvents?: TimelineEvent[];
   /** Payment log — each entry is one deposit/payment. paid is DERIVED from this. */
   payments?: Payment[];
   completedAt?: string;
@@ -99,6 +123,37 @@ export interface Project {
 export function getEffectiveDate(p: Project): string | null {
   return p.shippingDate || p.completedAt || p.paidAt || p.orderDate || null;
 }
+
+/** Idempotent stage normalizer: reads p.stage, falls back to kanbanStatus mapping. */
+export function normalizeStage(p: Project): ProductionStage {
+  if (p.stage) return p.stage;
+  switch (p.kanbanStatus) {
+    case 'new-order': return 'new';
+    case 'printing':  return 'printing';
+    case 'finished':  return 'ready';
+    case 'paid':      return 'ready';
+    case 'shipped':   return 'delivered';
+    default:          return 'new';
+  }
+}
+
+export const STAGE_ORDER: ProductionStage[] = ['new', 'in-design', 'awaiting-approval', 'printing', 'ready', 'delivered'];
+
+export interface StageMeta {
+  key: ProductionStage;
+  label: string;
+  token: string;
+  next?: ProductionStage;
+}
+
+export const STAGE_META: Record<ProductionStage, StageMeta> = {
+  'new':               { key: 'new',               label: 'New',               token: '--stage-new',      next: 'printing' },
+  'in-design':         { key: 'in-design',          label: 'In design',         token: '--stage-design',   next: 'awaiting-approval' },
+  'awaiting-approval': { key: 'awaiting-approval',  label: 'Awaiting approval', token: '--stage-approval', next: 'printing' },
+  'printing':          { key: 'printing',            label: 'Printing',          token: '--stage-printing', next: 'ready' },
+  'ready':             { key: 'ready',               label: 'Ready',             token: '--stage-ready',    next: 'delivered' },
+  'delivered':         { key: 'delivered',           label: 'Delivered',         token: '--stage-delivered' },
+};
 
 export interface Expense {
   id: string;
@@ -135,6 +190,8 @@ export interface AppSettings {
   onboardingCompleted?: boolean;
   // Quote calculator
   targetMarginPercent?: number;
+  /** Design rate in €/hour (default 20). */
+  designRate?: number;
   hourlyRate?: number;
 }
 
@@ -277,6 +334,10 @@ export function normalizeProject(p: any): Project {
     payments: p.payments || [],
     paymentMethod: p.paymentMethod || 'Other',
     kanbanStatus: p.kanbanStatus || 'new-order',
+    // Preserve stage if already set; will be written on first save after normalizeStage
+    stage: p.stage || undefined,
+    designItems: p.designItems || [],
+    timelineEvents: p.timelineEvents || [],
     completedAt: p.completedAt || '',
     paidAt: p.paidAt || '',
     isRecurringCustomer: p.isRecurringCustomer || false,
@@ -362,24 +423,29 @@ export const getProjectProfitMargin = (p: Project, costPerGram: number) => {
   return (getProjectProfit(p, costPerGram) / p.totalPrice) * 100;
 };
 
+export const getProjectDesignHours = (p: Project): number =>
+  (p.designItems || []).reduce((s, d) => s + (d.actualHours || d.estimatedHours || 0), 0);
+
 export const getProjectEstimatedCost = (
   p: Project,
-  settings: Pick<AppSettings, 'filamentCostPerGram' | 'hourlyRate'>
+  settings: Pick<AppSettings, 'filamentCostPerGram' | 'hourlyRate' | 'designRate'>
 ) =>
   getProjectTotalMaterial(p) * (settings.filamentCostPerGram || 0)
   + getProjectTotalPrintTime(p) * (settings.hourlyRate ?? 2)
+  + getProjectDesignHours(p) * (settings.designRate ?? 20)
   + getProjectExpensesTotal(p);
 
 export const getProjectEstimatedMargin = (
   p: Project,
-  settings: Pick<AppSettings, 'filamentCostPerGram' | 'hourlyRate'>
+  settings: Pick<AppSettings, 'filamentCostPerGram' | 'hourlyRate' | 'designRate'>
 ): number | null => {
   const effectivePrice = getProjectPiecesTotal(p) || (p.totalPrice || 0);
-  // No material or time data → can't estimate margin
+  // No material, time, or design data → can't estimate margin
   if (effectivePrice <= 0) return null;
   const totalMat = getProjectTotalMaterial(p);
   const totalTime = getProjectTotalPrintTime(p);
-  if (totalMat === 0 && totalTime === 0) return null;
+  const designHours = getProjectDesignHours(p);
+  if (totalMat === 0 && totalTime === 0 && designHours === 0) return null;
   return (effectivePrice - getProjectEstimatedCost(p, settings)) / effectivePrice * 100;
 };
 
@@ -401,6 +467,33 @@ export const getProjectProgress = (p: Project) => {
 
   return { totalPieces, completedPieces, percent: totalPieces > 0 ? Math.round((completedPieces / totalPieces) * 100) : 0 };
 };
+
+/** Human-readable progress summary, e.g. "Printing 2 of 3 plates" or "Design approved · Printing 1 of 2 plates" */
+export function getProgressSummary(p: Project): string {
+  const stage = normalizeStage(p);
+  const prints = p.prints || [];
+  const totalPlates = prints.length;
+  const completedPlates = prints.filter(pr => (pr.completedQuantity || 0) >= (pr.quantity || 1)).length;
+  const designItems = p.designItems || [];
+  const allDesignApproved = designItems.length > 0 && designItems.every(d => d.status === 'approved');
+
+  const printPart = totalPlates > 0
+    ? `Printing ${completedPlates} of ${totalPlates} plate${totalPlates !== 1 ? 's' : ''}`
+    : '';
+
+  if (stage === 'delivered') return 'Delivered';
+  if (stage === 'ready') return totalPlates > 0 ? 'All plates done · Ready' : 'Ready';
+  if (stage === 'printing' || (stage === 'new' && totalPlates > 0)) {
+    return allDesignApproved ? `Design approved · ${printPart}` : printPart;
+  }
+  if (stage === 'awaiting-approval') return 'Awaiting client approval';
+  if (stage === 'in-design') {
+    if (designItems.length === 0) return 'In design';
+    const done = designItems.filter(d => d.status === 'approved').length;
+    return `Design ${done}/${designItems.length} approved`;
+  }
+  return totalPlates > 0 ? printPart : 'New project';
+}
 
 export const getGlobalPrintProgress = (projects: Project[]) => {
   let totalHours = 0;
