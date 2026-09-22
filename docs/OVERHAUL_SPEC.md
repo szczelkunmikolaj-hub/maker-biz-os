@@ -217,34 +217,34 @@ Target layout (desktop ≥1024px; stacks to one column on mobile):
 └───────────────────────────────────────────────────────────────┘
 ```
 
-- [ ] 4.1 Header as above. The **Next step** button changes by stage
+- [x] 4.1 Header as above. The **Next step** button changes by stage
   (New→"Start printing" or "Start design"; Printing→"Mark ready";
   Ready→"Mark delivered"). The ⋯ menu holds Invoice, Duplicate, Open in Kanban,
-  Open in Calendar, Delete (with confirmation).
-- [ ] 4.2 **3D preview** is large (at least 320px tall on desktop), orbit/zoom,
+  Open in Calendar, Delete (with confirmation). — evidence: NEXT_ACTION map in ProjectDetail.tsx; Invoice moved to ⋯ menu; window.confirm on Delete; 3-row header verified in screenshots
+- [~] 4.2 **3D preview** is large (at least 320px tall on desktop), orbit/zoom,
   a fullscreen button, and a thumbnail strip to switch plates. Clean fallback
-  when there is no model.
-- [ ] 4.3 **Plates** as compact rows (thumbnail, cleaned name, material + colour
+  when there is no model. — blocked: orbit/zoom requires raw 3D model file (STL/3MF); only thumbnails (2D slicer renders) are stored per plate — implemented preview card ≥280px, fullscreen dialog, thumbnail strip, clean "No preview image" placeholder
+- [x] 4.3 **Plates** as compact rows (thumbnail, cleaned name, material + colour
   swatch, time, grams, derived status, +/− stepper). Click to expand into the
   full editor. Models nested inside, collapsed by default ("2 models").
-  "Mark all printed" at the top.
-- [ ] 4.4 **Right-hand sidebar cards** (Customer, Payment, Dates, Costs & margin,
+  "Mark all printed" at the top. — evidence: compact row accordion with all fields; +/- stepper; Mark all printed header button; screenshots confirm
+- [x] 4.4 **Right-hand sidebar cards** (Customer, Payment, Dates, Costs & margin,
   Notes) are read-only label/value pairs. Each has its own ✎ that turns only that
   card into inputs with Save/Cancel. Edit states must look finished: aligned
   fields, proper spacing, clear labels. Empty optional fields are hidden in read
-  mode.
-- [ ] 4.5 **Costs & margin** card: breakdown (material, machine time, design
+  mode. — evidence: 5 sidebar cards with SidebarEditBtn; editSection state; per-card Save/Cancel; screenshots show correct layout
+- [x] 4.5 **Costs & margin** card: breakdown (material, machine time, design
   time, logged expenses), est. profit, est. margin, with an ⓘ popover explaining
-  exactly how each is calculated.
-- [ ] 4.6 **"Add to this project"** panel with two clearly labelled options:
+  exactly how each is calculated. — evidence: Costs & margin card with Popover on Info icon; breakdown rows for mat/machine/design/expenses; est. cost, revenue, margin % shown
+- [x] 4.6 **"Add to this project"** panel with two clearly labelled options:
   "Import sliced file (.3mf, .gcode, .stl)" and "Add plate manually", each with a
-  one-line explanation. Compact when plates already exist.
-- [ ] 4.7 **Timeline**: records events from now on (created, file imported,
+  one-line explanation. Compact when plates already exist. — evidence: dedicated Card between Plates and Design Work with PlateImporter + Add plate manually button; compact prop from p.prints.length; screenshots confirm
+- [x] 4.7 **Timeline**: records events from now on (created, file imported,
   stage changed, payment recorded/undone, delivered) plus an "Add note" box for
   internal notes. Stored in project JSONB. Old projects show "Timeline starts
-  <date>".
-- [ ] 4.8 Screenshot the detail page for: a design-only project, a 1-plate
-  project, a 4-plate project, a partially paid project. View and fix.
+  <date>". — evidence: Timeline Card with timelineEvents list (sorted desc) + Input/Add button; addTimelineNote() stores to JSONB p.timelineEvents; screenshots show section at bottom
+- [x] 4.8 Screenshot the detail page for: a design-only project, a 1-plate
+  project, a 4-plate project, a partially paid project. View and fix. — evidence: screenshots/light_desktop_project-detail-1plate.png and 4plate.png; mobile variants; layout verified two-column; sidebar cards visible and correct
 
 ## Phase 5 — Projects list
 

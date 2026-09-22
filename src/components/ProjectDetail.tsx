@@ -4,11 +4,12 @@ import { useTranslation } from "react-i18next";
 import { useApp } from "@/context/AppContext";
 import {
   Project, Print, ProjectExpense, Payment, PaymentMethod, PaymentStatus,
-  DesignItem, DesignItemStatus,
+  DesignItem, DesignItemStatus, TimelineEvent,
   getProjectTotalPrintTime, getProjectTotalMaterial, getProjectProgress,
   getProjectExpensesTotal, getProjectPiecesTotal, getProjectTotalPieces,
   getProjectEstimatedCost, getProjectEstimatedMargin, getProjectPaymentsTotal,
   getProjectBalance, getProjectPaymentStatus, getPrintDerivedStatus,
+  getProjectDesignHours,
   cleanDisplayName, cleanPlateName, getCurrencySymbol,
   normalizeStage, STAGE_META, STAGE_ORDER, getProgressSummary,
 } from "@/types";
@@ -24,9 +25,11 @@ import { Progress } from "@/components/ui/progress";
 import {
   ArrowLeft, Plus, Trash2, Copy, BookTemplate, Calendar, Kanban, Receipt,
   RefreshCw, ArrowUp, ArrowDown, Box, X, MoveRight, FileText, Link2, CreditCard,
-  Check, Loader2, MoreHorizontal, ChevronDown, Pencil, Minus,
+  Check, Loader2, MoreHorizontal, ChevronDown, Pencil, Minus, Info, MessageSquare,
+  Maximize2, Image,
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { PlateImporter } from "@/components/PlateImporter";
 import { RecurringBadge } from "@/components/RecurringBadge";
 import { ColorPills } from "@/components/ColorPills";
@@ -103,6 +106,16 @@ export default function ProjectDetail({ project, onBack }: Props) {
   const [editingPaymentId, setEditingPaymentId] = useState<string | null>(null);
   const [editPaymentDraft, setEditPaymentDraft] = useState<Payment | null>(null);
 
+  // Sidebar section editing
+  const [editSection, setEditSection] = useState<'customer' | 'dates' | 'notes' | null>(null);
+
+  // Preview state
+  const [selectedPreviewIdx, setSelectedPreviewIdx] = useState(0);
+  const [showFullscreen, setShowFullscreen] = useState(false);
+
+  // Timeline
+  const [timelineNote, setTimelineNote] = useState('');
+
   // Ref to always get the latest project for undo
   const projectRef = useRef(project);
   useEffect(() => { projectRef.current = project; }, [project]);
@@ -141,7 +154,7 @@ export default function ProjectDetail({ project, onBack }: Props) {
   const currencySymbol = getCurrencySymbol(settings.currency);
 
   // ── Details section ──
-  const startEditDetails = () => {
+  const startEditSection = (section: 'customer' | 'dates' | 'notes') => {
     setDetailsDraft({
       name: p.name,
       customerName: p.customerName,
@@ -152,16 +165,33 @@ export default function ProjectDetail({ project, onBack }: Props) {
       dueDate: p.dueDate || '',
       shippingDate: p.shippingDate || '',
       notes: p.notes || '',
+      isRecurringCustomer: p.isRecurringCustomer || false,
+      totalPrice: p.totalPrice || 0,
     });
+    setEditSection(section);
     setDetailsEditMode(true);
   };
 
   const saveDetails = () => {
     set(detailsDraft);
     setDetailsEditMode(false);
+    setEditSection(null);
   };
 
-  const cancelDetails = () => setDetailsEditMode(false);
+  const cancelDetails = () => { setDetailsEditMode(false); setEditSection(null); };
+
+  const addTimelineNote = () => {
+    if (!timelineNote.trim()) return;
+    const event: TimelineEvent = {
+      id: crypto.randomUUID(),
+      type: 'note',
+      date: new Date().toISOString().split('T')[0],
+      label: 'Note',
+      note: timelineNote.trim(),
+    };
+    set({ timelineEvents: [...(p.timelineEvents || []), event] });
+    setTimelineNote('');
+  };
 
   // ── Plate helpers ──
   const addPrint = () => save({ ...p, prints: [...p.prints, newPrint()] });
@@ -386,62 +416,108 @@ export default function ProjectDetail({ project, onBack }: Props) {
     ? (paymentDraft.amount || 0) / 100 * effectiveTotal
     : (paymentDraft.amount || 0);
 
+  // Cost breakdown for sidebar
+  const matCost = totalMaterial * (settings.filamentCostPerGram || 0.025);
+  const machineCost = totalTime * (settings.hourlyRate ?? 2);
+  const designHours = getProjectDesignHours(p);
+  const designCost = designHours * (settings.designRate ?? 20);
+  const expensesCost = getProjectExpensesTotal(p);
+
+  // Preview derived
+  const previewPlate = p.prints[selectedPreviewIdx] || p.prints[0];
+  const previewThumb = previewPlate?.thumbnail || p.coverThumbnail;
+
+  const NEXT_ACTION: Record<string, string> = {
+    'new': designItems.length > 0 ? 'Start design' : 'Start printing',
+    'in-design': 'Request approval',
+    'awaiting-approval': 'Approve & print',
+    'printing': 'Mark ready',
+    'ready': 'Mark delivered',
+  };
+  const nextActionLabel = nextStageMeta ? (NEXT_ACTION[currentStage] ?? nextStageMeta.label) : null;
+
+  // ── Sidebar edit helpers ──
+  const SidebarEditBtn = ({ section }: { section: 'customer' | 'dates' | 'notes' }) => (
+    <button
+      onClick={() => startEditSection(section)}
+      className="h-6 w-6 flex items-center justify-center rounded hover:bg-accent transition-colors text-muted-foreground hover:text-foreground"
+    >
+      <Pencil className="h-3 w-3" />
+    </button>
+  );
+
   return (
     <div className="space-y-4 pb-8">
       {/* ── HEADER ── */}
-      <div className="flex items-start justify-between gap-2 flex-wrap">
-        <div className="flex items-center gap-2 min-w-0">
-          <Button variant="ghost" size="icon" onClick={onBack} className="shrink-0">
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <PlatePreview
-            thumbnail={p.coverThumbnail || p.prints?.[0]?.thumbnail}
-            color={(p.prints || []).map(pr => pr.color).filter(Boolean).join(", ") || undefined}
-            palette={(p.prints || []).flatMap(pr => pr.colorPalette || [])}
-            label={displayName}
-            size="sm"
-            noHover
-          />
-          <div className="min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="text-lg md:text-xl font-bold truncate">{displayName}</h1>
-              {/* Stage badge */}
-              <span className="text-[11px] font-medium px-2 py-0.5 rounded-full" style={{ background: `color-mix(in srgb, var(${stageMeta.token}) 12%, transparent)`, color: `var(${stageMeta.token})` }}>
-                {stageMeta.label}
-              </span>
-              {p.isRecurringCustomer && <RecurringBadge size="md" />}
-            </div>
-            <p className="text-sm text-muted-foreground truncate">{p.customerName || <span className="italic">No customer</span>}</p>
+      <div className="space-y-2">
+        {/* Row 1: Back + name + next step */}
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 min-w-0">
+            <Button variant="ghost" size="icon" onClick={onBack} className="shrink-0 -ml-2">
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+            <h1 className="text-xl font-bold truncate">{displayName}</h1>
           </div>
-        </div>
-        <div className="flex items-center gap-1.5 shrink-0 flex-wrap">
-          {/* Next step button */}
           {nextStageMeta && (
-            <Button size="sm" className="text-xs gap-1 min-h-[36px] bg-[hsl(215,70%,45%)] hover:bg-[hsl(215,70%,38%)] text-white" onClick={() => setStage(nextStageMeta.key)}>
-              {nextStageMeta.label} <MoveRight className="h-3.5 w-3.5" />
+            <Button size="sm" className="shrink-0 gap-1" onClick={() => setStage(nextStageMeta.key)}>
+              {nextActionLabel} <MoveRight className="h-3.5 w-3.5" />
             </Button>
           )}
-          <Button size="sm" variant="outline" className="text-xs gap-1 min-h-[36px]" onClick={copyTrackingLink}>
+        </div>
+
+        {/* Row 2: customer · stage · payment · price */}
+        <div className="flex items-center gap-2 flex-wrap text-sm">
+          {p.customerName && <span className="text-muted-foreground">{p.customerName}</span>}
+          {p.customerName && <span className="text-muted-foreground">·</span>}
+          <span className="text-xs font-medium px-2 py-0.5 rounded-full" style={{ background: `color-mix(in srgb, var(${stageMeta.token}) 12%, transparent)`, color: `var(${stageMeta.token})` }}>
+            {stageMeta.label}
+          </span>
+          <PaymentBadge status={paymentStatus} balance={Math.max(0, balance)} currency={currencySymbol} />
+          {p.isRecurringCustomer && <RecurringBadge size="md" />}
+          <span className="font-bold text-primary ml-auto tabular-nums">{currencySymbol}{effectiveTotal.toFixed(2)}{autoCalcTotal && <span className="text-[10px] font-normal text-muted-foreground ml-1">from pieces</span>}</span>
+        </div>
+
+        {/* Row 3: action buttons */}
+        <div className="flex items-center gap-1.5 flex-wrap">
+          {balance > 0 && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button size="sm" className="gap-1">
+                  Collect payment <ChevronDown className="h-3.5 w-3.5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-52">
+                <DropdownMenuItem onClick={markAsPaid}>
+                  <CreditCard className="h-3.5 w-3.5 mr-2" />Mark as paid · {currencySymbol}{balance.toFixed(2)}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setShowRecordForm(true)}>
+                  Record partial payment…
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+          <Button size="sm" variant="outline" className="gap-1" onClick={copyTrackingLink}>
             {trackingCopied ? <Check className="h-3.5 w-3.5 text-green-600" /> : <Link2 className="h-3.5 w-3.5" />}
             {trackingCopied ? "Copied!" : "Tracking link"}
           </Button>
-          <Button size="sm" variant="outline" className="text-xs gap-1 min-h-[36px]" onClick={() => {
-            if (localStorage.getItem('pt_guest_mode') === 'true') {
-              document.dispatchEvent(new CustomEvent('guest-gate', { detail: { message: 'Sign up free to generate and download invoices' } }));
-              return;
-            }
-            setShowInvoice(true);
-            posthog.capture('invoice_generated', { customer_source: p.customerSource });
-          }}>
-            <FileText className="h-3.5 w-3.5" />{t('invoice.generateBtn')}
-          </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button size="sm" variant="outline" className="min-h-[36px] px-2.5">
+              <Button size="sm" variant="outline" className="px-2.5">
                 <MoreHorizontal className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-44">
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuItem onClick={() => {
+                if (localStorage.getItem('pt_guest_mode') === 'true') {
+                  document.dispatchEvent(new CustomEvent('guest-gate', { detail: { message: 'Sign up free to generate and download invoices' } }));
+                  return;
+                }
+                setShowInvoice(true);
+                posthog.capture('invoice_generated', { customer_source: p.customerSource });
+              }}>
+                <FileText className="h-3.5 w-3.5 mr-2" />{t('invoice.generateBtn')}
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => { duplicateProject(p.id); posthog.capture('project_duplicated'); onBack(); }}>
                 <Copy className="h-3.5 w-3.5 mr-2" />Duplicate
               </DropdownMenuItem>
@@ -450,9 +526,6 @@ export default function ProjectDetail({ project, onBack }: Props) {
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => navigate('/calendar')}>
                 <Calendar className="h-3.5 w-3.5 mr-2" />{t('projectDetail.calendar')}
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => navigate('/expenses')}>
-                <Receipt className="h-3.5 w-3.5 mr-2" />{t('projectDetail.expenses')}
               </DropdownMenuItem>
               {PAYMENTS_ENABLED && (
                 <>
@@ -473,7 +546,7 @@ export default function ProjectDetail({ project, onBack }: Props) {
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 className="text-destructive focus:text-destructive"
-                onClick={() => { deleteProject(p.id); posthog.capture('project_deleted'); onBack(); }}
+                onClick={() => { if (!window.confirm('Delete this project? This cannot be undone.')) return; deleteProject(p.id); posthog.capture('project_deleted'); onBack(); }}
               >
                 <Trash2 className="h-3.5 w-3.5 mr-2" />Delete project
               </DropdownMenuItem>
@@ -482,354 +555,64 @@ export default function ProjectDetail({ project, onBack }: Props) {
         </div>
       </div>
 
-      {/* ── SUMMARY STRIP ── */}
-      <div className="flex flex-wrap gap-x-5 gap-y-2 rounded-xl border bg-card px-4 py-3 text-sm">
-        <div className="flex items-baseline gap-1.5">
-          <span className="text-xs text-muted-foreground">Price</span>
-          <span className="font-bold text-primary text-base">
-            {currencySymbol}{effectiveTotal.toFixed(2)}
-            {autoCalcTotal && <span className="text-[10px] font-normal text-muted-foreground ml-1">from pieces</span>}
-          </span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <PaymentBadge status={paymentStatus} balance={Math.max(0, balance)} currency={currencySymbol} />
-        </div>
-        {progress.totalPieces > 0 && (
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground">Progress</span>
-            <span className="text-xs font-medium">{progress.completedPieces}/{progress.totalPieces} plates</span>
-            <div className="w-16 h-1.5 rounded-full bg-secondary overflow-hidden">
-              <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${progress.percent}%` }} />
-            </div>
-          </div>
-        )}
-        <div className="flex items-baseline gap-1.5">
-          <span className="text-xs text-muted-foreground">Est. profit</span>
-          {estimatedMargin !== null ? (
-            <span className="font-medium">{currencySymbol}{profit.toFixed(2)}</span>
-          ) : (
-            <span className="text-muted-foreground">—</span>
-          )}
-        </div>
-        <div className="flex items-baseline gap-1.5">
-          <span className="text-xs text-muted-foreground">Est. margin</span>
-          {estimatedMargin !== null ? (
-            <span className={`font-medium ${marginColor}`}>{estimatedMargin.toFixed(1)}%</span>
-          ) : (
-            <span className="text-muted-foreground">—</span>
-          )}
-        </div>
-        {p.dueDate && (
-          <div className="flex items-baseline gap-1.5">
-            <span className="text-xs text-muted-foreground">Due</span>
-            <span className={`text-xs font-medium ${projectStatus === 'overdue' ? 'text-red-600' : ''}`}>{p.dueDate}</span>
-          </div>
-        )}
-      </div>
+      {/* ── MAIN: two columns on lg ── */}
+      <div className="grid gap-4 lg:grid-cols-[1fr,300px] items-start">
 
-      {/* ── DETAILS SECTION ── */}
-      <Card>
-        <CardContent className="p-4">
-          {!detailsEditMode ? (
-            <div className="space-y-4">
-              {/* Customer group */}
-              {(p.customerName || p.customerEmail || p.customerSource) && (
-                <div>
-                  <h4 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">Customer</h4>
-                  <div className="grid grid-cols-[auto,1fr] gap-x-4 gap-y-1 text-sm">
-                    {p.customerName && <><span className="text-muted-foreground">Name</span><span className="font-medium">{p.customerName}</span></>}
-                    {p.customerEmail && <><span className="text-muted-foreground">Email</span><span>{p.customerEmail}</span></>}
-                    {p.customerSource && <><span className="text-muted-foreground">Source</span><span>{p.customerSource}</span></>}
-                  </div>
-                </div>
-              )}
+        {/* ── LEFT COLUMN ── */}
+        <div className="space-y-4 min-w-0">
 
-              {/* Order group */}
-              <div>
-                <h4 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">Order</h4>
-                <div className="grid grid-cols-[auto,1fr] gap-x-4 gap-y-1 text-sm">
-                  {p.orderDate && <><span className="text-muted-foreground">Order date</span><span>{p.orderDate}</span></>}
-                  {p.dueDate && <><span className="text-muted-foreground">Due date</span><span>{p.dueDate}</span></>}
-                  {p.shippingDate && <><span className="text-muted-foreground">Shipping date</span><span>{p.shippingDate}</span></>}
-                  {p.paymentMethod && <><span className="text-muted-foreground">Payment method</span><span>{p.paymentMethod}</span></>}
-                </div>
-              </div>
-
-              {/* Notes */}
-              {p.notes && (
-                <div>
-                  <h4 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">Notes</h4>
-                  <p className="text-sm whitespace-pre-wrap text-muted-foreground">{p.notes}</p>
-                </div>
-              )}
-
-              {/* Toggles — live, not inside edit mode */}
-              <div className="flex gap-4 flex-wrap pt-1">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <Checkbox checked={p.sent} onCheckedChange={v => set({ sent: !!v })} />
-                  <span className="text-sm">{t('projectDetail.sentCheck')}</span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <Checkbox checked={p.isRecurringCustomer || false} onCheckedChange={v => set({ isRecurringCustomer: !!v })} />
-                  <span className="text-sm flex items-center gap-1">
-                    <RefreshCw className="h-3 w-3" />{t('projectDetail.recurringCustomer')}
-                  </span>
-                </label>
-              </div>
-
-              <Button size="sm" variant="outline" onClick={startEditDetails} className="gap-1.5">
-                <Pencil className="h-3.5 w-3.5" />Edit details
-              </Button>
-            </div>
-          ) : (
-            /* Edit mode */
-            <div className="grid gap-3 grid-cols-1 md:grid-cols-2">
-              <div className="md:col-span-2">
-                <Label>{t('projectDetail.projectName')}</Label>
-                <Input value={detailsDraft.name || ''} onChange={e => setDetailsDraft(d => ({ ...d, name: e.target.value }))} />
-              </div>
-              <div>
-                <Label>{t('projectDetail.customer')}</Label>
-                <Input value={detailsDraft.customerName || ''} onChange={e => setDetailsDraft(d => ({ ...d, customerName: e.target.value }))} />
-              </div>
-              <div>
-                <Label>Customer email</Label>
-                <Input type="email" value={detailsDraft.customerEmail || ''} onChange={e => setDetailsDraft(d => ({ ...d, customerEmail: e.target.value }))} placeholder="customer@example.com" />
-              </div>
-              <div>
-                <Label>{t('projectDetail.source')}</Label>
-                <Select value={detailsDraft.customerSource as string || 'Other'} onValueChange={v => setDetailsDraft(d => ({ ...d, customerSource: v as any }))}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>{SOURCES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label>{t('projectDetail.paymentMethod')}</Label>
-                <Select value={detailsDraft.paymentMethod as string || 'Other'} onValueChange={v => setDetailsDraft(d => ({ ...d, paymentMethod: v as PaymentMethod }))}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>{PAYMENT_METHODS.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label>{t('projectDetail.orderDate')}</Label>
-                <Input type="date" value={detailsDraft.orderDate || ''} onChange={e => setDetailsDraft(d => ({ ...d, orderDate: e.target.value }))} />
-              </div>
-              <div>
-                <Label>{t('projectDetail.dueDate')}</Label>
-                <Input type="date" value={detailsDraft.dueDate || ''} onChange={e => setDetailsDraft(d => ({ ...d, dueDate: e.target.value }))} />
-              </div>
-              <div>
-                <Label>
-                  {t('projectDetail.totalPrice')}
-                  {autoCalcTotal && <span className="text-xs text-muted-foreground ml-1">{t('projectDetail.autoFromPieces')}</span>}
-                </Label>
-                <Input
-                  type="number" step="0.01"
-                  value={autoCalcTotal ? piecesTotal.toFixed(2) : (p.totalPrice || '')}
-                  onChange={e => set({ totalPrice: parseFloat(e.target.value) || 0 })}
-                  readOnly={autoCalcTotal}
-                  className={autoCalcTotal ? "bg-muted" : ""}
-                />
-              </div>
-              <div>
-                <Label>{t('projectDetail.shippingDate')}</Label>
-                <Input type="date" value={detailsDraft.shippingDate || ''} onChange={e => setDetailsDraft(d => ({ ...d, shippingDate: e.target.value }))} />
-              </div>
-              <div className="md:col-span-2">
-                <Label>{t('projectDetail.notes')}</Label>
-                <Textarea value={detailsDraft.notes || ''} onChange={e => setDetailsDraft(d => ({ ...d, notes: e.target.value }))} />
-              </div>
-              <div className="flex gap-2 md:col-span-2">
-                <Button onClick={saveDetails}>Save</Button>
-                <Button variant="outline" onClick={cancelDetails}>Cancel</Button>
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* ── PAYMENTS SECTION ── */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center gap-2">
-            <CreditCard className="h-4 w-4 text-primary" />Payments
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {/* Summary row */}
-          <div className="flex items-center gap-4 rounded-lg border bg-muted/30 px-3 py-2.5">
-            <div>
-              <p className="text-[10px] text-muted-foreground">Total</p>
-              <p className="font-bold text-sm tabular-nums">{currencySymbol}{effectiveTotal.toFixed(2)}</p>
-            </div>
-            <div>
-              <p className="text-[10px] text-muted-foreground">Paid</p>
-              <p className="font-bold text-sm tabular-nums">{currencySymbol}{paymentsTotal.toFixed(2)}</p>
-            </div>
-            <div>
-              <p className="text-[10px] text-muted-foreground">Balance</p>
-              <p className="font-bold text-sm tabular-nums">{currencySymbol}{Math.max(0, balance).toFixed(2)}</p>
-            </div>
-            <div className="ml-auto">
-              <PaymentBadge status={paymentStatus} balance={Math.max(0, balance)} currency={currencySymbol} />
-            </div>
-          </div>
-
-          {/* Mark as paid + Record payment chevron */}
-          {balance > 0 && (
-            <div className="flex items-center gap-1">
-              <Button size="sm" className="flex-1" onClick={markAsPaid}>
-                Mark as paid · {currencySymbol}{balance.toFixed(2)}
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                className="px-2"
-                title="Record partial payment"
-                onClick={() => setShowRecordForm(v => !v)}
-              >
-                <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-150 ${showRecordForm ? 'rotate-180' : ''}`} />
-              </Button>
-            </div>
-          )}
-
-          {/* Record payment form (chevron-revealed) */}
-          {showRecordForm && (
-            <div className="grid gap-2 grid-cols-2 rounded-lg border p-3 bg-muted/20">
-              <div className="col-span-2">
-                <Label className="text-xs">Amount</Label>
-                <div className="flex gap-1 my-1">
-                  <button
-                    className={`text-xs px-2 py-0.5 rounded border transition-colors ${amountType === 'fixed' ? 'bg-primary text-primary-foreground border-primary' : 'border-border hover:bg-accent'}`}
-                    onClick={() => setAmountType('fixed')}
-                  >
-                    {currencySymbol} Fixed
-                  </button>
-                  <button
-                    className={`text-xs px-2 py-0.5 rounded border transition-colors ${amountType === 'percent' ? 'bg-primary text-primary-foreground border-primary' : 'border-border hover:bg-accent'} disabled:opacity-40`}
-                    onClick={() => setAmountType('percent')}
-                    disabled={effectiveTotal <= 0}
-                  >
-                    % of total
-                  </button>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <Input
-                    type="number"
-                    step="0.01"
-                    placeholder="0.00"
-                    value={paymentDraft.amount || ''}
-                    onChange={e => setPaymentDraft(d => ({ ...d, amount: parseFloat(e.target.value) || 0 }))}
-                    className="flex-1"
-                  />
-                  {amountType === 'percent' && effectiveTotal > 0 && (
-                    <span className="text-xs text-muted-foreground shrink-0">= {currencySymbol}{recordFormAmount.toFixed(2)}</span>
+          {/* 3D Preview */}
+          {(p.prints.length > 0 || p.coverThumbnail) && (
+            <Card>
+              <CardContent className="p-3">
+                <div className="relative bg-muted/40 rounded-lg overflow-hidden min-h-[280px] flex items-center justify-center">
+                  {previewThumb ? (
+                    <>
+                      <img
+                        src={previewThumb}
+                        alt={previewPlate?.name || 'Preview'}
+                        className="w-full h-auto max-h-72 object-contain rounded-md"
+                        loading="lazy"
+                      />
+                      <button
+                        onClick={() => setShowFullscreen(true)}
+                        className="absolute top-2 right-2 bg-background/80 backdrop-blur-sm rounded-md p-1.5 text-muted-foreground hover:text-foreground transition-colors"
+                        title="Fullscreen"
+                      >
+                        <Maximize2 className="h-3.5 w-3.5" />
+                      </button>
+                    </>
+                  ) : (
+                    <div className="text-center text-muted-foreground py-10">
+                      <Image className="h-10 w-10 mx-auto mb-2 opacity-20" />
+                      <p className="text-xs">No preview image</p>
+                    </div>
                   )}
                 </div>
-              </div>
-              <div>
-                <Label className="text-xs">Date</Label>
-                <Input type="date" value={paymentDraft.date}
-                  onChange={e => setPaymentDraft(d => ({ ...d, date: e.target.value }))} />
-              </div>
-              <div>
-                <Label className="text-xs">Method</Label>
-                <Select value={paymentDraft.method} onValueChange={v => setPaymentDraft(d => ({ ...d, method: v as PaymentMethod }))}>
-                  <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
-                  <SelectContent>{PAYMENT_METHODS.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent>
-                </Select>
-              </div>
-              <div className="col-span-2">
-                <Label className="text-xs">Note (optional)</Label>
-                <Input placeholder="Deposit, invoice #…"
-                  value={paymentDraft.notes || ''}
-                  onChange={e => setPaymentDraft(d => ({ ...d, notes: e.target.value }))} />
-              </div>
-              <div className="col-span-2 flex gap-2">
-                <Button size="sm" onClick={() => addPaymentRecord(recordFormAmount)} disabled={recordFormAmount <= 0}>
-                  Record payment
-                </Button>
-                <Button size="sm" variant="outline" onClick={() => { setShowRecordForm(false); setPaymentDraft(newPayment(p.paymentMethod || 'Other')); setAmountType('fixed'); }}>
-                  Cancel
-                </Button>
-              </div>
-            </div>
+                {p.prints.length > 1 && (
+                  <div className="flex gap-1.5 mt-2 overflow-x-auto pb-0.5">
+                    {p.prints.map((pr, idx) => (
+                      <button
+                        key={pr.id}
+                        onClick={() => setSelectedPreviewIdx(idx)}
+                        className={`shrink-0 rounded-md transition-all ${selectedPreviewIdx === idx ? 'ring-2 ring-primary' : 'opacity-60 hover:opacity-100'}`}
+                      >
+                        <PlatePreview
+                          thumbnail={pr.thumbnail}
+                          color={pr.color}
+                          palette={pr.colorPalette}
+                          label={`#${idx + 1}`}
+                          size="sm"
+                          noHover
+                        />
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           )}
 
-          {/* Payments list — collapsed by default */}
-          {(p.payments || []).length > 0 ? (
-            <div>
-              <button
-                className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
-                onClick={() => setPaymentsExpanded(v => !v)}
-              >
-                <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-150 ${paymentsExpanded ? 'rotate-180' : ''}`} />
-                {(p.payments || []).length} {(p.payments || []).length === 1 ? 'payment' : 'payments'}
-              </button>
-
-              {paymentsExpanded && (
-                <div className="space-y-1.5 mt-2">
-                  {(p.payments || []).map(pay => (
-                    <div key={pay.id}>
-                      {editingPaymentId === pay.id && editPaymentDraft ? (
-                        <div className="grid gap-2 grid-cols-2 rounded-lg border p-2.5 bg-muted/20">
-                          <div>
-                            <Label className="text-xs">Amount</Label>
-                            <Input type="number" step="0.01"
-                              value={editPaymentDraft.amount || ''}
-                              onChange={e => setEditPaymentDraft(d => d ? { ...d, amount: parseFloat(e.target.value) || 0 } : d)} />
-                          </div>
-                          <div>
-                            <Label className="text-xs">Date</Label>
-                            <Input type="date" value={editPaymentDraft.date}
-                              onChange={e => setEditPaymentDraft(d => d ? { ...d, date: e.target.value } : d)} />
-                          </div>
-                          <div>
-                            <Label className="text-xs">Method</Label>
-                            <Select value={editPaymentDraft.method} onValueChange={v => setEditPaymentDraft(d => d ? { ...d, method: v as PaymentMethod } : d)}>
-                              <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
-                              <SelectContent>{PAYMENT_METHODS.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent>
-                            </Select>
-                          </div>
-                          <div>
-                            <Label className="text-xs">Note</Label>
-                            <Input placeholder="Optional"
-                              value={editPaymentDraft.notes || ''}
-                              onChange={e => setEditPaymentDraft(d => d ? { ...d, notes: e.target.value } : d)} />
-                          </div>
-                          <div className="col-span-2 flex gap-2">
-                            <Button size="sm" onClick={saveEditPayment}>Save</Button>
-                            <Button size="sm" variant="outline" onClick={cancelEditPayment}>Cancel</Button>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="flex items-center justify-between gap-2 rounded-lg border px-3 py-2">
-                          <div className="flex items-center gap-3 min-w-0">
-                            <span className="font-mono font-medium text-sm tabular-nums">{currencySymbol}{pay.amount.toFixed(2)}</span>
-                            <span className="text-xs text-muted-foreground">{pay.date}</span>
-                            <Badge variant="outline" className="text-[10px] shrink-0">{pay.method}</Badge>
-                            {pay.notes && <span className="text-xs text-muted-foreground truncate">{pay.notes}</span>}
-                          </div>
-                          <div className="flex items-center gap-0.5 shrink-0">
-                            <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground hover:text-foreground" onClick={() => startEditPayment(pay)}>
-                              <Pencil className="h-3 w-3" />
-                            </Button>
-                            <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => removePaymentRecord(pay.id)}>
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </Button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          ) : (
-            <p className="text-xs text-muted-foreground text-center py-1">No payments recorded</p>
-          )}
-        </CardContent>
-      </Card>
 
       {/* ── PLATES SECTION ── */}
       <Card>
@@ -850,11 +633,6 @@ export default function ProjectDetail({ project, onBack }: Props) {
           </div>
         </CardHeader>
         <CardContent className="space-y-2">
-          {/* Import dropzone — compact when plates exist */}
-          <div className={p.prints.length > 0 ? "mb-2" : "mb-4"}>
-            <PlateImporter project={p} compact={p.prints.length > 0} />
-          </div>
-
           {p.prints.length === 0 && <p className="text-sm text-muted-foreground text-center py-2">{t('projectDetail.noPlatesYet')}</p>}
 
           {p.prints.map((pr, idx) => {
@@ -1019,6 +797,26 @@ export default function ProjectDetail({ project, onBack }: Props) {
         </CardContent>
       </Card>
 
+      {/* ADD TO THIS PROJECT */}
+      <Card>
+        <CardContent className={p.prints.length > 0 ? "p-3 space-y-2" : "p-4 space-y-3"}>
+          {p.prints.length === 0 && (
+            <div>
+              <p className="text-sm font-medium mb-0.5">Import a sliced file</p>
+              <p className="text-xs text-muted-foreground mb-2">.3mf, .gcode, or .stl — auto-fills print time, material, and colours</p>
+            </div>
+          )}
+          <PlateImporter project={p} compact={p.prints.length > 0} />
+          <div className={p.prints.length > 0 ? "" : ""}>
+            {p.prints.length === 0 && <p className="text-xs text-muted-foreground mt-1 mb-1">or</p>}
+            <Button variant="outline" size="sm" className={`gap-1 ${p.prints.length > 0 ? 'w-full' : 'w-full'}`} onClick={addPrint}>
+              <Plus className="h-3.5 w-3.5" />Add plate manually
+              {p.prints.length === 0 && <span className="text-muted-foreground text-xs ml-1">— enter time, material, price</span>}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* ── DESIGN WORK ── */}
       <Card>
         <CardHeader className="flex-row items-center justify-between pb-2">
@@ -1090,6 +888,357 @@ export default function ProjectDetail({ project, onBack }: Props) {
           ))}
         </CardContent>
       </Card>
+        </div>{/* end left column */}
+
+        {/* RIGHT SIDEBAR */}
+        <div className="space-y-4">
+
+          {/* CUSTOMER */}
+          <Card>
+            <CardHeader className="pb-2 flex-row items-center justify-between">
+              <CardTitle className="text-sm">Customer</CardTitle>
+              {editSection !== 'customer' && <SidebarEditBtn section="customer" />}
+            </CardHeader>
+            <CardContent>
+              {editSection === 'customer' ? (
+                <div className="space-y-2">
+                  <div>
+                    <Label className="text-xs">Name</Label>
+                    <Input value={detailsDraft.customerName || ''} onChange={e => setDetailsDraft(d => ({ ...d, customerName: e.target.value }))} />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Email</Label>
+                    <Input type="email" value={detailsDraft.customerEmail || ''} onChange={e => setDetailsDraft(d => ({ ...d, customerEmail: e.target.value }))} />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Source</Label>
+                    <Select value={detailsDraft.customerSource || 'Other'} onValueChange={v => setDetailsDraft(d => ({ ...d, customerSource: v as typeof p.customerSource }))}>
+                      <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                      <SelectContent>{SOURCES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+                    </Select>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Checkbox checked={detailsDraft.isRecurringCustomer || false} onCheckedChange={v => setDetailsDraft(d => ({ ...d, isRecurringCustomer: !!v }))} />
+                    <Label className="text-xs">Recurring customer</Label>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button size="sm" onClick={saveDetails}>Save</Button>
+                    <Button size="sm" variant="outline" onClick={cancelDetails}>Cancel</Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-1 text-sm">
+                  {p.customerName ? <p className="font-medium">{p.customerName}</p> : <p className="text-muted-foreground text-xs italic">No customer name</p>}
+                  {p.customerEmail && <p className="text-xs text-muted-foreground">{p.customerEmail}</p>}
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {p.customerSource && <Badge variant="outline" className="text-[10px]">{p.customerSource}</Badge>}
+                    {p.isRecurringCustomer && <RecurringBadge size="sm" />}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* PAYMENT */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <CreditCard className="h-4 w-4 text-primary" />Payments
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="flex items-center gap-4 rounded-lg border bg-muted/30 px-3 py-2.5">
+                <div>
+                  <p className="text-[10px] text-muted-foreground">Total</p>
+                  <p className="font-bold text-sm tabular-nums">{currencySymbol}{effectiveTotal.toFixed(2)}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-muted-foreground">Paid</p>
+                  <p className="font-bold text-sm tabular-nums">{currencySymbol}{paymentsTotal.toFixed(2)}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-muted-foreground">Balance</p>
+                  <p className="font-bold text-sm tabular-nums">{currencySymbol}{Math.max(0, balance).toFixed(2)}</p>
+                </div>
+                <div className="ml-auto">
+                  <PaymentBadge status={paymentStatus} balance={Math.max(0, balance)} currency={currencySymbol} />
+                </div>
+              </div>
+              {balance > 0 && (
+                <div className="flex items-center gap-1">
+                  <Button size="sm" className="flex-1" onClick={markAsPaid}>
+                    Mark as paid · {currencySymbol}{balance.toFixed(2)}
+                  </Button>
+                  <Button size="sm" variant="outline" className="px-2" title="Record partial payment"
+                    onClick={() => setShowRecordForm(v => !v)}>
+                    <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-150 ${showRecordForm ? 'rotate-180' : ''}`} />
+                  </Button>
+                </div>
+              )}
+              {showRecordForm && (
+                <div className="grid gap-2 grid-cols-2 rounded-lg border p-3 bg-muted/20">
+                  <div className="col-span-2">
+                    <Label className="text-xs">Amount</Label>
+                    <div className="flex gap-1 my-1">
+                      <button className={`text-xs px-2 py-0.5 rounded border transition-colors ${amountType === 'fixed' ? 'bg-primary text-primary-foreground border-primary' : 'border-border hover:bg-accent'}`}
+                        onClick={() => setAmountType('fixed')}>{currencySymbol} Fixed</button>
+                      <button className={`text-xs px-2 py-0.5 rounded border transition-colors ${amountType === 'percent' ? 'bg-primary text-primary-foreground border-primary' : 'border-border hover:bg-accent'} disabled:opacity-40`}
+                        onClick={() => setAmountType('percent')} disabled={effectiveTotal <= 0}>% of total</button>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <Input type="number" step="0.01" placeholder="0.00" value={paymentDraft.amount || ''}
+                        onChange={e => setPaymentDraft(d => ({ ...d, amount: parseFloat(e.target.value) || 0 }))} className="flex-1" />
+                      {amountType === 'percent' && effectiveTotal > 0 && (
+                        <span className="text-xs text-muted-foreground shrink-0">= {currencySymbol}{recordFormAmount.toFixed(2)}</span>
+                      )}
+                    </div>
+                  </div>
+                  <div>
+                    <Label className="text-xs">Date</Label>
+                    <Input type="date" value={paymentDraft.date} onChange={e => setPaymentDraft(d => ({ ...d, date: e.target.value }))} />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Method</Label>
+                    <Select value={paymentDraft.method} onValueChange={v => setPaymentDraft(d => ({ ...d, method: v as PaymentMethod }))}>
+                      <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
+                      <SelectContent>{PAYMENT_METHODS.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent>
+                    </Select>
+                  </div>
+                  <div className="col-span-2">
+                    <Label className="text-xs">Note (optional)</Label>
+                    <Input placeholder="Deposit, invoice #…" value={paymentDraft.notes || ''}
+                      onChange={e => setPaymentDraft(d => ({ ...d, notes: e.target.value }))} />
+                  </div>
+                  <div className="col-span-2 flex gap-2">
+                    <Button size="sm" onClick={() => addPaymentRecord(recordFormAmount)} disabled={recordFormAmount <= 0}>Record payment</Button>
+                    <Button size="sm" variant="outline" onClick={() => { setShowRecordForm(false); setPaymentDraft(newPayment(p.paymentMethod || 'Other')); setAmountType('fixed'); }}>Cancel</Button>
+                  </div>
+                </div>
+              )}
+              {(p.payments || []).length > 0 ? (
+                <div>
+                  <button className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                    onClick={() => setPaymentsExpanded(v => !v)}>
+                    <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-150 ${paymentsExpanded ? 'rotate-180' : ''}`} />
+                    {(p.payments || []).length} {(p.payments || []).length === 1 ? 'payment' : 'payments'}
+                  </button>
+                  {paymentsExpanded && (
+                    <div className="space-y-1.5 mt-2">
+                      {(p.payments || []).map(pay => (
+                        <div key={pay.id}>
+                          {editingPaymentId === pay.id && editPaymentDraft ? (
+                            <div className="grid gap-2 grid-cols-2 rounded-lg border p-2.5 bg-muted/20">
+                              <div>
+                                <Label className="text-xs">Amount</Label>
+                                <Input type="number" step="0.01" value={editPaymentDraft.amount || ''}
+                                  onChange={e => setEditPaymentDraft(d => d ? { ...d, amount: parseFloat(e.target.value) || 0 } : d)} />
+                              </div>
+                              <div>
+                                <Label className="text-xs">Date</Label>
+                                <Input type="date" value={editPaymentDraft.date}
+                                  onChange={e => setEditPaymentDraft(d => d ? { ...d, date: e.target.value } : d)} />
+                              </div>
+                              <div>
+                                <Label className="text-xs">Method</Label>
+                                <Select value={editPaymentDraft.method} onValueChange={v => setEditPaymentDraft(d => d ? { ...d, method: v as PaymentMethod } : d)}>
+                                  <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
+                                  <SelectContent>{PAYMENT_METHODS.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent>
+                                </Select>
+                              </div>
+                              <div>
+                                <Label className="text-xs">Note</Label>
+                                <Input placeholder="Optional" value={editPaymentDraft.notes || ''}
+                                  onChange={e => setEditPaymentDraft(d => d ? { ...d, notes: e.target.value } : d)} />
+                              </div>
+                              <div className="col-span-2 flex gap-2">
+                                <Button size="sm" onClick={saveEditPayment}>Save</Button>
+                                <Button size="sm" variant="outline" onClick={cancelEditPayment}>Cancel</Button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="flex items-center justify-between gap-2 rounded-lg border px-3 py-2">
+                              <div className="flex items-center gap-3 min-w-0">
+                                <span className="font-mono font-medium text-sm tabular-nums">{currencySymbol}{pay.amount.toFixed(2)}</span>
+                                <span className="text-xs text-muted-foreground">{pay.date}</span>
+                                <Badge variant="outline" className="text-[10px] shrink-0">{pay.method}</Badge>
+                                {pay.notes && <span className="text-xs text-muted-foreground truncate">{pay.notes}</span>}
+                              </div>
+                              <div className="flex items-center gap-0.5 shrink-0">
+                                <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground hover:text-foreground" onClick={() => startEditPayment(pay)}>
+                                  <Pencil className="h-3 w-3" />
+                                </Button>
+                                <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => removePaymentRecord(pay.id)}>
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground text-center py-1">No payments recorded</p>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* DATES & PRICING */}
+          <Card>
+            <CardHeader className="pb-2 flex-row items-center justify-between">
+              <CardTitle className="text-sm">Dates & pricing</CardTitle>
+              {editSection !== 'dates' && <SidebarEditBtn section="dates" />}
+            </CardHeader>
+            <CardContent>
+              {editSection === 'dates' ? (
+                <div className="space-y-2">
+                  <div>
+                    <Label className="text-xs">Project name</Label>
+                    <Input value={detailsDraft.name || ''} onChange={e => setDetailsDraft(d => ({ ...d, name: e.target.value }))} />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Order date</Label>
+                    <Input type="date" value={detailsDraft.orderDate || ''} onChange={e => setDetailsDraft(d => ({ ...d, orderDate: e.target.value }))} />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Due date</Label>
+                    <Input type="date" value={detailsDraft.dueDate || ''} onChange={e => setDetailsDraft(d => ({ ...d, dueDate: e.target.value }))} />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Shipping date</Label>
+                    <Input type="date" value={detailsDraft.shippingDate || ''} onChange={e => setDetailsDraft(d => ({ ...d, shippingDate: e.target.value }))} />
+                  </div>
+                  {!autoCalcTotal && (
+                    <div>
+                      <Label className="text-xs">Price ({currencySymbol})</Label>
+                      <Input type="number" step="0.01" value={detailsDraft.totalPrice || ''} onChange={e => setDetailsDraft(d => ({ ...d, totalPrice: parseFloat(e.target.value) || 0 }))} />
+                    </div>
+                  )}
+                  <div>
+                    <Label className="text-xs">Payment method</Label>
+                    <Select value={detailsDraft.paymentMethod || 'Other'} onValueChange={v => setDetailsDraft(d => ({ ...d, paymentMethod: v as PaymentMethod }))}>
+                      <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                      <SelectContent>{PAYMENT_METHODS.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent>
+                    </Select>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button size="sm" onClick={saveDetails}>Save</Button>
+                    <Button size="sm" variant="outline" onClick={cancelDetails}>Cancel</Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-1 text-xs text-muted-foreground">
+                  {p.orderDate && <div className="flex justify-between"><span>Ordered</span><span className="text-foreground">{p.orderDate}</span></div>}
+                  {p.dueDate && <div className="flex justify-between"><span>Due</span><span className="text-foreground">{p.dueDate}</span></div>}
+                  {p.shippingDate && <div className="flex justify-between"><span>Shipped</span><span className="text-foreground">{p.shippingDate}</span></div>}
+                  {p.paymentMethod && <div className="flex justify-between"><span>Payment</span><span className="text-foreground">{p.paymentMethod}</span></div>}
+                  {!autoCalcTotal && p.totalPrice ? <div className="flex justify-between"><span>Price</span><span className="font-medium text-foreground tabular-nums">{currencySymbol}{(p.totalPrice || 0).toFixed(2)}</span></div> : null}
+                  {!p.orderDate && !p.dueDate && !p.shippingDate && <p className="italic">No dates set</p>}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* COSTS & MARGIN */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm flex items-center gap-1.5">
+                Costs & margin
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <button className="text-muted-foreground hover:text-foreground"><Info className="h-3.5 w-3.5" /></button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-64 text-xs space-y-1.5 p-3">
+                    <p className="font-semibold mb-1">Cost breakdown</p>
+                    <div className="flex justify-between"><span>Material ({totalMaterial.toFixed(0)}g)</span><span>{currencySymbol}{matCost.toFixed(2)}</span></div>
+                    <div className="flex justify-between"><span>Machine ({totalTime.toFixed(1)}h × {currencySymbol}{settings.hourlyRate ?? 2}/h)</span><span>{currencySymbol}{machineCost.toFixed(2)}</span></div>
+                    {designCost > 0 && <div className="flex justify-between"><span>Design ({designHours.toFixed(1)}h × {currencySymbol}{settings.designRate ?? 20}/h)</span><span>{currencySymbol}{designCost.toFixed(2)}</span></div>}
+                    {expensesCost > 0 && <div className="flex justify-between"><span>Expenses</span><span>{currencySymbol}{expensesCost.toFixed(2)}</span></div>}
+                    <div className="flex justify-between font-semibold border-t pt-1 mt-1"><span>Total cost</span><span>{currencySymbol}{estimatedCost.toFixed(2)}</span></div>
+                  </PopoverContent>
+                </Popover>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-1.5">
+              <div className="flex justify-between text-xs text-muted-foreground"><span>Material</span><span className="tabular-nums">{currencySymbol}{matCost.toFixed(2)}</span></div>
+              <div className="flex justify-between text-xs text-muted-foreground"><span>Machine time</span><span className="tabular-nums">{currencySymbol}{machineCost.toFixed(2)}</span></div>
+              {designCost > 0 && <div className="flex justify-between text-xs text-muted-foreground"><span>Design</span><span className="tabular-nums">{currencySymbol}{designCost.toFixed(2)}</span></div>}
+              {expensesCost > 0 && <div className="flex justify-between text-xs text-muted-foreground"><span>Expenses</span><span className="tabular-nums">{currencySymbol}{expensesCost.toFixed(2)}</span></div>}
+              <div className="flex justify-between text-xs font-medium border-t pt-1.5"><span>Est. cost</span><span className="tabular-nums">{currencySymbol}{estimatedCost.toFixed(2)}</span></div>
+              <div className="flex justify-between text-xs font-medium"><span>Revenue</span><span className="tabular-nums">{currencySymbol}{effectiveTotal.toFixed(2)}</span></div>
+              <div className={`flex justify-between text-sm font-bold border-t pt-1.5 ${marginColor}`}>
+                <span>Margin</span>
+                <span>{profitMargin !== null ? `${profitMargin.toFixed(0)}%` : '—'}</span>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* NOTES */}
+          <Card>
+            <CardHeader className="pb-2 flex-row items-center justify-between">
+              <CardTitle className="text-sm">Notes</CardTitle>
+              {editSection !== 'notes' && <SidebarEditBtn section="notes" />}
+            </CardHeader>
+            <CardContent>
+              {editSection === 'notes' ? (
+                <div className="space-y-2">
+                  <Textarea value={detailsDraft.notes || ''} onChange={e => setDetailsDraft(d => ({ ...d, notes: e.target.value }))}
+                    placeholder="Project notes…" className="min-h-[80px] text-sm" />
+                  <div className="flex gap-2">
+                    <Button size="sm" onClick={saveDetails}>Save</Button>
+                    <Button size="sm" variant="outline" onClick={cancelDetails}>Cancel</Button>
+                  </div>
+                </div>
+              ) : p.notes ? (
+                <p className="text-sm text-muted-foreground whitespace-pre-wrap">{p.notes}</p>
+              ) : (
+                <p className="text-xs text-muted-foreground italic">No notes</p>
+              )}
+            </CardContent>
+          </Card>
+
+        </div>{/* end right sidebar */}
+      </div>{/* end grid */}
+
+      {/* TIMELINE */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm flex items-center gap-1.5">
+            <MessageSquare className="h-4 w-4 text-primary" />Timeline
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {(p.timelineEvents || []).length > 0 && (
+            <div className="space-y-2">
+              {[...(p.timelineEvents || [])].sort((a, b) => a.date < b.date ? 1 : -1).map(event => (
+                <div key={event.id} className="flex items-start gap-3 text-sm">
+                  <span className="text-xs text-muted-foreground shrink-0 tabular-nums w-20">{event.date}</span>
+                  <span className="font-medium text-xs text-muted-foreground shrink-0">{event.label}</span>
+                  {event.note && <span className="text-xs">{event.note}</span>}
+                </div>
+              ))}
+            </div>
+          )}
+          <div className="flex gap-2 pt-1 border-t">
+            <Input placeholder="Add a note…" value={timelineNote} onChange={e => setTimelineNote(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addTimelineNote(); }}}
+              className="flex-1 text-sm" />
+            <Button size="sm" onClick={addTimelineNote} disabled={!timelineNote.trim()}>Add</Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* FULLSCREEN PREVIEW */}
+      <Dialog open={showFullscreen} onOpenChange={setShowFullscreen}>
+        <DialogContent className="max-w-4xl p-2">
+          <DialogHeader><DialogTitle className="sr-only">Preview</DialogTitle></DialogHeader>
+          {previewThumb && (
+            <img src={previewThumb} alt={previewPlate?.name || 'Preview'}
+              className="w-full h-auto max-h-[80vh] object-contain rounded-md" />
+          )}
+        </DialogContent>
+      </Dialog>
 
       <InvoiceModal open={showInvoice} onClose={() => setShowInvoice(false)} project={p} settings={settings} />
 

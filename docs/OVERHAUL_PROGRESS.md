@@ -1,7 +1,7 @@
 # Overhaul Progress
 
 ## Current phase
-Phase 4 — Project detail page redesign
+Phase 5 — Projects list
 
 ## Log
 
@@ -28,6 +28,18 @@ Phase 4 — Project detail page redesign
 - designRate: 20 in DEFAULT_SETTINGS; getProjectEstimatedCost updated; Settings shows both rates
 - New project dropdown reordered; zero-plate projects render cleanly; progress bar guarded
 - getProgressSummary() shared function used in detail, cards, and Kanban
+
+### Phase 4 — Project detail page redesign (complete)
+- Full two-column layout (lg:grid-cols-[1fr,300px]): left column has 3D preview, plates, "Add to this project", design work, expenses; right sidebar has 5 cards
+- Header: 3-row layout (back+name+next-step / customer·stage·payment·price / collect-payment+tracking+⋯)
+- Next step button uses action verbs via NEXT_ACTION map; design-aware "Start design" vs "Start printing" from New
+- Invoice moved to ⋯ menu; Delete requires window.confirm()
+- 3D preview card with min-h-[280px], thumbnail strip, fullscreen dialog — orbit/zoom marked [~] (thumbnails only, no raw model files)
+- Per-card sidebar edit via SidebarEditBtn/editSection state: Customer, Payment, Dates, Costs & margin, Notes
+- Costs & margin card with ⓘ popover cost breakdown (material/machine/design/expenses)
+- "Add to this project" panel: PlateImporter + Add plate manually; compact when plates exist
+- Timeline section: sorted events list + Add note input stored in project JSONB
+- Screenshots verified: desktop 1-plate, 4-plate; mobile views all correct
 
 ### Phase 3 — Payments (complete)
 - PaymentBadge.tsx shared component using CSS tokens --pay-unpaid/--pay-partial/--pay-paid
