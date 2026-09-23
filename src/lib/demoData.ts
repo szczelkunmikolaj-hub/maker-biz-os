@@ -21,8 +21,8 @@ export const DEMO_PROJECTS: Project[] = [
     paidAt: '2026-09-09T09:30:00Z',
     isRecurringCustomer: true,
     prints: [
-      { id: 'demo-proj-1-p1', name: 'Dragon Body', estimatedPrintTime: 480, materialUsed: 210, printer: 'Bambu X1C', status: 'completed', quantity: 1, completedQuantity: 1, color: '#9CA3AF', material: 'PLA', pricePerPiece: 70, colorPalette: ['#9CA3AF'] },
-      { id: 'demo-proj-1-p2', name: 'Dragon Wings & Tail', estimatedPrintTime: 180, materialUsed: 95, printer: 'Bambu X1C', status: 'completed', quantity: 1, completedQuantity: 1, color: '#6B7280', material: 'PLA', pricePerPiece: 25, colorPalette: ['#6B7280'] },
+      { id: 'demo-proj-1-p1', name: 'Dragon Body', estimatedPrintTime: 8, materialUsed: 210, printer: 'Bambu X1C', status: 'completed', quantity: 1, completedQuantity: 1, color: '#9CA3AF', material: 'PLA', pricePerPiece: 70, colorPalette: ['#9CA3AF'] },
+      { id: 'demo-proj-1-p2', name: 'Dragon Wings & Tail', estimatedPrintTime: 3, materialUsed: 95, printer: 'Bambu X1C', status: 'completed', quantity: 1, completedQuantity: 1, color: '#6B7280', material: 'PLA', pricePerPiece: 25, colorPalette: ['#6B7280'] },
     ],
     projectExpenses: [{ id: 'demo-proj-1-e1', name: 'Express shipping', amount: 5.50, category: 'Shipping', notes: '' }],
   },
@@ -45,8 +45,8 @@ export const DEMO_PROJECTS: Project[] = [
     paidAt: '2026-09-10T16:00:00Z',
     isRecurringCustomer: false,
     prints: [
-      { id: 'demo-proj-2-p1', name: 'Miniature Batch — Plate 1', estimatedPrintTime: 360, materialUsed: 95, printer: 'Bambu X1C', status: 'completed', quantity: 10, completedQuantity: 10, color: '#1C1917', material: 'PLA', pricePerPiece: 3.9, colorPalette: ['#1C1917'] },
-      { id: 'demo-proj-2-p2', name: 'Miniature Batch — Plate 2', estimatedPrintTime: 360, materialUsed: 95, printer: 'Bambu X1C', status: 'completed', quantity: 10, completedQuantity: 10, color: '#1C1917', material: 'PLA', pricePerPiece: 3.9, colorPalette: ['#1C1917'] },
+      { id: 'demo-proj-2-p1', name: 'Miniature Batch — Plate 1', estimatedPrintTime: 0.6, materialUsed: 9.5, printer: 'Bambu X1C', status: 'completed', quantity: 10, completedQuantity: 10, color: '#1C1917', material: 'PLA', pricePerPiece: 3.9, colorPalette: ['#1C1917'] },
+      { id: 'demo-proj-2-p2', name: 'Miniature Batch — Plate 2', estimatedPrintTime: 0.6, materialUsed: 9.5, printer: 'Bambu X1C', status: 'completed', quantity: 10, completedQuantity: 10, color: '#1C1917', material: 'PLA', pricePerPiece: 3.9, colorPalette: ['#1C1917'] },
     ],
     projectExpenses: [{ id: 'demo-proj-2-e1', name: 'Tracked shipping', amount: 4.20, category: 'Shipping', notes: '' }],
   },
@@ -69,7 +69,7 @@ export const DEMO_PROJECTS: Project[] = [
     paidAt: '2026-09-03T15:00:00Z',
     isRecurringCustomer: false,
     prints: [
-      { id: 'demo-proj-3-p1', name: 'Card Holder', estimatedPrintTime: 150, materialUsed: 78, printer: 'Bambu P1P', status: 'completed', quantity: 1, completedQuantity: 1, color: '#111827', material: 'PETG', pricePerPiece: 45, colorPalette: ['#111827'] },
+      { id: 'demo-proj-3-p1', name: 'Card Holder', estimatedPrintTime: 2.5, materialUsed: 78, printer: 'Bambu P1P', status: 'completed', quantity: 1, completedQuantity: 1, color: '#111827', material: 'PETG', pricePerPiece: 45, colorPalette: ['#111827'] },
     ],
     projectExpenses: [],
   },
@@ -92,8 +92,8 @@ export const DEMO_PROJECTS: Project[] = [
     paidAt: '2026-08-31T11:00:00Z',
     isRecurringCustomer: true,
     prints: [
-      { id: 'demo-proj-4-p1', name: 'Body Shell', estimatedPrintTime: 540, materialUsed: 245, printer: 'Bambu X1C', status: 'completed', quantity: 1, completedQuantity: 1, color: '#1F2937', material: 'ABS', pricePerPiece: 50, colorPalette: ['#1F2937'] },
-      { id: 'demo-proj-4-p2', name: 'Rear Wing & Spoiler', estimatedPrintTime: 90, materialUsed: 48, printer: 'Bambu X1C', status: 'completed', quantity: 1, completedQuantity: 1, color: '#1F2937', material: 'ABS', pricePerPiece: 15, colorPalette: ['#1F2937'] },
+      { id: 'demo-proj-4-p1', name: 'Body Shell', estimatedPrintTime: 9, materialUsed: 245, printer: 'Bambu X1C', status: 'completed', quantity: 1, completedQuantity: 1, color: '#1F2937', material: 'ABS', pricePerPiece: 50, colorPalette: ['#1F2937'] },
+      { id: 'demo-proj-4-p2', name: 'Rear Wing & Spoiler', estimatedPrintTime: 1.5, materialUsed: 48, printer: 'Bambu X1C', status: 'completed', quantity: 1, completedQuantity: 1, color: '#1F2937', material: 'ABS', pricePerPiece: 15, colorPalette: ['#1F2937'] },
     ],
     projectExpenses: [{ id: 'demo-proj-4-e1', name: 'Tracked shipping + insurance', amount: 6.80, category: 'Shipping', notes: '' }],
   },
@@ -116,7 +116,7 @@ export const DEMO_PROJECTS: Project[] = [
     paidAt: '2026-08-26T10:00:00Z',
     isRecurringCustomer: false,
     prints: [
-      { id: 'demo-proj-5-p1', name: 'Topper Silhouettes + Base', estimatedPrintTime: 210, materialUsed: 92, printer: 'Bambu X1C', status: 'completed', quantity: 1, completedQuantity: 1, color: '#F8FAFC', material: 'PLA', pricePerPiece: 120, colorPalette: ['#F8FAFC'] },
+      { id: 'demo-proj-5-p1', name: 'Topper Silhouettes + Base', estimatedPrintTime: 3.5, materialUsed: 92, printer: 'Bambu X1C', status: 'completed', quantity: 1, completedQuantity: 1, color: '#F8FAFC', material: 'PLA', pricePerPiece: 120, colorPalette: ['#F8FAFC'] },
     ],
     projectExpenses: [{ id: 'demo-proj-5-e1', name: 'Gift box + ribbon', amount: 4.50, category: 'Other', notes: '' }],
   },
@@ -139,8 +139,8 @@ export const DEMO_PROJECTS: Project[] = [
     paidAt: '2026-08-20T17:30:00Z',
     isRecurringCustomer: true,
     prints: [
-      { id: 'demo-proj-6-p1', name: 'Cable Management Box', estimatedPrintTime: 240, materialUsed: 115, printer: 'Bambu P1P', status: 'completed', quantity: 1, completedQuantity: 1, color: '#111827', material: 'PETG', pricePerPiece: 28, colorPalette: ['#111827'] },
-      { id: 'demo-proj-6-p2', name: 'Cable Spine + Clamp', estimatedPrintTime: 90, materialUsed: 42, printer: 'Bambu P1P', status: 'completed', quantity: 2, completedQuantity: 2, color: '#111827', material: 'PETG', pricePerPiece: 7, colorPalette: ['#111827'] },
+      { id: 'demo-proj-6-p1', name: 'Cable Management Box', estimatedPrintTime: 4, materialUsed: 115, printer: 'Bambu P1P', status: 'completed', quantity: 1, completedQuantity: 1, color: '#111827', material: 'PETG', pricePerPiece: 28, colorPalette: ['#111827'] },
+      { id: 'demo-proj-6-p2', name: 'Cable Spine + Clamp', estimatedPrintTime: 0.75, materialUsed: 21, printer: 'Bambu P1P', status: 'completed', quantity: 2, completedQuantity: 2, color: '#111827', material: 'PETG', pricePerPiece: 7, colorPalette: ['#111827'] },
     ],
     projectExpenses: [],
   },
@@ -163,9 +163,9 @@ export const DEMO_PROJECTS: Project[] = [
     paidAt: '2026-08-13T09:00:00Z',
     isRecurringCustomer: false,
     prints: [
-      { id: 'demo-proj-7-p1', name: 'Walls & Foundation', estimatedPrintTime: 720, materialUsed: 280, printer: 'Bambu X1C', status: 'completed', quantity: 1, completedQuantity: 1, color: '#F1F5F9', material: 'PLA', pricePerPiece: 80, colorPalette: ['#F1F5F9'] },
-      { id: 'demo-proj-7-p2', name: 'Roof & Canopy', estimatedPrintTime: 360, materialUsed: 125, printer: 'Bambu X1C', status: 'completed', quantity: 1, completedQuantity: 1, color: '#F1F5F9', material: 'PLA', pricePerPiece: 45, colorPalette: ['#F1F5F9'] },
-      { id: 'demo-proj-7-p3', name: 'Facade Details', estimatedPrintTime: 180, materialUsed: 48, printer: 'Bambu X1C', status: 'completed', quantity: 1, completedQuantity: 1, color: '#F1F5F9', material: 'PLA', pricePerPiece: 20, colorPalette: ['#F1F5F9'] },
+      { id: 'demo-proj-7-p1', name: 'Walls & Foundation', estimatedPrintTime: 12, materialUsed: 280, printer: 'Bambu X1C', status: 'completed', quantity: 1, completedQuantity: 1, color: '#F1F5F9', material: 'PLA', pricePerPiece: 80, colorPalette: ['#F1F5F9'] },
+      { id: 'demo-proj-7-p2', name: 'Roof & Canopy', estimatedPrintTime: 6, materialUsed: 125, printer: 'Bambu X1C', status: 'completed', quantity: 1, completedQuantity: 1, color: '#F1F5F9', material: 'PLA', pricePerPiece: 45, colorPalette: ['#F1F5F9'] },
+      { id: 'demo-proj-7-p3', name: 'Facade Details', estimatedPrintTime: 3, materialUsed: 48, printer: 'Bambu X1C', status: 'completed', quantity: 1, completedQuantity: 1, color: '#F1F5F9', material: 'PLA', pricePerPiece: 20, colorPalette: ['#F1F5F9'] },
     ],
     projectExpenses: [{ id: 'demo-proj-7-e1', name: 'Rigid foam base board', amount: 8.00, category: 'Other', notes: '' }],
   },
@@ -188,7 +188,7 @@ export const DEMO_PROJECTS: Project[] = [
     paidAt: '2026-08-08T10:00:00Z',
     isRecurringCustomer: true,
     prints: [
-      { id: 'demo-proj-8-p1', name: 'Pots x4 (batched)', estimatedPrintTime: 600, materialUsed: 470, printer: 'Bambu P1P', status: 'completed', quantity: 4, completedQuantity: 4, color: '#C2410C', material: 'PLA', pricePerPiece: 21.25, colorPalette: ['#C2410C'] },
+      { id: 'demo-proj-8-p1', name: 'Pots x4 (batched)', estimatedPrintTime: 2.5, materialUsed: 117.5, printer: 'Bambu P1P', status: 'completed', quantity: 4, completedQuantity: 4, color: '#C2410C', material: 'PLA', pricePerPiece: 21.25, colorPalette: ['#C2410C'] },
     ],
     projectExpenses: [{ id: 'demo-proj-8-e1', name: 'Packaging + bubble wrap', amount: 5.00, category: 'Shipping', notes: '' }],
   },
@@ -213,8 +213,8 @@ export const DEMO_PROJECTS: Project[] = [
     paidAt: '',
     isRecurringCustomer: false,
     prints: [
-      { id: 'demo-proj-9-p1', name: 'Helmet Main Shell', estimatedPrintTime: 900, materialUsed: 385, printer: 'Bambu X1C', status: 'printing', quantity: 1, completedQuantity: 0, color: '#DC2626', material: 'PLA', pricePerPiece: 130, colorPalette: ['#DC2626', '#CA8A04'] },
-      { id: 'demo-proj-9-p2', name: 'Faceplate & Chin Guard', estimatedPrintTime: 360, materialUsed: 145, printer: 'Bambu X1C', status: 'not-printed', quantity: 1, completedQuantity: 0, color: '#CA8A04', material: 'PLA', pricePerPiece: 50, colorPalette: ['#CA8A04'] },
+      { id: 'demo-proj-9-p1', name: 'Helmet Main Shell', estimatedPrintTime: 15, materialUsed: 385, printer: 'Bambu X1C', status: 'printing', quantity: 1, completedQuantity: 0, color: '#DC2626', material: 'PLA', pricePerPiece: 130, colorPalette: ['#DC2626', '#CA8A04'] },
+      { id: 'demo-proj-9-p2', name: 'Faceplate & Chin Guard', estimatedPrintTime: 6, materialUsed: 145, printer: 'Bambu X1C', status: 'not-printed', quantity: 1, completedQuantity: 0, color: '#CA8A04', material: 'PLA', pricePerPiece: 50, colorPalette: ['#CA8A04'] },
     ],
     projectExpenses: [],
   },
@@ -237,7 +237,7 @@ export const DEMO_PROJECTS: Project[] = [
     paidAt: '',
     isRecurringCustomer: false,
     prints: [
-      { id: 'demo-proj-10-p1', name: 'Keycap Set', estimatedPrintTime: 320, materialUsed: 88, printer: 'Bambu X1C', status: 'completed', quantity: 12, completedQuantity: 12, color: '#CA8A04', material: 'PLA', pricePerPiece: 4.58, colorPalette: ['#CA8A04'] },
+      { id: 'demo-proj-10-p1', name: 'Keycap Set', estimatedPrintTime: 0.44, materialUsed: 7.33, printer: 'Bambu X1C', status: 'completed', quantity: 12, completedQuantity: 12, color: '#CA8A04', material: 'PLA', pricePerPiece: 4.58, colorPalette: ['#CA8A04'] },
     ],
     projectExpenses: [],
   },
@@ -260,7 +260,7 @@ export const DEMO_PROJECTS: Project[] = [
     paidAt: '',
     isRecurringCustomer: false,
     prints: [
-      { id: 'demo-proj-11-p1', name: 'Organizer Grid Panels x3', estimatedPrintTime: 420, materialUsed: 220, printer: 'Bambu P1P', status: 'not-printed', quantity: 3, completedQuantity: 0, color: '#111827', material: 'PETG', pricePerPiece: 12.67, colorPalette: ['#111827'] },
+      { id: 'demo-proj-11-p1', name: 'Organizer Grid Panels x3', estimatedPrintTime: 2.33, materialUsed: 73.3, printer: 'Bambu P1P', status: 'not-printed', quantity: 3, completedQuantity: 0, color: '#111827', material: 'PETG', pricePerPiece: 12.67, colorPalette: ['#111827'] },
     ],
     projectExpenses: [],
   },

@@ -602,7 +602,7 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card className="border-border/60">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm">{t('dashboard.revenueOverTime')}</CardTitle>
+            <CardTitle className="text-sm flex items-center gap-2">{t('dashboard.revenueOverTime')}<HelpTip text="Revenue from paid & shipped orders, grouped by the selected period. Unpaid orders are excluded." /></CardTitle>
           </CardHeader>
           <CardContent>
             {revenueOverTime.length === 0 ? (
@@ -623,7 +623,7 @@ export default function Dashboard() {
 
         <Card className="border-border/60">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm">{t('dashboard.profitVsExpenses')}</CardTitle>
+            <CardTitle className="text-sm flex items-center gap-2">{t('dashboard.profitVsExpenses')}<HelpTip text="Net profit (revenue minus all costs) vs. total expenses (filament + overheads) per period. Bars above zero mean the period was profitable." /></CardTitle>
           </CardHeader>
           <CardContent>
             {profitExpensesData.length === 0 ? (
@@ -649,7 +649,7 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card className="border-border/60">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm">{t('dashboard.hoursPrintedOverTime')}</CardTitle>
+            <CardTitle className="text-sm flex items-center gap-2">{t('dashboard.hoursPrintedOverTime')}<HelpTip text="Estimated print hours from completed plates. Calculated as sum of plate print time × pieces done for orders completed in each period." /></CardTitle>
           </CardHeader>
           <CardContent>
             {hoursOverTime.every(h => (h as any).hours === 0) ? (
@@ -669,7 +669,7 @@ export default function Dashboard() {
         </Card>
 
         <Card className="border-border/60">
-          <CardHeader className="pb-2"><CardTitle className="text-sm">{t('dashboard.materialBreakdown')}</CardTitle></CardHeader>
+          <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2">{t('dashboard.materialBreakdown')}<HelpTip text="Grams of each filament type used across all project plates in the selected period. Based on plate material usage fields." /></CardTitle></CardHeader>
           <CardContent>
             {stats.materialBreakdown.length === 0 ? (
               <p className="text-sm text-muted-foreground py-8 text-center">{t('dashboard.noMaterialData')}</p>
@@ -691,7 +691,7 @@ export default function Dashboard() {
       {/* Charts Row 3 */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card className="border-border/60">
-          <CardHeader className="pb-2"><CardTitle className="text-sm">{t('dashboard.statusDistribution')}</CardTitle></CardHeader>
+          <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2">{t('dashboard.statusDistribution')}<HelpTip text="Count of all projects by current production stage. Delivered projects include those paid and shipped." /></CardTitle></CardHeader>
           <CardContent>
             {statusDistribution.length === 0 ? (
               <p className="text-sm text-muted-foreground py-8 text-center">{t('dashboard.noProjects')}</p>
@@ -711,7 +711,7 @@ export default function Dashboard() {
         </Card>
 
         <Card className="border-border/60">
-          <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><BarChart3 className="h-4 w-4" />{t('dashboard.revenueBySource')}</CardTitle></CardHeader>
+          <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><BarChart3 className="h-4 w-4" />{t('dashboard.revenueBySource')}<HelpTip text="Revenue from paid & shipped orders, split by where the customer found you (Instagram, Website, etc.). Set the source when creating a project." /></CardTitle></CardHeader>
           <CardContent>
             {(() => {
               const sourceData = (() => {
