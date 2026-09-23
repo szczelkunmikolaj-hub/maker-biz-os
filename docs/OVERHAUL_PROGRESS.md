@@ -1,7 +1,7 @@
 # Overhaul Progress
 
 ## Current phase
-Phase 9 — Filament
+Phase 10 — Global polish
 
 ## Log
 
@@ -40,6 +40,15 @@ Phase 9 — Filament
 - "Add to this project" panel: PlateImporter + Add plate manually; compact when plates exist
 - Timeline section: sorted events list + Add note input stored in project JSONB
 - Screenshots verified: desktop 1-plate, 4-plate; mobile views all correct
+
+### Phase 9 — Filament (complete)
+- Added `color?: string` and `colorSwatch?: string` to `FilamentPurchase` type (types/index.ts)
+- Rewrote FilamentPurchases.tsx: flat table → grouped cards (material + color key)
+- Each group card: color swatch circle, label "Material – Color", purchase count, 3-col stock grid (bought/est.used/est.remaining), asterisk disclaimer
+- Est. used = proportional share of total material usage from project plates; est. remaining = max(0, bought - used)
+- Low-stock badge (amber, AlertTriangle icon) when estRemaining < 200g
+- Add-purchase form: added "Colour name" text field + color swatch `<input type="color">` in 2-col grid
+- Screenshots verified: grouped view correct desktop+mobile; all items 9.1–9.3 [x]
 
 ### Phase 8 — Dashboard (complete)
 - Added large primary Profit card (€ large font) with delta vs previous period

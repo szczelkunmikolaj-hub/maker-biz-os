@@ -306,12 +306,12 @@ Target layout (desktop ≥1024px; stacks to one column on mobile):
 
 ## Phase 9 — Filament
 
-- [ ] 9.1 Filament purchase form gets a colour field: name plus swatch picker
+- [x] 9.1 Filament purchase form gets a colour field: name plus swatch picker
   (same picker style as plate colours). Existing purchases show "—".
-- [ ] 9.2 Filament page groups purchases by material + colour, with total grams
+- [x] 9.2 Filament page groups purchases by material + colour, with total grams
   bought, estimated grams used (from project plates), and estimated remaining,
   clearly labelled as an estimate.
-- [ ] 9.3 Low-stock hint when estimated remaining is under 200 g.
+- [x] 9.3 Low-stock hint when estimated remaining is under 200 g.
 
 ## Phase 10 — Global polish
 

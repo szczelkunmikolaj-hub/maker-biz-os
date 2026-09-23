@@ -67,6 +67,8 @@ export interface FilamentPurchase {
   numberOfSpools: number;
   totalCost: number;
   notes: string;
+  color?: string;    // human-readable colour name e.g. "Arctic White"
+  colorSwatch?: string; // hex colour for the swatch e.g. "#F5F5F5"
 }
 
 export interface ProjectExpense {
