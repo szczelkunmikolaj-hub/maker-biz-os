@@ -266,24 +266,24 @@ Target layout (desktop ≥1024px; stacks to one column on mobile):
 
 ## Phase 6 — Kanban
 
-- [ ] 6.1 Columns are the production stages only (payment is a badge, never a
+- [x] 6.1 Columns are the production stages only (payment is a badge, never a
   column). Empty optional columns (In design, Awaiting approval) can collapse.
-- [ ] 6.2 Column header: name, count, total value (€).
-- [ ] 6.3 Compact cards: thumbnail, name, customer, price, payment badge, due
+- [x] 6.2 Column header: name, count, total value (€).
+- [x] 6.3 Compact cards: thumbnail, name, customer, price, payment badge, due
   chip, progress summary.
-- [ ] 6.4 Due urgency: amber chip when due within 2 days, red only when overdue.
-- [ ] 6.5 Drag and drop updates stage (and writes a timeline event). Opening a
+- [x] 6.4 Due urgency: amber chip when due within 2 days, red only when overdue.
+- [x] 6.5 Drag and drop updates stage (and writes a timeline event). Opening a
   card and pressing back returns to Kanban.
-- [ ] 6.6 Delivered column shows the last 14 days by default with "Show all".
+- [x] 6.6 Delivered column shows the last 14 days by default with "Show all".
 
 ## Phase 7 — Calendar
 
-- [ ] 7.1 Event labels at least 12px, truncated with a full-name tooltip.
-- [ ] 7.2 Distinguish due dates, order dates, and delivered dates visually, with
+- [x] 7.1 Event labels at least 12px, truncated with a full-name tooltip.
+- [x] 7.2 Distinguish due dates, order dates, and delivered dates visually, with
   a legend.
-- [ ] 7.3 Today highlighted; month and week views.
-- [ ] 7.4 Clicking an event opens the project; back returns to Calendar.
-- [ ] 7.5 Below 640px width, show an agenda (list) view instead of the grid.
+- [x] 7.3 Today highlighted; month and week views.
+- [x] 7.4 Clicking an event opens the project; back returns to Calendar.
+- [x] 7.5 Below 640px width, show an agenda (list) view instead of the grid.
 
 ## Phase 8 — Dashboard
 

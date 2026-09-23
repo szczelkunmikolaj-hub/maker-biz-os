@@ -1,7 +1,7 @@
 # Overhaul Progress
 
 ## Current phase
-Phase 6 — Kanban
+Phase 8 — Dashboard
 
 ## Log
 
@@ -40,6 +40,22 @@ Phase 6 — Kanban
 - "Add to this project" panel: PlateImporter + Add plate manually; compact when plates exist
 - Timeline section: sorted events list + Add note input stored in project JSONB
 - Screenshots verified: desktop 1-plate, 4-plate; mobile views all correct
+
+### Phase 7 — Calendar (complete)
+- Rewrote CalendarPage with 3 event types: order (blue), due (amber), delivered (green) + overdue (red)
+- Legend buttons at top act as filter + visual key
+- Event chips: text-xs (12px), title tooltip with full name
+- Month/week view toggle (week shows 7 days with expanded cells, all events visible)
+- Today highlighted with primary ring
+- Mobile (<640px): grid hidden, agenda list shown instead — same month nav + upcoming events in list format
+- Event clicks navigate to /projects?id= with state {from:'/calendar'} for back support
+- Screenshots verified: desktop month view with color chips; mobile agenda with dot indicators
+
+### Phase 6 — Kanban (complete)
+- Added timeline event writing to moveProject(): type='stage-changed', label='Moved to {stage}'
+- STAGE_META and TimelineEvent imported to AppContext
+- Empty optional columns (in-design, awaiting-approval) auto-collapse when empty (??-operator logic)
+- All other items (stages, count+value headers, compact cards, due urgency, delivered 14-day filter) already implemented
 
 ### Phase 5 — Projects list (complete)
 - SortKey updated to active-first|due-date|date|date-asc|price|customer-az; ViewMode cards|list; ACTIVE_STAGE_ORDER constant

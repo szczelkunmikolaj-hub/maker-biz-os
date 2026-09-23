@@ -91,7 +91,8 @@ export default function KanbanBoard() {
             const style = COL_STYLE[stage];
             const items = colItems[stage] || [];
             const totalValue = items.reduce((s, p) => s + (getProjectPiecesTotal(p) || p.totalPrice || 0), 0);
-            const isCollapsed = collapsed[stage];
+            const OPTIONAL_STAGES = new Set(['in-design', 'awaiting-approval']);
+            const isCollapsed = collapsed[stage] ?? (OPTIONAL_STAGES.has(stage) && items.length === 0);
 
             return (
               <div

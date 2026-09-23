@@ -1,6 +1,6 @@
 // AppContext — central state, synced to Supabase
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
-import { Project, Expense, AppSettings, KanbanStatus, ProductionStage, PrintTemplate, FilamentPurchase, Payment, normalizeProject, normalizeStage, getProjectPiecesTotal } from '@/types';
+import { Project, Expense, AppSettings, KanbanStatus, ProductionStage, PrintTemplate, FilamentPurchase, Payment, TimelineEvent, normalizeProject, normalizeStage, getProjectPiecesTotal, STAGE_META } from '@/types';
 import { deriveKanbanStatus, applyKanbanStatus } from '@/types/sync';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
@@ -391,6 +391,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             updates = { ...updates, payments: [payment] };
           }
         }
+      }
+
+      if (newStage) {
+        const stageEvent: TimelineEvent = {
+          id: crypto.randomUUID(),
+          type: 'stage-changed',
+          date: new Date().toISOString().split('T')[0],
+          label: `Moved to ${STAGE_META[newStage].label}`,
+        };
+        updates.timelineEvents = [...(project?.timelineEvents || []), stageEvent];
       }
 
       const next = prev.map(x => x.id === id ? normalizeProject({ ...x, ...updates }) : x);
