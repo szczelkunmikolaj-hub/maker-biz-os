@@ -248,21 +248,21 @@ Target layout (desktop ≥1024px; stacks to one column on mobile):
 
 ## Phase 5 — Projects list
 
-- [ ] 5.1 Default sort **"Active first"**: grouped by stage in workflow order
+- [x] 5.1 Default sort **"Active first"**: grouped by stage in workflow order
   (Awaiting approval, In design, Printing, Ready, New), then Delivered collapsed
   at the bottom as "Delivered (N)". Within a group: due date ascending, then
   order date descending.
-- [ ] 5.2 Sort menu: Active first, Due date, Newest, Oldest, Price high→low,
+- [x] 5.2 Sort menu: Active first, Due date, Newest, Oldest, Price high→low,
   Customer A–Z. Choice persists (localStorage).
-- [ ] 5.3 **Card / List view toggle**; Cards default; choice persists.
-- [ ] 5.4 **List view**: table with Project (thumbnail + name), Customer, Stage,
+- [x] 5.3 **Card / List view toggle**; Cards default; choice persists.
+- [x] 5.4 **List view**: table with Project (thumbnail + name), Customer, Stage,
   Payment, Price (right-aligned, tabular), Progress, Due. Sticky header, row
   click opens, hover shows quick actions (Mark as paid, Next step, ⋯).
-- [ ] 5.5 **Cards**: larger consistent thumbnail, cleaned name, stage badge,
+- [x] 5.5 **Cards**: larger consistent thumbnail, cleaned name, stage badge,
   payment badge, price, est. margin, progress summary string, due date, source.
   No other colour decoration. Correct pluralisation.
-- [ ] 5.6 Filters: stage, payment status, source, and search — all combinable.
-- [ ] 5.7 Empty state (no projects / no matches) with a clear action.
+- [x] 5.6 Filters: stage, payment status, source, and search — all combinable.
+- [x] 5.7 Empty state (no projects / no matches) with a clear action.
 
 ## Phase 6 — Kanban
 

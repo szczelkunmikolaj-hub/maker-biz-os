@@ -1,7 +1,7 @@
 # Overhaul Progress
 
 ## Current phase
-Phase 5 — Projects list
+Phase 6 — Kanban
 
 ## Log
 
@@ -40,6 +40,14 @@ Phase 5 — Projects list
 - "Add to this project" panel: PlateImporter + Add plate manually; compact when plates exist
 - Timeline section: sorted events list + Add note input stored in project JSONB
 - Screenshots verified: desktop 1-plate, 4-plate; mobile views all correct
+
+### Phase 5 — Projects list (complete)
+- SortKey updated to active-first|due-date|date|date-asc|price|customer-az; ViewMode cards|list; ACTIVE_STAGE_ORDER constant
+- Three separate filters: stageFilter, payFilter, sourceFilter (all combinable with search)
+- Active-first sort splits filtered into active + delivered; delivered collapses at bottom with "Delivered (N)" expand toggle
+- List view: sticky header row, flex rows with thumbnail+name/customer/stage/payment/price/progress/due columns; hover reveals Mark paid, Next step (moveProject), ⋯ menu
+- Card view: removed colored top border and recurring ring per spec; kept stage badge, payment badge, price, margin, progress summary, due date, source
+- Screenshots verified: desktop and mobile show active-first order, delivered collapse, new filter controls
 
 ### Phase 3 — Payments (complete)
 - PaymentBadge.tsx shared component using CSS tokens --pay-unpaid/--pay-partial/--pay-paid
