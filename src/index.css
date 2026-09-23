@@ -177,6 +177,14 @@
   }
 }
 
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
 @layer utilities {
   .animate-fade-in {
     animation: fadeIn 0.3s ease-out;
@@ -197,5 +205,22 @@
   }
   .animate-recurring-glow {
     animation: recurring-glow 2.4s ease-in-out infinite;
+  }
+
+  /* Token-based semantic badge states */
+  .badge-success {
+    background-color: color-mix(in srgb, var(--pay-paid) 15%, transparent);
+    color: var(--pay-paid);
+    border-color: color-mix(in srgb, var(--pay-paid) 30%, transparent);
+  }
+  .badge-warning {
+    background-color: color-mix(in srgb, var(--pay-partial) 15%, transparent);
+    color: var(--stage-approval);
+    border-color: color-mix(in srgb, var(--pay-partial) 30%, transparent);
+  }
+  .badge-danger {
+    background-color: color-mix(in srgb, var(--danger) 10%, transparent);
+    color: var(--danger);
+    border-color: color-mix(in srgb, var(--danger) 20%, transparent);
   }
 }

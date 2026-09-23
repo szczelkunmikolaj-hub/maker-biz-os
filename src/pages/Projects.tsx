@@ -516,7 +516,7 @@ export default function Projects() {
                     <PaymentBadge status={payStatus} balance={Math.max(0, balance)} currency={currencySymbol} />
                   </div>
                   {effectivePrice > 0 && (
-                    <span className={`text-xs font-medium shrink-0 ${margin === null ? 'text-muted-foreground' : margin >= 60 ? 'text-emerald-600' : margin >= 30 ? 'text-yellow-600' : 'text-red-600'}`}>
+                    <span className={`text-xs font-medium shrink-0 ${margin === null ? 'text-muted-foreground' : margin >= 60 ? 'text-[var(--pay-paid)]' : margin >= 30 ? 'text-[var(--pay-partial)]' : 'text-[var(--danger)]'}`}>
                       {margin === null ? '—' : `${margin.toFixed(0)}%`} Est. margin
                     </span>
                   )}
@@ -539,7 +539,7 @@ export default function Projects() {
                   {isRecurring && <RecurringBadge />}
                   <Badge variant="outline" className="text-[9px] px-1.5 py-0">{p.customerSource}</Badge>
                   {p.dueDate && (
-                    <span className={`text-[10px] flex items-center gap-0.5 ${isLate ? 'text-red-600 font-medium' : 'text-muted-foreground'}`}>
+                    <span className={`text-[10px] flex items-center gap-0.5 ${isLate ? 'text-[var(--danger)] font-medium' : 'text-muted-foreground'}`}>
                       <Calendar className="h-3 w-3" />{p.dueDate}
                     </span>
                   )}
@@ -547,7 +547,7 @@ export default function Projects() {
 
                 <div className="flex gap-1.5 pt-2 border-t border-border/50" onClick={e => e.stopPropagation()}>
                   <button
-                    className={`flex items-center gap-1 text-[10px] px-2 py-1 rounded-md border transition-colors ${p.printed ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30' : 'bg-muted/50 text-muted-foreground border-border hover:bg-muted'}`}
+                    className={`flex items-center gap-1 text-[10px] px-2 py-1 rounded-md border transition-colors ${p.printed ? 'badge-success' : 'bg-muted/50 text-muted-foreground border-border hover:bg-muted'}`}
                     onClick={() => toggleStatus(p.id, 'printed')}
                   >
                     <Printer className="h-3 w-3" />{p.printed ? '✓' : ''} {t('common.printed')}
@@ -562,7 +562,7 @@ export default function Projects() {
                     }}
                   >
                     <PopoverTrigger asChild>
-                      <button className={`flex items-center gap-1 text-[10px] px-2 py-1 rounded-md border transition-colors ${p.paid ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30' : 'bg-muted/50 text-muted-foreground border-border hover:bg-muted'}`}>
+                      <button className={`flex items-center gap-1 text-[10px] px-2 py-1 rounded-md border transition-colors ${p.paid ? 'badge-success' : 'bg-muted/50 text-muted-foreground border-border hover:bg-muted'}`}>
                         <CreditCard className="h-3 w-3" />{p.paid ? '✓' : ''} {t('common.paid')}
                       </button>
                     </PopoverTrigger>
@@ -589,7 +589,7 @@ export default function Projects() {
                     </PopoverContent>
                   </Popover>
                   <button
-                    className={`flex items-center gap-1 text-[10px] px-2 py-1 rounded-md border transition-colors ${p.sent ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30' : 'bg-muted/50 text-muted-foreground border-border hover:bg-muted'}`}
+                    className={`flex items-center gap-1 text-[10px] px-2 py-1 rounded-md border transition-colors ${p.sent ? 'badge-success' : 'bg-muted/50 text-muted-foreground border-border hover:bg-muted'}`}
                     onClick={() => toggleStatus(p.id, 'sent')}
                   >
                     <Package className="h-3 w-3" />{p.sent ? '✓' : ''} {t('common.shipped')}

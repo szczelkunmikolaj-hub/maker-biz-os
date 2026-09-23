@@ -34,7 +34,7 @@ export default function ProductionSummary({ projects: propProjects }: { projects
       label: t('production.moderateLoad'),
       emoji: "🟡",
       color: "hsl(var(--warning))",
-      badgeClass: "bg-yellow-500/15 text-yellow-700 dark:text-yellow-400 border-yellow-500/30",
+      badgeClass: "badge-warning",
       accept: t('production.acceptMaybe'),
       acceptLabel: t('production.acceptCarefullyLabel'),
       message: t('production.moderateMessage'),

@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { useTheme } from "next-themes";
 import { useApp } from "@/context/AppContext";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -8,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import posthog from "@/lib/posthog";
 import { useTranslation } from "react-i18next";
-import { FileSpreadsheet, Wand2, MessageSquare, Share2, Check, Zap, ShieldCheck, ListPlus } from "lucide-react";
+import { FileSpreadsheet, Wand2, MessageSquare, Share2, Check, Zap, ShieldCheck, ListPlus, Sun, Moon, Monitor } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useTier } from "@/context/TierContext";
 import { Badge } from "@/components/ui/badge";
@@ -26,6 +27,7 @@ const API_KEY_LS = 'pt_anthropic_key';
 
 export default function SettingsPage() {
   const { settings, updateSettings, addProject } = useApp();
+  const { theme, setTheme } = useTheme();
   const { t } = useTranslation();
   const { isAdmin, adminPreviewFree, setAdminPreviewFree } = useTier();
   // PAYMENTS_TODO: const { effectiveTier, trialDaysLeft, isTrialActive, trialExpired, trialStartedAt, isPro } = useTier();
@@ -113,6 +115,31 @@ export default function SettingsPage() {
         </CardContent>
       </Card>
       */}
+
+      <Card>
+        <CardHeader><CardTitle className="text-base">Appearance</CardTitle></CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground mb-3">Choose how PrintTrack looks. System follows your device setting.</p>
+          <div className="flex gap-2">
+            {([
+              { value: 'light', label: 'Light', icon: Sun },
+              { value: 'dark', label: 'Dark', icon: Moon },
+              { value: 'system', label: 'System', icon: Monitor },
+            ] as const).map(({ value, label, icon: Icon }) => (
+              <Button
+                key={value}
+                size="sm"
+                variant={theme === value ? 'default' : 'outline'}
+                onClick={() => setTheme(value)}
+                className="gap-1.5"
+              >
+                <Icon className="h-3.5 w-3.5" />
+                {label}
+              </Button>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader><CardTitle className="text-base">{t('settings.materialPricing')}</CardTitle></CardHeader>

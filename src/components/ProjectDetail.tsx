@@ -408,7 +408,7 @@ export default function ProjectDetail({ project, onBack }: Props) {
   const displayName = cleanDisplayName(p.name) || t('projectDetail.untitled');
 
   const marginColor = profitMargin !== null
-    ? (profitMargin >= 60 ? "text-green-600" : profitMargin >= 30 ? "text-yellow-600" : "text-red-600")
+    ? (profitMargin >= 60 ? "text-[var(--pay-paid)]" : profitMargin >= 30 ? "text-[var(--pay-partial)]" : "text-[var(--danger)]")
     : "text-muted-foreground";
 
   const allPrinted = p.prints.length > 0 && p.prints.every(pr => (pr.completedQuantity || 0) >= (pr.quantity || 1));
@@ -497,7 +497,7 @@ export default function ProjectDetail({ project, onBack }: Props) {
             </DropdownMenu>
           )}
           <Button size="sm" variant="outline" className="gap-1" onClick={copyTrackingLink}>
-            {trackingCopied ? <Check className="h-3.5 w-3.5 text-green-600" /> : <Link2 className="h-3.5 w-3.5" />}
+            {trackingCopied ? <Check className="h-3.5 w-3.5 text-[var(--pay-paid)]" /> : <Link2 className="h-3.5 w-3.5" />}
             {trackingCopied ? "Copied!" : "Tracking link"}
           </Button>
           <DropdownMenu>
@@ -537,7 +537,7 @@ export default function ProjectDetail({ project, onBack }: Props) {
                     </DropdownMenuItem>
                   ) : (
                     <DropdownMenuItem onClick={copyPaymentLink}>
-                      {paymentLinkCopied ? <Check className="h-3.5 w-3.5 mr-2 text-green-600" /> : <CreditCard className="h-3.5 w-3.5 mr-2" />}
+                      {paymentLinkCopied ? <Check className="h-3.5 w-3.5 mr-2 text-[var(--pay-paid)]" /> : <CreditCard className="h-3.5 w-3.5 mr-2" />}
                       {paymentLinkCopied ? "Copied!" : "Copy payment link"}
                     </DropdownMenuItem>
                   )}
@@ -669,7 +669,7 @@ export default function ProjectDetail({ project, onBack }: Props) {
                       <ColorPills color={pr.color} palette={pr.colorPalette} material={normalizeMaterial(pr.material)} size="xs" showLabel={false} />
                       {pr.estimatedPrintTime > 0 && <span>⏱ {pr.estimatedPrintTime}h</span>}
                       {pr.materialUsed > 0 && <span>⚖ {pr.materialUsed}g</span>}
-                      <span className={printStatus.done ? 'text-emerald-600 font-medium' : printStatus.partial ? 'text-yellow-600' : ''}>
+                      <span className={printStatus.done ? 'text-[var(--pay-paid)] font-medium' : printStatus.partial ? 'text-[var(--pay-partial)]' : ''}>
                         {printStatus.label}
                       </span>
                     </div>
@@ -696,7 +696,7 @@ export default function ProjectDetail({ project, onBack }: Props) {
                     {!printStatus.done && (
                       <Button
                         size="sm" variant="ghost"
-                        className="h-7 text-[10px] px-2 text-emerald-600 hover:text-emerald-700"
+                        className="h-7 text-[10px] px-2 text-[var(--pay-paid)] hover:text-[var(--stage-delivered)]"
                         onClick={(e) => { e.stopPropagation(); updatePrint(pr.id, { completedQuantity: pr.quantity || 1 }); }}
                       >
                         ✓ Done

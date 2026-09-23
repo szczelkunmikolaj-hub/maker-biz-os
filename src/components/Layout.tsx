@@ -203,7 +203,7 @@ export function Layout() {
             </div>
           )}
           <GuestBanner />
-          <main className="flex-1 overflow-auto p-4 md:p-6 animate-fade-in">
+          <main className="flex-1 overflow-auto p-4 md:p-6 animate-fade-in bg-[var(--canvas)]">
             <Outlet />
           </main>
 

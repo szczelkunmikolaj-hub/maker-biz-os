@@ -1,7 +1,7 @@
 # Overhaul Progress
 
 ## Current phase
-Phase 10 — Global polish
+Phase 11 — Wrap-up
 
 ## Log
 
@@ -40,6 +40,16 @@ Phase 10 — Global polish
 - "Add to this project" panel: PlateImporter + Add plate manually; compact when plates exist
 - Timeline section: sorted events list + Add note input stored in project JSONB
 - Screenshots verified: desktop 1-plate, 4-plate; mobile views all correct
+
+### Phase 10 — Global polish (complete)
+- **10.1 Tokens**: Replaced hardcoded `text-emerald-*`, `text-red-*`, `text-yellow-*` with CSS token classes in Projects, Dashboard, ProjectDetail, ProductionSummary, Expenses. Added `.badge-success`, `.badge-warning`, `.badge-danger` utility classes to index.css using `color-mix()`
+- **10.2 Canvas**: Applied `bg-[var(--canvas)]` to `<main>` in Layout.tsx; `--background` already uses off-white `hsl(220 20% 97%)`; `--canvas` token already defined for both themes
+- **10.3 Dark mode**: Added `ThemeProvider` from `next-themes` wrapping App.tsx; Added "Appearance" card to SettingsPage with Light/Dark/System buttons; Dark CSS variables already fully defined; Screenshots verified across all 14 routes × 2 viewports × 2 themes = 56 screenshots
+- **10.4 Help icons**: Verified all sidebar nav items have hints; added hints to Customers and Data items; Dashboard HelpTips have content; Templates description translation key exists
+- **10.5 Copy**: Verified active verbs on buttons ("Mark as paid" → toast "Marked as paid"); sentence case throughout; consistent nouns (Project, Plate, Stage, Payment, Customer)
+- **10.6 Empty states**: Verified FilamentPurchases, Projects, Customers, Expenses all have empty states with CTAs; Dashboard has noData panel
+- **10.7 Accessibility**: Added `prefers-reduced-motion` media query to index.css; shadcn components provide focus-visible rings; form labels present throughout
+- **10.8 Screenshots**: Updated scripts/screenshots.mjs to capture light + dark themes; 56 screenshots verified; dark Kanban, project detail, dashboard, settings all look correct
 
 ### Phase 9 — Filament (complete)
 - Added `color?: string` and `colorSwatch?: string` to `FilamentPurchase` type (types/index.ts)

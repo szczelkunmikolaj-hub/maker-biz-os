@@ -83,8 +83,8 @@ export default function Expenses() {
       </div>
 
       {showDoubleCountWarning && (
-        <Alert className="border-yellow-500/30 bg-yellow-500/10">
-          <AlertTriangle className="h-4 w-4 text-yellow-600" />
+        <Alert className="border-[color-mix(in_srgb,var(--stage-approval)_30%,transparent)] bg-[color-mix(in_srgb,var(--stage-approval)_10%,transparent)]">
+          <AlertTriangle className="h-4 w-4 text-[var(--stage-approval)]" />
           <AlertDescription className="flex items-center justify-between gap-2">
             <span className="text-sm">
               You have expenses with category "Filament" <em>and</em> filament purchases logged separately — spending may be counted twice.{' '}

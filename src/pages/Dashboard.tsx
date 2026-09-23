@@ -348,13 +348,13 @@ export default function Dashboard() {
   }, [stats, currencySymbol]);
 
   const kpis = [
-    { label: t('dashboard.revenue'), value: `${currencySymbol}${stats.totalRevenue.toFixed(2)}`, icon: DollarSign, color: "text-emerald-600" },
-    { label: t('dashboard.netProfit'), value: `${currencySymbol}${stats.netProfit.toFixed(2)}`, icon: TrendingUp, color: stats.netProfit >= 0 ? "text-emerald-600" : "text-destructive" },
+    { label: t('dashboard.revenue'), value: `${currencySymbol}${stats.totalRevenue.toFixed(2)}`, icon: DollarSign, color: "text-foreground" },
+    { label: t('dashboard.netProfit'), value: `${currencySymbol}${stats.netProfit.toFixed(2)}`, icon: TrendingUp, color: stats.netProfit >= 0 ? "text-foreground" : "text-destructive" },
     { label: t('dashboard.expenses'), value: `${currencySymbol}${stats.totalExpenses.toFixed(2)}`, icon: AlertTriangle, color: "text-destructive", subtitle: stats.filCost > 0 ? `Filament ${currencySymbol}${stats.filCost.toFixed(2)} · Other ${currencySymbol}${stats.otherExp.toFixed(2)}` : undefined },
     { label: t('dashboard.orders'), value: stats.totalOrders, icon: Package, color: "text-primary" },
     { label: t('dashboard.hoursPrinted'), value: `${stats.totalHoursPrinted.toFixed(1)}h`, icon: Clock, color: "text-primary" },
     { label: t('dashboard.materialUsed'), value: `${stats.totalMaterial.toFixed(0)}g`, icon: Weight, color: "text-primary" },
-    ...(outstandingBalance > 0 ? [{ label: 'Outstanding balance', value: `${currencySymbol}${outstandingBalance.toFixed(2)}`, icon: AlertTriangle, color: "text-yellow-600", subtitle: 'Across all unpaid orders' }] : []),
+    ...(outstandingBalance > 0 ? [{ label: 'Outstanding balance', value: `${currencySymbol}${outstandingBalance.toFixed(2)}`, icon: AlertTriangle, color: "text-[var(--stage-approval)]", subtitle: 'Across all unpaid orders' }] : []),
   ];
 
   const tooltipStyle = { borderRadius: 8, fontSize: 12, border: "1px solid hsl(var(--border))" };
@@ -397,7 +397,7 @@ export default function Dashboard() {
             <p className="text-5xl font-bold tabular-nums tracking-tight leading-none">{currencySymbol}{stats.netProfit.toFixed(0)}</p>
             <p className="text-sm text-muted-foreground mt-2">Profit · {periodLabel}</p>
             {prevStats && interval && (
-              <p className={`text-sm font-medium mt-1 ${stats.netProfit - prevStats.profit > 0 ? 'text-emerald-600' : stats.netProfit - prevStats.profit < 0 ? 'text-red-500' : 'text-muted-foreground'}`}>
+              <p className={`text-sm font-medium mt-1 ${stats.netProfit - prevStats.profit > 0 ? 'text-[var(--pay-paid)]' : stats.netProfit - prevStats.profit < 0 ? 'text-[var(--danger)]' : 'text-muted-foreground'}`}>
                 {stats.netProfit - prevStats.profit >= 0 ? '+' : ''}{currencySymbol}{(stats.netProfit - prevStats.profit).toFixed(0)} vs previous period
               </p>
             )}
@@ -428,7 +428,7 @@ export default function Dashboard() {
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">{kpi.label}</p>
                 {delta !== null && interval && (
-                  <p className={`text-[11px] mt-1 font-medium ${isGood ? 'text-emerald-600' : isBad ? 'text-red-500' : 'text-muted-foreground'}`}>
+                  <p className={`text-[11px] mt-1 font-medium ${isGood ? 'text-[var(--pay-paid)]' : isBad ? 'text-[var(--danger)]' : 'text-muted-foreground'}`}>
                     {delta >= 0 ? '+' : ''}{kpi.fmt(delta)} vs prev.
                   </p>
                 )}
@@ -480,7 +480,7 @@ export default function Dashboard() {
         <CardContent className="pb-4">
           {needsAttention.length === 0 ? (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
+              <CheckCircle2 className="h-4 w-4 text-[var(--pay-paid)] shrink-0" />
               Nothing needs attention.
             </div>
           ) : (
@@ -493,9 +493,9 @@ export default function Dashboard() {
                 >
                   <div className="flex items-center gap-2 min-w-0">
                     {urgency === 'high'
-                      ? <AlertCircle className="h-4 w-4 text-red-500 shrink-0" />
+                      ? <AlertCircle className="h-4 w-4 text-[var(--danger)] shrink-0" />
                       : urgency === 'medium'
-                      ? <AlertTriangle className="h-4 w-4 text-[hsl(38,85%,46%)] shrink-0" />
+                      ? <AlertTriangle className="h-4 w-4 text-[var(--stage-approval)] shrink-0" />
                       : <CalendarClock className="h-4 w-4 text-primary shrink-0" />
                     }
                     <span className="text-sm font-medium truncate">{p.name}</span>
@@ -503,8 +503,8 @@ export default function Dashboard() {
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     <span className={`text-xs font-medium px-1.5 py-0.5 rounded-full ${
-                      urgency === 'high' ? 'bg-red-500/10 text-red-600' :
-                      urgency === 'medium' ? 'bg-[hsl(38,85%,46%/0.12)] text-[hsl(38,85%,34%)]' :
+                      urgency === 'high' ? 'badge-danger' :
+                      urgency === 'medium' ? 'badge-warning' :
                       'bg-primary/10 text-primary'
                     }`}>{reason}</span>
                   </div>
@@ -533,13 +533,13 @@ export default function Dashboard() {
           <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><Activity className="h-4 w-4 text-primary" />{t('dashboard.efficiency')}</CardTitle></CardHeader>
           <CardContent className="space-y-2">
             <div className="flex justify-between text-sm"><span className="text-muted-foreground">{t('dashboard.completionRate')}</span><span className="font-semibold">{stats.completionRate.toFixed(0)}%</span></div>
-            <div className="flex justify-between text-sm"><span className="text-muted-foreground">{t('dashboard.onTime')}</span><span className="font-semibold text-emerald-600">{stats.onTime}</span></div>
+            <div className="flex justify-between text-sm"><span className="text-muted-foreground">{t('dashboard.onTime')}</span><span className="font-semibold text-[var(--pay-paid)]">{stats.onTime}</span></div>
             <div className="flex justify-between text-sm"><span className="text-muted-foreground">{t('dashboard.late')}</span><span className="font-semibold text-destructive">{stats.late}</span></div>
             <div className="flex justify-between text-sm"><span className="text-muted-foreground">{t('dashboard.avgTimeProject')}</span><span className="font-semibold">{stats.avgTimePerProject.toFixed(1)}h</span></div>
             {stats.totalRevenue > 0 && (
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Actual margin</span>
-                <span className={`font-semibold ${(stats.netProfit / stats.totalRevenue) >= 0.3 ? 'text-emerald-600' : 'text-destructive'}`}>
+                <span className={`font-semibold ${(stats.netProfit / stats.totalRevenue) >= 0.3 ? 'text-[var(--pay-paid)]' : 'text-destructive'}`}>
                   {(stats.netProfit / stats.totalRevenue * 100).toFixed(1)}%
                 </span>
               </div>
@@ -551,7 +551,7 @@ export default function Dashboard() {
           <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><Package className="h-4 w-4 text-primary" />{t('dashboard.projectsCard')}</CardTitle></CardHeader>
           <CardContent className="space-y-2">
             <div className="flex justify-between text-sm"><span className="text-muted-foreground">{t('dashboard.active')}</span><span className="font-semibold">{stats.activeProjects}</span></div>
-            <div className="flex justify-between text-sm"><span className="text-muted-foreground">{t('dashboard.completed')}</span><span className="font-semibold text-emerald-600">{stats.completedProjects}</span></div>
+            <div className="flex justify-between text-sm"><span className="text-muted-foreground">{t('dashboard.completed')}</span><span className="font-semibold text-[var(--pay-paid)]">{stats.completedProjects}</span></div>
             <div className="flex justify-between text-sm"><span className="text-muted-foreground">{t('dashboard.overdue')}</span><span className="font-semibold text-destructive">{stats.overdueProjects}</span></div>
             <div className="flex justify-between text-sm"><span className="text-muted-foreground">{t('dashboard.avgProfitProject')}</span><span className="font-semibold">{currencySymbol}{stats.avgProfitPerProject.toFixed(2)}</span></div>
           </CardContent>
@@ -777,7 +777,7 @@ export default function Dashboard() {
         <Card className="border-border/60">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm flex items-center gap-2">
-              <Lightbulb className="h-4 w-4 text-yellow-500" />
+              <Lightbulb className="h-4 w-4 text-[var(--stage-approval)]" />
               {t('dashboard.suggestions')}
             </CardTitle>
           </CardHeader>

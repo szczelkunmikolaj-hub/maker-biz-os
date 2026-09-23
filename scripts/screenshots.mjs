@@ -36,46 +36,54 @@ const ROUTES = [
   { path: '/about', name: 'landing' },
 ];
 
+const THEMES = [
+  { name: 'light', themeValue: 'light' },
+  { name: 'dark', themeValue: 'dark' },
+];
+
 async function run() {
   const browser = await chromium.launch();
 
-  for (const vp of VIEWPORTS) {
-    const context = await browser.newContext({
-      viewport: { width: vp.width, height: vp.height },
-    });
+  for (const theme of THEMES) {
+    for (const vp of VIEWPORTS) {
+      const context = await browser.newContext({
+        viewport: { width: vp.width, height: vp.height },
+      });
 
-    // Set localStorage values before any navigation
-    await context.addInitScript(() => {
-      localStorage.setItem('pt_demo_mode', 'true');
-      localStorage.setItem('pt_guest_mode', 'true');
-      localStorage.setItem('pt_welcome_dismissed', 'true');
-      localStorage.setItem('pt_checklist_dismissed', 'true');
-    });
+      // Set localStorage values before any navigation
+      await context.addInitScript((themeValue) => {
+        localStorage.setItem('pt_demo_mode', 'true');
+        localStorage.setItem('pt_guest_mode', 'true');
+        localStorage.setItem('pt_welcome_dismissed', 'true');
+        localStorage.setItem('pt_checklist_dismissed', 'true');
+        localStorage.setItem('theme', themeValue);
+      }, theme.themeValue);
 
-    const page = await context.newPage();
+      const page = await context.newPage();
 
-    // First navigate to root to seed localStorage, then proceed
-    await page.goto(BASE + '/', { waitUntil: 'load', timeout: 30000 }).catch(e => console.error('Root nav error:', e.message));
-    // Wait extra time for auth to settle
-    await page.waitForTimeout(4000);
+      // First navigate to root to seed localStorage, then proceed
+      await page.goto(BASE + '/', { waitUntil: 'load', timeout: 30000 }).catch(e => console.error('Root nav error:', e.message));
+      // Wait extra time for auth to settle and theme to apply
+      await page.waitForTimeout(4000);
 
-    for (const route of ROUTES) {
-      const url = `${BASE}${route.path}`;
-      try {
-        await page.goto(url, { waitUntil: 'load', timeout: 20000 });
-        // Wait for spinner to clear and content to appear
-        await page.waitForTimeout(3000);
-        // Try to wait for visible content (body has children)
-        await page.waitForFunction(() => document.body && document.body.children.length > 0, { timeout: 5000 }).catch(() => {});
-        const fname = `light_${vp.name}_${route.name}.png`;
-        await page.screenshot({ path: join(OUT, fname), fullPage: true });
-        console.log(`✓ ${fname}`);
-      } catch (err) {
-        console.error(`✗ ${route.path} @ ${vp.name}: ${err.message}`);
+      for (const route of ROUTES) {
+        const url = `${BASE}${route.path}`;
+        try {
+          await page.goto(url, { waitUntil: 'load', timeout: 20000 });
+          // Wait for spinner to clear and content to appear
+          await page.waitForTimeout(3000);
+          // Try to wait for visible content (body has children)
+          await page.waitForFunction(() => document.body && document.body.children.length > 0, { timeout: 5000 }).catch(() => {});
+          const fname = `${theme.name}_${vp.name}_${route.name}.png`;
+          await page.screenshot({ path: join(OUT, fname), fullPage: true });
+          console.log(`✓ ${fname}`);
+        } catch (err) {
+          console.error(`✗ ${route.path} @ ${vp.name} [${theme.name}]: ${err.message}`);
+        }
       }
-    }
 
-    await context.close();
+      await context.close();
+    }
   }
 
   await browser.close();

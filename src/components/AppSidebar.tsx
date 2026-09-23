@@ -50,8 +50,8 @@ export function AppSidebar() {
     { title: t('nav.calendar'), url: "/calendar", icon: Calendar, hint: t('helpTips.calendar') },
     { title: t('nav.expenses'), url: "/expenses", icon: Receipt, hint: t('helpTips.expenses') },
     { title: t('nav.filament'), url: "/filament", icon: Package, hint: t('helpTips.filament') },
-    { title: "Customers", url: "/customers", icon: Users },
-    { title: t('nav.data'), url: "/data", icon: Database },
+    { title: "Customers", url: "/customers", icon: Users, hint: "View and manage your customers, order history, and contact details." },
+    { title: t('nav.data'), url: "/data", icon: Database, hint: "Export, import, or reset your project data." },
     // PAYMENTS_TODO: { title: t('tier.pricingNav'), url: "/pricing", icon: Zap },
     { title: t('nav.settings'), url: "/settings", icon: Settings },
   ];

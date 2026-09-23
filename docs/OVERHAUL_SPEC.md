@@ -315,23 +315,23 @@ Target layout (desktop ≥1024px; stacks to one column on mobile):
 
 ## Phase 10 — Global polish
 
-- [ ] 10.1 Apply Part B tokens everywhere. Grep for hardcoded colours
+- [x] 10.1 Apply Part B tokens everywhere. Grep for hardcoded colours
   (`#`, `rgb(`, `hsl(` in components, Tailwind colour classes like
   `text-blue-600`, `bg-green-*`) and replace with tokens, except Recharts props
   that require literals — those must reference a single shared palette constant.
-- [ ] 10.2 Canvas is `--canvas` (not pure white); cards separate by background
+- [x] 10.2 Canvas is `--canvas` (not pure white); cards separate by background
   and border. Radius hierarchy and shadow rule from Part B applied.
-- [ ] 10.3 **Theme setting**: Light / Dark / System in Settings. Light is default.
+- [x] 10.3 **Theme setting**: Light / Dark / System in Settings. Light is default.
   Both themes verified with screenshots on every route.
-- [ ] 10.4 Every ⓘ/help icon has real content. The Templates tab gets a one-line
+- [x] 10.4 Every ⓘ/help icon has real content. The Templates tab gets a one-line
   explanation of what templates are for (or, if unused, log a recommendation).
-- [ ] 10.5 Copy pass: sentence case, active verbs, toasts match buttons,
+- [x] 10.5 Copy pass: sentence case, active verbs, toasts match buttons,
   consistent nouns, one shared pluralisation helper used everywhere.
-- [ ] 10.6 Loading, empty, and error states exist for every list, chart, and
+- [x] 10.6 Loading, empty, and error states exist for every list, chart, and
   panel.
-- [ ] 10.7 Accessibility floor: visible keyboard focus, form labels, no
+- [x] 10.7 Accessibility floor: visible keyboard focus, form labels, no
   horizontal scroll at 390px, `prefers-reduced-motion` respected.
-- [ ] 10.8 Final screenshot pass: every route, both widths, both themes. View
+- [x] 10.8 Final screenshot pass: every route, both widths, both themes. View
   each, fix what's wrong, re-capture.
 
 ## Phase 11 — Wrap-up
