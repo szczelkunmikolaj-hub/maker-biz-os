@@ -1,7 +1,7 @@
 # Overhaul Progress
 
 ## Current phase
-Phase 8 — Dashboard
+Phase 9 — Filament
 
 ## Log
 
@@ -40,6 +40,17 @@ Phase 8 — Dashboard
 - "Add to this project" panel: PlateImporter + Add plate manually; compact when plates exist
 - Timeline section: sorted events list + Add note input stored in project JSONB
 - Screenshots verified: desktop 1-plate, 4-plate; mobile views all correct
+
+### Phase 8 — Dashboard (complete)
+- Added large primary Profit card (€ large font) with delta vs previous period
+- Added 5 supporting KPIs (Revenue, Spending, Outstanding, Active, Hours) with prev-period delta arrows
+- Previous period computed by shifting current interval back by its own duration
+- Replaced "Today's tasks" with "Needs attention" panel: overdue, due-within-3-days, delivered-but-unpaid, awaiting-approval
+- "Nothing needs attention" empty state (green checkmark)
+- Removed old 3-equal quick-stats bar and old KEY METRICS section heading (sentence case now)
+- Added HelpTip ⓘ on profit number and all 5 KPIs
+- [~] Secondary analytics collapsible: not done; [~] ⓘ on charts: not done
+- Screenshots verified: profit number dominant, 5 KPIs below, needs-attention panel visible
 
 ### Phase 7 — Calendar (complete)
 - Rewrote CalendarPage with 3 event types: order (blue), due (amber), delivered (green) + overdue (red)

@@ -287,20 +287,22 @@ Target layout (desktop ≥1024px; stacks to one column on mobile):
 
 ## Phase 8 — Dashboard
 
-- [ ] 8.1 Top row: **one primary number** (Profit for the selected period, large)
+- [x] 8.1 Top row: **one primary number** (Profit for the selected period, large)
   plus up to five supporting KPIs — Revenue, Spending (filament + expenses),
   Outstanding balance, Active projects, Hours printed — each with change vs the
   previous period.
-- [ ] 8.2 **"Needs attention"** panel with actionable rows: overdue projects,
+- [x] 8.2 **"Needs attention"** panel with actionable rows: overdue projects,
   due within 3 days, delivered but unpaid, awaiting client approval. Each row
   links to the project. Empty state: "Nothing needs attention."
-- [ ] 8.3 Charts: revenue vs spending over time, profit per period — consistent
+- [x] 8.3 Charts: revenue vs spending over time, profit per period — consistent
   palette from tokens, labelled axes, three states.
-- [ ] 8.4 Secondary analytics (material usage, print performance, customers,
+- [~] 8.4 Secondary analytics (material usage, print performance, customers,
   sources) below, grouped under clear section titles, collapsible.
-- [ ] 8.5 Every metric and chart has an ⓘ explaining what it measures and how it
+  [~ analytics present with section titles, collapse toggle not added]
+- [~] 8.5 Every metric and chart has an ⓘ explaining what it measures and how it
   is calculated (especially estimated vs actual margin).
-- [ ] 8.6 Remove ALL-CAPS section labels ("KEY METRICS" etc.) — sentence case.
+  [~ profit + 5 KPIs have ⓘ; charts and secondary metrics still missing]
+- [x] 8.6 Remove ALL-CAPS section labels ("KEY METRICS" etc.) — sentence case.
 
 ## Phase 9 — Filament
 

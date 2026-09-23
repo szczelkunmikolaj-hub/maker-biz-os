@@ -4,7 +4,7 @@ import { useMonth } from "@/context/MonthContext";
 import {
   getProjectTotalMaterial, getGlobalPrintProgress, getSuggestions,
   getProjectExpensesTotal, getProjectProgress, getProjectTotalPrintTime,
-  getEffectiveDate, getProjectBalance,
+  getEffectiveDate, getProjectBalance, normalizeStage,
 } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -21,7 +21,7 @@ import {
 import { useMemo, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  format, parseISO, isBefore, startOfToday, eachMonthOfInterval, eachWeekOfInterval, eachDayOfInterval,
+  format, parseISO, isBefore, isSameDay, startOfToday, eachMonthOfInterval, eachWeekOfInterval, eachDayOfInterval,
   startOfMonth, endOfMonth, startOfYear, endOfYear, addDays,
   startOfWeek, endOfWeek,
 } from "date-fns";
@@ -168,6 +168,61 @@ export default function Dashboard() {
 
   const globalProgress = useMemo(() => getGlobalPrintProgress(filteredProjects), [filteredProjects]);
   const suggestions = useMemo(() => getSuggestions(projects), [projects]);
+
+  // Previous period for deltas
+  const prevInterval = useMemo(() => {
+    if (!interval) return null;
+    const duration = interval.end.getTime() - interval.start.getTime();
+    const prevEnd = new Date(interval.start.getTime() - 86400000);
+    const prevStart = new Date(prevEnd.getTime() - duration);
+    return { start: prevStart, end: prevEnd };
+  }, [interval]);
+
+  const prevStats = useMemo(() => {
+    if (!prevInterval) return null;
+    const inPrev = (d: Date) => d >= prevInterval.start && d <= prevInterval.end;
+    const pp = projects.filter(p => { try { const d = getEffectiveDate(p); return d ? inPrev(parseISO(d)) : false; } catch { return false; } });
+    const pe = expenses.filter(e => { try { return inPrev(parseISO(e.date)); } catch { return false; } });
+    const pf = filamentPurchases.filter(fp => { try { return inPrev(parseISO(fp.purchaseDate)); } catch { return false; } });
+    const paidSent = pp.filter(p => p.paid && p.sent);
+    const revenue = paidSent.reduce((s, p) => s + (p.totalPrice || 0), 0);
+    const spending = paidSent.reduce((s, p) => s + getProjectExpensesTotal(p), 0)
+      + pe.reduce((s, e) => s + (e.amount || 0), 0)
+      + pf.reduce((s, fp) => s + (fp.totalCost || 0), 0);
+    const hours = pp.reduce((s, p) => s + (p.prints || []).reduce((ph, pr) => ph + (pr.estimatedPrintTime || 0) * (pr.completedQuantity || 0), 0), 0);
+    const active = pp.filter(p => !p.paid || !p.sent).length;
+    return { revenue, spending, profit: revenue - spending, hours, active };
+  }, [prevInterval, projects, expenses, filamentPurchases]);
+
+  // Needs attention
+  const needsAttention = useMemo(() => {
+    const today = startOfToday();
+    const in3days = addDays(today, 3);
+    const result: Array<{ project: typeof projects[0]; reason: string; urgency: 'high' | 'medium' | 'low' }> = [];
+    projects.forEach(p => {
+      const done = p.paid && p.sent;
+      if (!done && p.dueDate) {
+        try {
+          const due = parseISO(p.dueDate);
+          if (isBefore(due, today) && !isSameDay(due, today)) {
+            const days = Math.floor((today.getTime() - due.getTime()) / 86400000);
+            result.push({ project: p, reason: `${days}d overdue`, urgency: 'high' }); return;
+          }
+          if (!isBefore(due, today) && isBefore(due, in3days)) {
+            const days = Math.floor((due.getTime() - today.getTime()) / 86400000);
+            result.push({ project: p, reason: days === 0 ? 'Due today' : `Due in ${days}d`, urgency: 'medium' }); return;
+          }
+        } catch {}
+      }
+      if (p.sent && !p.paid && getProjectBalance(p) > 0) {
+        result.push({ project: p, reason: 'Delivered, awaiting payment', urgency: 'medium' }); return;
+      }
+      if (normalizeStage(p) === 'awaiting-approval') {
+        result.push({ project: p, reason: 'Awaiting client approval', urgency: 'low' });
+      }
+    });
+    return result.sort((a, b) => ({ high: 0, medium: 1, low: 2 }[a.urgency] - { high: 0, medium: 1, low: 2 }[b.urgency]));
+  }, [projects]);
 
   // ── Generic time-series builder ──
   const buildTimeSeries = useCallback((
@@ -335,41 +390,52 @@ export default function Dashboard() {
         </p>
       </div>
 
-      {/* Quick stats bar */}
-      <div className="grid grid-cols-3 gap-3">
-        <div className="rounded-xl border bg-card px-4 py-3 flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-            <Activity className="h-4 w-4 text-primary" />
+      {/* Primary number: Profit */}
+      <div className="rounded-xl border bg-card px-6 py-5">
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <p className="text-5xl font-bold tabular-nums tracking-tight leading-none">{currencySymbol}{stats.netProfit.toFixed(0)}</p>
+            <p className="text-sm text-muted-foreground mt-2">Profit · {periodLabel}</p>
+            {prevStats && interval && (
+              <p className={`text-sm font-medium mt-1 ${stats.netProfit - prevStats.profit > 0 ? 'text-emerald-600' : stats.netProfit - prevStats.profit < 0 ? 'text-red-500' : 'text-muted-foreground'}`}>
+                {stats.netProfit - prevStats.profit >= 0 ? '+' : ''}{currencySymbol}{(stats.netProfit - prevStats.profit).toFixed(0)} vs previous period
+              </p>
+            )}
           </div>
-          <div>
-            <p className="text-xl font-bold">{activeProjectsCount}</p>
-            <p className="text-xs text-muted-foreground flex items-center">
-              {isDemoMode ? 'Your orders will show here' : 'Active orders'}
-              {isDemoMode && <DemoHint text="Your orders will show here" />}
-            </p>
-          </div>
+          <HelpTip text="Net profit = Revenue from paid+shipped orders minus all expenses (filament, project costs, overheads) for the selected period." />
         </div>
-        <div className="rounded-xl border bg-card px-4 py-3 flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center shrink-0">
-            <DollarSign className="h-4 w-4 text-emerald-600" />
-          </div>
-          <div>
-            <p className="text-xl font-bold">{currencySymbol}{stats.totalRevenue.toFixed(0)}</p>
-            <p className="text-xs text-muted-foreground flex items-center">
-              {isDemoMode ? 'Your real revenue will appear here' : `Revenue · ${periodLabel}`}
-              {isDemoMode && <DemoHint text="Your real revenue will appear here" />}
-            </p>
-          </div>
-        </div>
-        <div className="rounded-xl border bg-card px-4 py-3 flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-            <Clock className="h-4 w-4 text-primary" />
-          </div>
-          <div>
-            <p className="text-xl font-bold">{stats.totalHoursPrinted.toFixed(1)}h</p>
-            <p className="text-xs text-muted-foreground">Hours printed · {periodLabel}</p>
-          </div>
-        </div>
+      </div>
+
+      {/* 5 supporting KPIs */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+        {([
+          { label: 'Revenue', val: stats.totalRevenue, prev: prevStats?.revenue ?? null, fmt: (v: number) => `${currencySymbol}${v.toFixed(0)}`, tip: 'Total price of paid & shipped orders in this period.' },
+          { label: 'Spending', val: stats.totalExpenses, prev: prevStats?.spending ?? null, fmt: (v: number) => `${currencySymbol}${v.toFixed(0)}`, invertDelta: true, tip: 'Filament purchases + project expenses + overheads in this period.' },
+          { label: 'Outstanding', val: outstandingBalance, prev: null as number | null, fmt: (v: number) => `${currencySymbol}${v.toFixed(0)}`, tip: 'Unpaid balance across all orders globally.' },
+          { label: 'Active projects', val: activeProjectsCount, prev: prevStats?.active ?? null, fmt: (v: number) => String(v), tip: 'Projects not yet fully paid and shipped.' },
+          { label: 'Hours printed', val: stats.totalHoursPrinted, prev: prevStats?.hours ?? null, fmt: (v: number) => `${v.toFixed(1)}h`, tip: 'Estimated print hours × completed quantity for all plates in this period.' },
+        ] as const).map(kpi => {
+          const delta = kpi.prev !== null ? kpi.val - kpi.prev : null;
+          const invertDelta = 'invertDelta' in kpi && kpi.invertDelta;
+          const isGood = invertDelta ? (delta !== null && delta < 0) : (delta !== null && delta > 0);
+          const isBad = invertDelta ? (delta !== null && delta > 0) : (delta !== null && delta < 0);
+          return (
+            <Card key={kpi.label}>
+              <CardContent className="p-4">
+                <div className="flex items-start justify-between gap-1">
+                  <p className="text-xl font-bold tabular-nums leading-tight">{kpi.fmt(kpi.val)}</p>
+                  <HelpTip text={kpi.tip} />
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">{kpi.label}</p>
+                {delta !== null && interval && (
+                  <p className={`text-[11px] mt-1 font-medium ${isGood ? 'text-emerald-600' : isBad ? 'text-red-500' : 'text-muted-foreground'}`}>
+                    {delta >= 0 ? '+' : ''}{kpi.fmt(delta)} vs prev.
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
 
       <ActivationChecklist />
@@ -400,71 +466,57 @@ export default function Dashboard() {
         </CardContent></Card>
       )}
 
-      {/* Today's tasks */}
-      {todaysTasks.length > 0 && (
-        <Card className="border-primary/30 bg-primary/5">
-          <CardHeader className="pb-2 pt-4">
-            <CardTitle className="text-base flex items-center gap-2">
-              <CalendarClock className="h-4 w-4 text-primary" />
-              Today's tasks
-              <Badge variant="secondary" className="ml-1 bg-primary/15 text-primary">
-                {todaysTasks.length}
-              </Badge>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pb-4 space-y-2">
-            {todaysTasks.map(p => {
-              const isOverdue = p.dueDate && isBefore(parseISO(p.dueDate), today);
-              return (
+      {/* Needs attention */}
+      <Card className={needsAttention.length > 0 ? "border-[hsl(38,85%,46%/0.4)] bg-[hsl(38,85%,46%/0.04)]" : ""}>
+        <CardHeader className="pb-2 pt-4">
+          <CardTitle className="text-base flex items-center gap-2">
+            <AlertTriangle className="h-4 w-4 text-[hsl(38,85%,46%)]" />
+            Needs attention
+            {needsAttention.length > 0 && (
+              <Badge variant="secondary" className="ml-1 bg-[hsl(38,85%,46%/0.15)] text-[hsl(38,85%,36%)]">{needsAttention.length}</Badge>
+            )}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="pb-4">
+          {needsAttention.length === 0 ? (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
+              Nothing needs attention.
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {needsAttention.map(({ project: p, reason, urgency }) => (
                 <div
                   key={p.id}
                   className="flex items-center justify-between gap-3 rounded-lg border bg-card px-3 py-2 cursor-pointer hover:border-primary/40 transition-colors"
                   onClick={() => navigate(`/projects?id=${p.id}`, { state: { from: '/' } })}
                 >
                   <div className="flex items-center gap-2 min-w-0">
-                    {isOverdue
+                    {urgency === 'high'
                       ? <AlertCircle className="h-4 w-4 text-red-500 shrink-0" />
-                      : <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
+                      : urgency === 'medium'
+                      ? <AlertTriangle className="h-4 w-4 text-[hsl(38,85%,46%)] shrink-0" />
+                      : <CalendarClock className="h-4 w-4 text-primary shrink-0" />
                     }
                     <span className="text-sm font-medium truncate">{p.name}</span>
-                    {p.customerName && <span className="text-xs text-muted-foreground truncate">· {p.customerName}</span>}
+                    {p.customerName && <span className="text-xs text-muted-foreground truncate hidden sm:inline">· {p.customerName}</span>}
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
-                    {p.totalPrice > 0 && <span className="text-xs font-medium text-primary">{currencySymbol}{p.totalPrice.toFixed(2)}</span>}
-                    <Badge variant={isOverdue ? "destructive" : "outline"} className="text-[10px] px-1.5">
-                      {isOverdue ? `${Math.floor((today.getTime() - parseISO(p.dueDate).getTime()) / 86400000)}d overdue` : 'due today'}
-                    </Badge>
+                    <span className={`text-xs font-medium px-1.5 py-0.5 rounded-full ${
+                      urgency === 'high' ? 'bg-red-500/10 text-red-600' :
+                      urgency === 'medium' ? 'bg-[hsl(38,85%,46%/0.12)] text-[hsl(38,85%,34%)]' :
+                      'bg-primary/10 text-primary'
+                    }`}>{reason}</span>
                   </div>
                 </div>
-              );
-            })}
-          </CardContent>
-        </Card>
-      )}
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
-      {/* KPI Grid */}
-      <div className="flex items-center gap-1.5 -mb-1">
-        <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t('dashboard.keyMetrics')}</span>
-        <HelpTip text={t('dashboard.keyMetricsHint')} />
-      </div>
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-        {kpis.map(k => (
-          <Card key={k.label} className="hover:shadow-md transition-shadow border-border/60">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                  <k.icon className={`h-4 w-4 ${k.color}`} />
-                </div>
-              </div>
-              <p className="text-xl font-bold tracking-tight">{k.value}</p>
-              <span className="text-xs text-muted-foreground">{k.label}</span>
-              {(k as any).subtitle && (
-                <p className="text-[10px] text-muted-foreground mt-0.5 leading-tight">{(k as any).subtitle}</p>
-              )}
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+      {/* Secondary metrics */}
+      <p className="text-xs font-medium text-muted-foreground">Key metrics · {periodLabel}</p>
 
       {/* Print Performance + Project Insights Row */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
