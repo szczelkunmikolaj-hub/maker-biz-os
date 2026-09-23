@@ -336,11 +336,11 @@ Target layout (desktop ≥1024px; stacks to one column on mobile):
 
 ## Phase 11 — Wrap-up
 
-- [ ] 11.1 All phases committed on `overhaul`; branch pushed (or push failure
+- [x] 11.1 All phases committed on `overhaul`; branch pushed (or push failure
   noted).
-- [ ] 11.2 `docs/OVERHAUL_PROGRESS.md` → "Final summary" written: what changed
+- [x] 11.2 `docs/OVERHAUL_PROGRESS.md` → "Final summary" written: what changed
   per phase, decisions made, anything marked `[~]` and why, items needing
   Nico's decision, and a step-by-step manual test checklist for Nico.
-- [ ] 11.3 Final checks shown in the transcript in one turn:
+- [x] 11.3 Final checks shown in the transcript in one turn:
   `grep -c '^- \[ \]' docs/OVERHAUL_SPEC.md` prints `0`, and `npm run build`
   exits 0.

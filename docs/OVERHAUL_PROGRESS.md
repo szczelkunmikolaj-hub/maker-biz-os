@@ -170,4 +170,89 @@ Phase 11 — Wrap-up
 - Copy is inconsistent (ALL CAPS labels, passive voice buttons)
 
 ## Final summary
-(to be written in Phase 11)
+
+### What changed per phase
+
+**Phase 0 — Setup**: Created `overhaul` branch, installed Playwright, built screenshot script (14 routes × 2 viewports). Baseline captured.
+
+**Phase 1 — Navigation**: Fixed back-navigation bug in Projects (URL id param clear); added `{state:{from}}` to 5 entry points; `setSearchParams` uses `replace:true`.
+
+**Phase 2 — Workflow model**: Added `ProductionStage` type, `normalizeStage()` idempotent normalizer, `STAGE_META`/`STAGE_ORDER` constants. Rebuilt Kanban to 6-column layout (New → In design → Awaiting approval → Printing → Ready → Delivered). Added `DesignItem` type and design section to project detail. Added `designRate` to settings.
+
+**Phase 3 — Payments**: `PaymentBadge` shared component using CSS token `--pay-*` colors. `RecordPaymentDialog` reusable dialog (fixed/% toggle, date, method, note). `useMarkAsPaid` hook with undo toast. Payment section rewritten in ProjectDetail with chevron-revealed "Record payment" form. Card/Kanban menus both get payment actions.
+
+**Phase 4 — Project detail page redesign**: Full two-column layout (left: 3D preview, plates, design work, expenses; right sidebar: 5 cards). Header: 3-row layout with Next step button using action verbs via `NEXT_ACTION` map. Per-card sidebar editing. 3D preview card with thumbnail strip and fullscreen dialog. Timeline section with events list + add note. Costs & margin card with ⓘ popover cost breakdown.
+
+**Phase 5 — Projects list**: Added SortKey, ViewMode types, `ACTIVE_STAGE_ORDER`. Three independent filters (stage, pay, source) + active-first sort + delivered collapse. List view with sticky header, hover actions. Card view cleanup (removed colored top border, recurring ring).
+
+**Phase 6 — Kanban**: Added timeline event writing to `moveProject()` (`stage-changed` event). Empty optional columns (in-design, awaiting-approval) auto-collapse when empty.
+
+**Phase 7 — Calendar**: Complete rewrite with 3 event types (order/due/delivered), color-coded, filtered legend. Week/month toggle. Mobile agenda list. Overdue dates highlighted in `--danger`.
+
+**Phase 8 — Dashboard**: Large profit card (€ dominant, 5xl font) with prev-period delta. 5 supporting KPIs (Revenue, Spending, Outstanding, Active, Hours) with HelpTips and deltas. "Needs attention" panel (overdue > due-3-days > delivered-unpaid > awaiting-approval). Removed old equal-weight KPI bar and "KEY METRICS" ALL-CAPS label.
+
+**Phase 9 — Filament**: Added `color` and `colorSwatch` fields to `FilamentPurchase` type. Rewrote FilamentPurchases page: flat table → grouped cards by material + color. Each group shows bought/est.used/est.remaining with amber low-stock badge (<200g). Add-purchase form gets colour name + swatch picker.
+
+**Phase 10 — Global polish**: Dark mode via `ThemeProvider` from `next-themes`; Light/Dark/System selector added to Settings. Hardcoded `text-emerald-*`, `text-red-*`, `text-yellow-*` replaced with CSS token classes (`text-[var(--pay-paid)]`, `text-[var(--danger)]` etc.) across Projects, Dashboard, ProjectDetail, ProductionSummary, Expenses. Added `.badge-success`, `.badge-warning`, `.badge-danger` utility classes using `color-mix()`. Canvas background `bg-[var(--canvas)]` applied to main content area. `prefers-reduced-motion` media query added. All sidebar nav items now have HelpTip content. 56 screenshots taken (14 routes × 2 viewports × 2 themes).
+
+### Decisions made
+- Use `vite preview` (build output) for screenshots — dev server has base64-js ESM issue
+- Filament usage is distributed proportionally across same-material color groups (share = group's bought / total material bought)
+- `defaultTheme="system"` for ThemeProvider so new users get their OS preference automatically
+- Badge states use `color-mix()` in CSS utility classes rather than Tailwind arbitrary values for cleaner markup
+
+### Items marked [~] (partial / deferred)
+- **8.4** Secondary analytics collapsible: not implemented (low priority, charts are already below the fold)
+- **8.5** ⓘ tooltips on charts: not implemented (Recharts doesn't support this natively without heavy wrappers)
+- **3D model preview**: Shows thumbnails only, not raw model files (no model files available in demo data)
+
+### Items needing Nico's decision
+- **Chart ⓘ tooltips (8.5)**: Add explanatory tooltips on chart headers? Needs custom Recharts wrapper work.
+- **Filament secondary analytics collapsible (8.4)**: Collapse the Revenue/Profit/Hours/Material charts behind a "Show details" toggle?
+- **Negative demo margins**: Demo project data has cost >> price, producing extreme negative margins (−1305% etc.). Should the demo data be refreshed with realistic prices, or display a "demo data" note on margin figures?
+
+### Manual test checklist for Nico
+
+**Navigation**
+- [ ] Click a project card → project detail opens; back arrow/← returns to projects list at same scroll
+- [ ] Open a project from Kanban → back returns to /kanban
+- [ ] Open a project from Calendar → back returns to /calendar
+- [ ] Browser back button works on all routes
+
+**Stages & Kanban**
+- [ ] Drag a project to "In design" → stage badge updates on card; Timeline shows "Moved to In design"
+- [ ] "In design" and "Awaiting approval" columns collapse when empty; expand when a project moves in
+- [ ] All 6 stages present: New, In design, Awaiting approval, Printing, Ready, Delivered
+
+**Payments**
+- [ ] "Mark as paid" on a project → badge turns Paid; undo toast appears for 6s
+- [ ] "Record payment" → partial payment with amount/% toggle, date, method saves correctly
+- [ ] Partial payment shows "Partially paid" badge with remaining balance
+
+**Dashboard**
+- [ ] Profit number dominates; 5 KPIs below show prev-period deltas
+- [ ] "Needs attention" panel shows overdue projects; clears when none exist
+- [ ] Changing period (This Month / Last Month / This Year) updates all numbers
+
+**Calendar**
+- [ ] Order dates, due dates, and delivery dates shown in different colours
+- [ ] Legend buttons filter event types
+- [ ] Week toggle shows 7-day grid; month toggle returns to grid
+- [ ] Mobile view shows agenda list
+
+**Filament**
+- [ ] Add a purchase with colour name "Arctic White" and swatch — groups correctly
+- [ ] Group card shows total bought / est. used / est. remaining
+- [ ] Add a purchase that brings remaining below 200g → amber "Low stock" badge appears
+
+**Dark mode**
+- [ ] Settings → Appearance → Dark: entire app switches to dark theme
+- [ ] Settings → System: matches OS preference
+- [ ] All text remains readable in dark mode; no invisible text
+
+**Project detail**
+- [ ] Two-column layout on desktop; stacks on mobile
+- [ ] "Next step" primary button shows correct action verb for current stage
+- [ ] Each sidebar card (Customer, Payment, Dates, Costs & margin, Notes) editable inline
+- [ ] Adding a plate shows in the left column; progress bar updates
+- [ ] Timeline shows stage-change events + manual notes
