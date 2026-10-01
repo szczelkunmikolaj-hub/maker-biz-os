@@ -40,6 +40,7 @@ import { deriveProjectStatus } from "@/lib/projectStatus";
 import posthog from "@/lib/posthog";
 import { useToast } from "@/hooks/useToast";
 import { PaymentBadge } from "@/components/PaymentBadge";
+import { CustomerSourceBadge, PaymentMethodBadge } from "@/components/CategoryBadge";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -75,7 +76,7 @@ function newPayment(method: PaymentMethod = "Other"): Payment {
   return { id: crypto.randomUUID(), amount: 0, date: new Date().toISOString().split("T")[0], method };
 }
 
-const PAYMENT_METHODS: PaymentMethod[] = ["Cash", "PayPal", "Bank Transfer", "Bizum", "Other"];
+const PAYMENT_METHODS: PaymentMethod[] = ["Cash", "PayPal", "Bank Transfer", "Bizum", "Stripe", "Other"];
 const SOURCES = ["Wallapop", "Instagram", "Website", "Other"] as const;
 
 
@@ -931,7 +932,8 @@ export default function ProjectDetail({ project, onBack }: Props) {
                   {p.customerName ? <p className="font-medium">{p.customerName}</p> : <p className="text-muted-foreground text-xs italic">No customer name</p>}
                   {p.customerEmail && <p className="text-xs text-muted-foreground">{p.customerEmail}</p>}
                   <div className="flex items-center gap-2 flex-wrap">
-                    {p.customerSource && <Badge variant="outline" className="text-[10px]">{p.customerSource}</Badge>}
+                    {p.customerSource && <CustomerSourceBadge source={p.customerSource} />}
+                    {p.paymentMethod && <PaymentMethodBadge method={p.paymentMethod} />}
                     {p.isRecurringCustomer && <RecurringBadge size="sm" />}
                   </div>
                 </div>

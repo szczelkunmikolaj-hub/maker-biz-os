@@ -30,7 +30,7 @@ export interface Print {
 export type KanbanStatus = 'new-order' | 'printing' | 'finished' | 'paid' | 'shipped';
 export type ProductionStage = 'new' | 'in-design' | 'awaiting-approval' | 'printing' | 'ready' | 'delivered';
 export type CustomerSource = 'Wallapop' | 'Instagram' | 'Website' | 'Other';
-export type PaymentMethod = 'Cash' | 'PayPal' | 'Bank Transfer' | 'Bizum' | 'Other';
+export type PaymentMethod = 'Cash' | 'PayPal' | 'Bank Transfer' | 'Bizum' | 'Stripe' | 'Other';
 export type ExpenseCategory = 'Filament' | 'Shipping' | 'Equipment' | 'Tools' | 'Project Expense' | 'Other';
 export type DesignItemStatus = 'not-started' | 'in-progress' | 'awaiting-approval' | 'approved';
 

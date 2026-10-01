@@ -28,6 +28,7 @@ import { useNotifications } from "@/context/NotificationContext";
 import { Project } from "@/types";
 import { format, addDays } from "date-fns";
 import { useRef } from "react";
+import { CreateProjectDialog } from "@/components/CreateProjectDialog";
 
 function newQuickProject(): Project {
   return {
@@ -49,6 +50,7 @@ export function Layout() {
   const prevPaidRef = useRef<Record<string, boolean>>({});
   const [showQuickAdd, setShowQuickAdd] = useState(false);
   const [quickDraft, setQuickDraft] = useState<Project>(newQuickProject());
+  const [showCreateProject, setShowCreateProject] = useState(false);
   const isGuest = localStorage.getItem('pt_guest_mode') === 'true';
 
   const fireGuestGate = (message: string) => {
@@ -62,8 +64,7 @@ export function Layout() {
         fireGuestGate('Create a free account to add your real orders — takes 30 seconds');
         return;
       }
-      setQuickDraft(newQuickProject());
-      setShowQuickAdd(true);
+      setShowCreateProject(true);
     };
     document.addEventListener("quick-add-project", handler);
     return () => document.removeEventListener("quick-add-project", handler);
@@ -214,8 +215,7 @@ export function Layout() {
                 fireGuestGate('Create a free account to add your real orders — takes 30 seconds');
                 return;
               }
-              setQuickDraft(newQuickProject());
-              setShowQuickAdd(true);
+              setShowCreateProject(true);
             }}
             className="fixed bottom-6 right-6 z-40 h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-lg hover:bg-primary/90 hover:shadow-xl transition-all flex items-center justify-center"
             aria-label="Quick add project"
@@ -223,6 +223,7 @@ export function Layout() {
             <Plus className="h-6 w-6" />
           </button>
 
+          <CreateProjectDialog open={showCreateProject} onClose={() => setShowCreateProject(false)} />
           <WelcomeModal />
           {/* PAYMENTS_TODO: <TrialOptInModal /> */}
           <CommandPalette />

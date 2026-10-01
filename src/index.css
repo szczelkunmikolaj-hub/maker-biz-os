@@ -79,6 +79,20 @@
     --canvas: hsl(220, 16%, 96%);
     --text: hsl(222, 28%, 14%);
     --text-muted: hsl(220, 9%, 42%);
+
+    /* Payment method categorical tokens — distinct from stage + pay-status palette */
+    --pm-cash: hsl(43, 88%, 40%);
+    --pm-paypal: hsl(207, 87%, 37%);
+    --pm-bank-transfer: hsl(238, 55%, 56%);
+    --pm-bizum: hsl(338, 70%, 46%);
+    --pm-stripe: hsl(255, 72%, 60%);
+    --pm-other: hsl(220, 8%, 50%);
+
+    /* Customer source categorical tokens */
+    --cs-wallapop: hsl(22, 82%, 48%);
+    --cs-instagram: hsl(303, 60%, 50%);
+    --cs-website: hsl(171, 62%, 34%);
+    --cs-other: hsl(220, 8%, 50%);
   }
 
   .dark {
@@ -152,6 +166,20 @@
     --canvas: hsl(220, 16%, 10%);
     --text: hsl(222, 28%, 92%);
     --text-muted: hsl(220, 9%, 58%);
+
+    /* Payment method categorical tokens — dark mode */
+    --pm-cash: hsl(43, 88%, 54%);
+    --pm-paypal: hsl(207, 87%, 52%);
+    --pm-bank-transfer: hsl(238, 55%, 70%);
+    --pm-bizum: hsl(338, 70%, 60%);
+    --pm-stripe: hsl(255, 72%, 72%);
+    --pm-other: hsl(220, 8%, 62%);
+
+    /* Customer source categorical tokens — dark mode */
+    --cs-wallapop: hsl(22, 82%, 62%);
+    --cs-instagram: hsl(303, 60%, 64%);
+    --cs-website: hsl(171, 62%, 48%);
+    --cs-other: hsl(220, 8%, 62%);
   }
 }
 

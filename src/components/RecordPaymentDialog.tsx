@@ -9,7 +9,7 @@ import { getProjectPiecesTotal, getCurrencySymbol } from "@/types";
 import { useApp } from "@/context/AppContext";
 import { appToast } from "@/hooks/useToast";
 
-const PAYMENT_METHODS: PaymentMethod[] = ["Cash", "PayPal", "Bank Transfer", "Bizum", "Other"];
+const PAYMENT_METHODS: PaymentMethod[] = ["Cash", "PayPal", "Bank Transfer", "Bizum", "Stripe", "Other"];
 
 interface Props {
   project: Project;

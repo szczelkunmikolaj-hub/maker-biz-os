@@ -29,6 +29,8 @@ import posthog from "@/lib/posthog";
 import { PaymentBadge } from "@/components/PaymentBadge";
 import { RecordPaymentDialog } from "@/components/RecordPaymentDialog";
 import { useMarkAsPaid } from "@/hooks/useMarkAsPaid";
+import { CreateProjectDialog } from "@/components/CreateProjectDialog";
+import { PaymentMethodBadge, CustomerSourceBadge } from "@/components/CategoryBadge";
 import { ImportFromSpreadsheet } from "@/components/ImportFromSpreadsheet";
 import { ImportFromAI } from "@/components/ImportFromAI";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -37,7 +39,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 // PAYMENTS_TODO: import { Lock } from "lucide-react";
 
 const SOURCES: CustomerSource[] = ["Wallapop", "Instagram", "Website", "Other"];
-const PAYMENT_METHODS: PaymentMethod[] = ["Cash", "PayPal", "Bank Transfer", "Bizum", "Other"];
+const PAYMENT_METHODS: PaymentMethod[] = ["Cash", "PayPal", "Bank Transfer", "Bizum", "Stripe", "Other"];
 
 type SortKey = "active-first" | "due-date" | "date" | "date-asc" | "price" | "customer-az";
 type ViewMode = "cards" | "list";
@@ -77,6 +79,8 @@ export default function Projects() {
   const [showAll, setShowAll] = usePersistedState<boolean>("projects_show_all", false);
   const [showAdd, setShowAdd] = useState(false);
   const [draft, setDraft] = useState<Project>(newProject());
+  const [showCreate, setShowCreate] = useState(false);
+  const [triggerFileCreate, setTriggerFileCreate] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
   const [selectedId, setSelectedId] = useState<string | null>(searchParams.get('id'));
   const [importMode, setImportMode] = useState<null | "full" | "into">(null);
@@ -267,14 +271,14 @@ export default function Projects() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-60">
-              <DropdownMenuItem onClick={() => setImportMode("full")}>
+              <DropdownMenuItem onClick={() => { setTriggerFileCreate(true); setShowCreate(true); }}>
                 <Sparkles className="h-4 w-4 mr-2" />
                 <div className="flex-1">
                   <div className="text-sm font-medium">Start from a sliced file</div>
                   <div className="text-[11px] text-muted-foreground">Import .3mf, .gcode, or .stl</div>
                 </div>
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setShowAdd(true)}>
+              <DropdownMenuItem onClick={() => { setTriggerFileCreate(false); setShowCreate(true); }}>
                 <Plus className="h-4 w-4 mr-2" />
                 <div className="flex-1">
                   <div className="text-sm font-medium">Start with design work / blank</div>
@@ -422,7 +426,7 @@ export default function Projects() {
                     <p className="text-sm text-muted-foreground mt-1">Add your first project or import existing data to get started.</p>
                   </div>
                   <div className="flex gap-2 justify-center flex-wrap">
-                    <Button onClick={() => setShowAdd(true)}>
+                    <Button onClick={() => { setTriggerFileCreate(false); setShowCreate(true); }}>
                       <Plus className="h-4 w-4 mr-1" />Add your first project
                     </Button>
                     <Button variant="outline" onClick={() => setShowSpreadsheetImport(true)}>
@@ -537,7 +541,8 @@ export default function Projects() {
 
                 <div className="flex items-center gap-1.5 flex-wrap">
                   {isRecurring && <RecurringBadge />}
-                  <Badge variant="outline" className="text-[9px] px-1.5 py-0">{p.customerSource}</Badge>
+                  <CustomerSourceBadge source={p.customerSource} />
+                  <PaymentMethodBadge method={p.paymentMethod} />
                   {p.dueDate && (
                     <span className={`text-[10px] flex items-center gap-0.5 ${isLate ? 'text-[var(--danger)] font-medium' : 'text-muted-foreground'}`}>
                       <Calendar className="h-3 w-3" />{p.dueDate}
@@ -625,6 +630,10 @@ export default function Projects() {
                 style={{ background: `color-mix(in srgb, var(${stageMeta.token}) 12%, transparent)`, color: `var(${stageMeta.token})` }}
               >
                 {stageMeta.label}
+              </span>
+              <span className="shrink-0 hidden lg:flex items-center gap-1">
+                <CustomerSourceBadge source={p.customerSource} />
+                <PaymentMethodBadge method={p.paymentMethod} />
               </span>
               <span className="shrink-0 hidden sm:block">
                 <PaymentBadge status={payStatus} balance={balance} currency={currencySymbol} />
@@ -769,6 +778,13 @@ export default function Projects() {
         </>
       </TabsContent>
 
+      <CreateProjectDialog
+        open={showCreate}
+        triggerFile={triggerFileCreate}
+        onClose={() => { setShowCreate(false); setTriggerFileCreate(false); }}
+      />
+
+      {/* Legacy blank dialog — kept for backwards compat if referenced elsewhere */}
       <Dialog open={showAdd} onOpenChange={setShowAdd}>
         <DialogContent>
           <DialogHeader><DialogTitle>{t('projects.dialogTitle')}</DialogTitle></DialogHeader>

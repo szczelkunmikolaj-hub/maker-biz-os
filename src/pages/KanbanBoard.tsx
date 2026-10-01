@@ -13,8 +13,10 @@ import posthog from "@/lib/posthog";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { CreditCard, DollarSign, MoreHorizontal } from "lucide-react";
+import { CreditCard, DollarSign, MoreHorizontal, Plus } from "lucide-react";
 import type { Project } from "@/types";
+import { CreateProjectDialog } from "@/components/CreateProjectDialog";
+import { CustomerSourceBadge, PaymentMethodBadge } from "@/components/CategoryBadge";
 
 const STAGE_COLS: ProductionStage[] = ['new', 'in-design', 'awaiting-approval', 'printing', 'ready', 'delivered'];
 
@@ -36,6 +38,7 @@ export default function KanbanBoard() {
   const [showAllDelivered, setShowAllDelivered] = useState(false);
   const [collapsed, setCollapsed] = usePersistedState<Record<string, boolean>>("kanban_collapsed", {});
   const [recordPaymentProject, setRecordPaymentProject] = useState<Project | null>(null);
+  const [showCreateProject, setShowCreateProject] = useState(false);
   const markAsPaid = useMarkAsPaid();
   const currency = settings.currency === 'USD' ? '$' : settings.currency === 'GBP' ? '£' : '€';
 
@@ -76,12 +79,20 @@ export default function KanbanBoard() {
     <div className="space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-2">
         <h1 className="text-2xl font-semibold">Kanban board</h1>
-        {mode === 'month' && (
-          <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer select-none">
-            <input type="checkbox" className="rounded" checked={showAll} onChange={e => setShowAll(e.target.checked)} />
-            Show all projects
-          </label>
-        )}
+        <div className="flex items-center gap-2">
+          {mode === 'month' && (
+            <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer select-none">
+              <input type="checkbox" className="rounded" checked={showAll} onChange={e => setShowAll(e.target.checked)} />
+              Show all projects
+            </label>
+          )}
+          <button
+            className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors font-medium"
+            onClick={() => setShowCreateProject(true)}
+          >
+            <Plus className="h-3.5 w-3.5" /> New project
+          </button>
+        </div>
       </div>
 
       <div className="overflow-x-auto -mx-4 px-4 pb-2">
@@ -193,6 +204,10 @@ export default function KanbanBoard() {
                               {isOverdue ? 'Overdue · ' : isDueSoon ? 'Due soon · ' : 'Due '}{p.dueDate}
                             </div>
                           )}
+                          <div className="flex items-center gap-1 flex-wrap mt-1">
+                            <CustomerSourceBadge source={p.customerSource} />
+                            <PaymentMethodBadge method={p.paymentMethod} />
+                          </div>
                         </div>
                       );
                     })}
@@ -225,6 +240,7 @@ export default function KanbanBoard() {
           onClose={() => setRecordPaymentProject(null)}
         />
       )}
+      <CreateProjectDialog open={showCreateProject} onClose={() => setShowCreateProject(false)} />
     </div>
   );
 }

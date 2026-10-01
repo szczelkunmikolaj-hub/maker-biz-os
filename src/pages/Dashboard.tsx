@@ -32,6 +32,10 @@ import { HelpTip } from "@/components/HelpTip";
 import { useDemo } from "@/context/DemoContext";
 import { ActivationChecklist } from "@/components/ActivationChecklist";
 import { getCurrencySymbol } from "@/types";
+import {
+  PAYMENT_METHOD_CHART_COLORS, CUSTOMER_SOURCE_CHART_COLORS,
+} from "@/lib/categoryColors";
+import type { PaymentMethod, CustomerSource } from "@/types";
 
 function DemoHint({ text }: { text: string }) {
   return (
@@ -340,6 +344,50 @@ export default function Dashboard() {
       { label: t('dashboard.avgProfitPrint'), value: `${currencySymbol}${avgProfitPerPrint.toFixed(2)}` },
     ];
   }, [filteredProjects, stats, t, currencySymbol]);
+
+  // Revenue by payment method
+  const revenueByPaymentMethod = useMemo(() => {
+    const map = new Map<string, { revenue: number; projects: number }>();
+    filteredProjects.filter(p => p.paid && p.sent).forEach(p => {
+      const key = p.paymentMethod || "Other";
+      const e = map.get(key) || { revenue: 0, projects: 0 };
+      e.revenue += p.totalPrice || 0;
+      e.projects++;
+      map.set(key, e);
+    });
+    const total = Array.from(map.values()).reduce((s, v) => s + v.revenue, 0);
+    return Array.from(map.entries())
+      .map(([name, v]) => ({
+        name,
+        revenue: v.revenue,
+        projects: v.projects,
+        share: total > 0 ? (v.revenue / total) * 100 : 0,
+        color: PAYMENT_METHOD_CHART_COLORS[name as PaymentMethod] ?? "hsl(220,8%,50%)",
+      }))
+      .sort((a, b) => b.revenue - a.revenue);
+  }, [filteredProjects]);
+
+  // Revenue by customer source (enhanced with table data)
+  const revenueBySource = useMemo(() => {
+    const map = new Map<string, { revenue: number; projects: number }>();
+    filteredProjects.filter(p => p.paid && p.sent).forEach(p => {
+      const key = p.customerSource || "Other";
+      const e = map.get(key) || { revenue: 0, projects: 0 };
+      e.revenue += p.totalPrice || 0;
+      e.projects++;
+      map.set(key, e);
+    });
+    const total = Array.from(map.values()).reduce((s, v) => s + v.revenue, 0);
+    return Array.from(map.entries())
+      .map(([name, v]) => ({
+        name,
+        revenue: v.revenue,
+        projects: v.projects,
+        share: total > 0 ? (v.revenue / total) * 100 : 0,
+        color: CUSTOMER_SOURCE_CHART_COLORS[name as CustomerSource] ?? "hsl(220,8%,50%)",
+      }))
+      .sort((a, b) => b.revenue - a.revenue);
+  }, [filteredProjects]);
 
   // Expenses breakdown text: "€74 (Filament €45 · Other €29)"
   const expensesBreakdown = useMemo(() => {
@@ -711,33 +759,134 @@ export default function Dashboard() {
         </Card>
 
         <Card className="border-border/60">
-          <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><BarChart3 className="h-4 w-4" />{t('dashboard.revenueBySource')}<HelpTip text="Revenue from paid & shipped orders, split by where the customer found you (Instagram, Website, etc.). Set the source when creating a project." /></CardTitle></CardHeader>
+          <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><BarChart3 className="h-4 w-4" />{t('dashboard.revenueBySource')}<HelpTip text="Revenue from paid & shipped orders, split by customer source. Same as the detailed chart below — shows all-time totals for context." /></CardTitle></CardHeader>
           <CardContent>
-            {(() => {
-              const sourceData = (() => {
-                const map = new Map<string, { orders: number; revenue: number }>();
-                filteredProjects.forEach(p => {
-                  const e = map.get(p.customerSource) || { orders: 0, revenue: 0 };
-                  e.orders++;
-                  if (p.paid && p.sent) e.revenue += p.totalPrice || 0;
-                  map.set(p.customerSource, e);
-                });
-                return Array.from(map.entries()).map(([name, v]) => ({ name, value: v.orders, revenue: v.revenue }));
-              })();
-              return sourceData.filter(s => s.revenue > 0).length === 0 ? (
-                <p className="text-sm text-muted-foreground py-8 text-center">{t('dashboard.noRevenueData')}</p>
-              ) : (
-                <ResponsiveContainer width="100%" height={250}>
-                  <BarChart data={sourceData.filter(s => s.revenue > 0)} layout="vertical">
+            {revenueBySource.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-8 text-center">{t('dashboard.noRevenueData')}</p>
+            ) : (
+              <ResponsiveContainer width="100%" height={250}>
+                <BarChart data={revenueBySource} layout="vertical">
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-border/50" />
+                  <XAxis type="number" className="text-xs" tick={{ fontSize: 11 }} />
+                  <YAxis type="category" dataKey="name" className="text-xs" width={80} tick={{ fontSize: 11 }} />
+                  <Tooltip contentStyle={tooltipStyle} formatter={(v: number) => `${currencySymbol}${v.toFixed(2)}`} />
+                  <Bar dataKey="revenue" radius={[0, 4, 4, 0]} name={`${t('dashboard.revenue')} (${currencySymbol})`}>
+                    {revenueBySource.map((entry, i) => <Cell key={i} fill={entry.color} />)}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Charts Row 4 — Revenue by payment method + Revenue by customer source with table */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Card className="border-border/60">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <BarChart3 className="h-4 w-4" />
+              Revenue by payment method
+              <HelpTip text={`Revenue from paid & shipped orders grouped by how the customer paid. Attributed using ${periodLabel} order dates.`} />
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {revenueByPaymentMethod.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-8 text-center">No paid orders in this period.</p>
+            ) : (
+              <>
+                <ResponsiveContainer width="100%" height={200}>
+                  <BarChart data={revenueByPaymentMethod} layout="vertical">
                     <CartesianGrid strokeDasharray="3 3" className="stroke-border/50" />
-                    <XAxis type="number" className="text-xs" tick={{ fontSize: 11 }} />
-                    <YAxis type="category" dataKey="name" className="text-xs" width={80} tick={{ fontSize: 11 }} />
-                    <Tooltip contentStyle={tooltipStyle} />
-                    <Bar dataKey="revenue" fill="hsl(215,70%,45%)" radius={[0, 4, 4, 0]} name={`${t('dashboard.revenue')} (${currencySymbol})`} />
+                    <XAxis type="number" tick={{ fontSize: 11 }} />
+                    <YAxis type="category" dataKey="name" width={90} tick={{ fontSize: 11 }} />
+                    <Tooltip contentStyle={tooltipStyle} formatter={(v: number) => `${currencySymbol}${v.toFixed(2)}`} />
+                    <Bar dataKey="revenue" radius={[0, 4, 4, 0]} name={`Revenue (${currencySymbol})`}>
+                      {revenueByPaymentMethod.map((entry, i) => <Cell key={i} fill={entry.color} />)}
+                    </Bar>
                   </BarChart>
                 </ResponsiveContainer>
-              );
-            })()}
+                <div className="mt-3 rounded-lg border border-border overflow-hidden">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="bg-muted/50 text-muted-foreground">
+                        <th className="text-left px-3 py-1.5 font-medium">Method</th>
+                        <th className="text-right px-3 py-1.5 font-medium">Revenue</th>
+                        <th className="text-right px-3 py-1.5 font-medium">Projects</th>
+                        <th className="text-right px-3 py-1.5 font-medium">Share</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {revenueByPaymentMethod.map(row => (
+                        <tr key={row.name} className="border-t border-border/50">
+                          <td className="px-3 py-1.5 flex items-center gap-1.5">
+                            <span className="inline-block h-2 w-2 rounded-full shrink-0" style={{ background: row.color }} />
+                            {row.name}
+                          </td>
+                          <td className="px-3 py-1.5 text-right tabular-nums font-medium">{currencySymbol}{row.revenue.toFixed(2)}</td>
+                          <td className="px-3 py-1.5 text-right tabular-nums text-muted-foreground">{row.projects}</td>
+                          <td className="px-3 py-1.5 text-right tabular-nums text-muted-foreground">{row.share.toFixed(1)}%</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="border-border/60">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <BarChart3 className="h-4 w-4" />
+              Revenue by customer source
+              <HelpTip text={`Revenue from paid & shipped orders grouped by how the customer found you. Attributed using ${periodLabel} order dates.`} />
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {revenueBySource.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-8 text-center">No paid orders in this period.</p>
+            ) : (
+              <>
+                <ResponsiveContainer width="100%" height={200}>
+                  <BarChart data={revenueBySource} layout="vertical">
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-border/50" />
+                    <XAxis type="number" tick={{ fontSize: 11 }} />
+                    <YAxis type="category" dataKey="name" width={80} tick={{ fontSize: 11 }} />
+                    <Tooltip contentStyle={tooltipStyle} formatter={(v: number) => `${currencySymbol}${v.toFixed(2)}`} />
+                    <Bar dataKey="revenue" radius={[0, 4, 4, 0]} name={`Revenue (${currencySymbol})`}>
+                      {revenueBySource.map((entry, i) => <Cell key={i} fill={entry.color} />)}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+                <div className="mt-3 rounded-lg border border-border overflow-hidden">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="bg-muted/50 text-muted-foreground">
+                        <th className="text-left px-3 py-1.5 font-medium">Source</th>
+                        <th className="text-right px-3 py-1.5 font-medium">Revenue</th>
+                        <th className="text-right px-3 py-1.5 font-medium">Projects</th>
+                        <th className="text-right px-3 py-1.5 font-medium">Share</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {revenueBySource.map(row => (
+                        <tr key={row.name} className="border-t border-border/50">
+                          <td className="px-3 py-1.5 flex items-center gap-1.5">
+                            <span className="inline-block h-2 w-2 rounded-full shrink-0" style={{ background: row.color }} />
+                            {row.name}
+                          </td>
+                          <td className="px-3 py-1.5 text-right tabular-nums font-medium">{currencySymbol}{row.revenue.toFixed(2)}</td>
+                          <td className="px-3 py-1.5 text-right tabular-nums text-muted-foreground">{row.projects}</td>
+                          <td className="px-3 py-1.5 text-right tabular-nums text-muted-foreground">{row.share.toFixed(1)}%</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            )}
           </CardContent>
         </Card>
       </div>
