@@ -9,6 +9,32 @@ import i18n from '@/i18n';
 import { DEMO_PROJECTS, DEMO_EXPENSES, DEMO_FILAMENT, DEMO_FILAMENT_COST } from '@/lib/demoData';
 import { isAdmin } from '@/lib/admin';
 import { NOTIFICATIONS_ENABLED } from '@/config/features';
+import { toast } from 'sonner';
+import { cacheJSON, cacheProjects, getCacheOwner, setCacheOwner, clearDataCache } from '@/lib/localCache';
+
+/** One visible, de-duplicated warning whenever something could not be saved to the cloud. */
+function notifySaveFailed(what: string) {
+  toast.error(`Could not save ${what} to the cloud`, {
+    id: 'sync-save-failed',
+    description: 'Your change is only on this screen right now. Check your connection and try again before closing or reloading this tab.',
+    duration: 15000,
+  });
+}
+
+/** Split rows into small batches so one big request cannot fail the whole upload. */
+function chunkRows<T>(rows: T[], maxChars = 900_000, maxRows = 20): T[][] {
+  const out: T[][] = [];
+  let cur: T[] = [];
+  let size = 0;
+  for (const row of rows) {
+    const len = JSON.stringify(row).length;
+    if (cur.length && (size + len > maxChars || cur.length >= maxRows)) { out.push(cur); cur = []; size = 0; }
+    cur.push(row);
+    size += len;
+  }
+  if (cur.length) out.push(cur);
+  return out;
+}
 
 interface AppContextType {
   projects: Project[];
@@ -35,7 +61,7 @@ interface AppContextType {
   allPrintNames: string[];
   customerNotes: Record<string, string>;
   updateCustomerNote: (customerId: string, note: string) => void;
-  replaceAllData: (data: { projects: Project[]; expenses: Expense[]; templates: PrintTemplate[]; filamentPurchases: FilamentPurchase[]; settings: AppSettings }) => void;
+  replaceAllData: (data: { projects: Project[]; expenses: Expense[]; templates: PrintTemplate[]; filamentPurchases: FilamentPurchase[]; settings: AppSettings }) => Promise<{ ok: boolean; error?: string }>;
   snapshotToLocalStorage: () => void;
 }
 
@@ -126,6 +152,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         if (exs.error) console.error('[sync] expenses query:', exs.error);
         if (tps.error) console.error('[sync] templates query:', tps.error);
         if (fps.error) console.error('[sync] filament query:', fps.error);
+        // A failed query is NOT "no data". Treating it as empty would show an empty app,
+        // overwrite the device copy with nothing and could re-upload stale data.
+        const loadError = pjs.error || exs.error || tps.error || fps.error;
+        if (loadError) throw new Error(`cloud load failed: ${loadError.message}`);
+
+        // Cached data on this device that belongs to a different account must never be
+        // shown to, or uploaded into, this one.
+        const cacheOwner = getCacheOwner();
+        const cacheIsForeign = cacheOwner !== null && cacheOwner !== userId;
+        if (cacheIsForeign) clearDataCache();
 
         let nextProjects = (pjs.data || []).map(r => normalizeProject(r.data as any));
         let nextExpenses = (exs.data || []).map(r => r.data as unknown as Expense);
@@ -141,8 +177,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         let nextNotes: Record<string, string> = (cn.data?.data as unknown as Record<string, string>) || {};
         if (Object.keys(nextNotes).length === 0 && Object.keys(lsNotes).length > 0) {
           nextNotes = lsNotes;
-          await supabase.from('customer_notes').upsert({ user_id: userId, data: lsNotes as any });
-          localStorage.removeItem('pt_customer_notes');
+          const { error: notesErr } = await supabase.from('customer_notes').upsert({ user_id: userId, data: lsNotes as any });
+          // Only drop the device copy once the cloud really has it
+          if (notesErr) console.error('[sync] customer_notes migration:', notesErr);
+          else localStorage.removeItem('pt_customer_notes');
         }
 
         // Fetch profile separately — columns may not exist in all deployments, so we fall back gracefully
@@ -168,7 +206,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         // For admin accounts: always attempt migration — bypasses the alreadyMigrated gate.
         const alreadyMigrated = profileMigratedAt != null;
         const isAdminUser = isAdmin(user?.email);
-        const shouldMigrate = (!alreadyMigrated || isAdminUser) && !migratedRef.current;
+        const shouldMigrate = (!alreadyMigrated || isAdminUser) && !migratedRef.current && !cacheIsForeign;
         if (shouldMigrate) {
           migratedRef.current = true;
           const lsProjects = (loadJSON<any[]>('pt_projects', []) || []).map(normalizeProject);
@@ -234,15 +272,29 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setSettings(nextSettings);
         setCustomerNotes(nextNotes);
         // Cache fresh Supabase data to localStorage so next load has a warm fallback
-        localStorage.setItem('pt_projects', JSON.stringify(nextProjects));
-        localStorage.setItem('pt_expenses', JSON.stringify(nextExpenses));
-        localStorage.setItem('pt_templates', JSON.stringify(nextTemplates));
-        localStorage.setItem('pt_filament_purchases', JSON.stringify(nextFilament));
-        localStorage.setItem('pt_settings', JSON.stringify(nextSettings));
+        // (never throws — a full device cache must not make a successful cloud load look failed)
+        cacheProjects(nextProjects);
+        cacheJSON('pt_expenses', nextExpenses);
+        cacheJSON('pt_templates', nextTemplates);
+        cacheJSON('pt_filament_purchases', nextFilament);
+        cacheJSON('pt_settings', nextSettings);
+        setCacheOwner(userId);
       } catch (err) {
-        // Unexpected error (e.g. network down) — fall back to localStorage
-        console.error('[sync] unexpected error, falling back to localStorage:', err);
+        // Cloud unreachable or a query failed — fall back to this device's last copy,
+        // but only if that copy belongs to this account, and say so.
+        console.error('[sync] cloud load failed, falling back to device copy:', err);
+        const owner = getCacheOwner();
+        const cacheUsable = owner === null || owner === userId;
         if (!cancelled) {
+          toast.error('Could not load your data from the cloud', {
+            id: 'sync-load-failed',
+            description: cacheUsable
+              ? 'Showing the last copy saved on this device, which may be out of date. Reload once you are back online.'
+              : 'Check your connection and reload the page.',
+            duration: Infinity,
+          });
+        }
+        if (!cancelled && cacheUsable) {
           setProjects((loadJSON<any[]>('pt_projects', []) || []).map(normalizeProject));
           setExpenses(loadJSON<Expense[]>('pt_expenses', []));
           setTemplates(loadJSON<PrintTemplate[]>('pt_templates', []));
@@ -279,16 +331,25 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const items = [...refForTable(table)];
       const idx = items.findIndex((x: any) => x.id === id);
       if (idx >= 0) items[idx] = data; else items.unshift(data);
-      localStorage.setItem(key, JSON.stringify(items));
+      const cached = table === 'projects' ? cacheProjects(items) !== 'none' : cacheJSON(key, items);
+      // Guests have no cloud copy — the device copy is all there is, so a failure must be loud.
+      if (!cached && !userId) {
+        toast.error('This browser is out of storage space', {
+          id: 'device-storage-full',
+          description: 'Your latest change could not be saved on this device. Sign in to keep your data in the cloud, or export a backup now.',
+          duration: 15000,
+        });
+      }
     }
     if (!userId) return;
+    const label = table === 'projects' ? `"${data?.name || 'project'}"` : 'your change';
     supabase.from(table).upsert({ id, user_id: userId, data }).then(async ({ error }) => {
-      if (error) { console.error(`[sync] ${table} upsert error`, error); return; }
+      if (error) { console.error(`[sync] ${table} upsert error`, error); notifySaveFailed(label); return; }
       // Verify the write landed — read it back and log if missing
       const { data: verify, error: verifyErr } = await (supabase as any).from(table).select('id').eq('id', id).maybeSingle();
       if (verifyErr) { console.error(`[sync] ${table} verify error`, verifyErr); return; }
-      if (!verify) console.error(`[sync] ${table} id=${id} not found after upsert — possible RLS or data loss`);
-    });
+      if (!verify) { console.error(`[sync] ${table} id=${id} not found after upsert — possible RLS or data loss`); notifySaveFailed(label); }
+    }, (err: unknown) => { console.error(`[sync] ${table} upsert failed`, err); notifySaveFailed(label); });
   };
 
   const del = (table: 'projects'|'expenses'|'templates'|'filament_purchases', id: string) => {
@@ -296,12 +357,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const key = LS_TABLE_KEYS[table];
     if (key) {
       const items = refForTable(table).filter((x: any) => x.id !== id);
-      localStorage.setItem(key, JSON.stringify(items));
+      if (table === 'projects') cacheProjects(items); else cacheJSON(key, items);
     }
     if (!userId) return;
     supabase.from(table).delete().eq('id', id).then(({ error }) => {
-      if (error) console.error(`[sync] ${table} delete`, error);
-    });
+      if (error) { console.error(`[sync] ${table} delete`, error); notifySaveFailed('the deletion'); }
+    }, (err: unknown) => { console.error(`[sync] ${table} delete failed`, err); notifySaveFailed('the deletion'); });
   };
 
   const addProject = useCallback((p: Project) => {
@@ -446,10 +507,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (isDemoRef.current) return;
     setSettings(s);
     // Always write localStorage as backup for both guest and auth users
-    localStorage.setItem('pt_settings', JSON.stringify(s));
+    cacheJSON('pt_settings', s);
     if (!userId) return;
     supabase.from('user_settings').upsert({ user_id: userId, data: s as any }).then(({ error }) => {
-      if (error) console.error('[sync] user_settings upsert:', error);
+      if (error) { console.error('[sync] user_settings upsert:', error); notifySaveFailed('your settings'); }
     });
   }, [userId]);
 
@@ -457,10 +518,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (isDemoRef.current) return;
     setCustomerNotes(prev => {
       const next = { ...prev, [customerId]: note };
-      localStorage.setItem('pt_customer_notes', JSON.stringify(next));
+      cacheJSON('pt_customer_notes', next);
       if (userId) {
         supabase.from('customer_notes').upsert({ user_id: userId, data: next as any }).then(({ error }) => {
-          if (error) console.error('[sync] customer_notes upsert:', error);
+          if (error) { console.error('[sync] customer_notes upsert:', error); notifySaveFailed('the customer note'); }
         });
       }
       return next;
@@ -479,38 +540,67 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     [filamentPurchases]
   );
 
-  const replaceAllData = useCallback(async (data: { projects: Project[]; expenses: Expense[]; templates: PrintTemplate[]; filamentPurchases: FilamentPurchase[]; settings: AppSettings }) => {
-    if (isDemoRef.current) return;
+  const replaceAllData = useCallback(async (data: { projects: Project[]; expenses: Expense[]; templates: PrintTemplate[]; filamentPurchases: FilamentPurchase[]; settings: AppSettings }): Promise<{ ok: boolean; error?: string }> => {
+    if (isDemoRef.current) return { ok: false, error: 'Demo mode is on' };
+
+    if (userId) {
+      // Cloud first, and never destructively: upload everything in small batches, check every
+      // result, and only after ALL of it is safely stored remove rows that are not in the backup.
+      const tables = [
+        { table: 'projects' as const, rows: data.projects },
+        { table: 'expenses' as const, rows: data.expenses },
+        { table: 'templates' as const, rows: data.templates },
+        { table: 'filament_purchases' as const, rows: data.filamentPurchases },
+      ];
+      try {
+        for (const { table, rows } of tables) {
+          const payload = rows.map((r: any) => ({ id: r.id, user_id: userId, data: r as any }));
+          for (const batch of chunkRows(payload)) {
+            const { error } = await supabase.from(table).upsert(batch);
+            if (error) throw new Error(`${table}: ${error.message}`);
+          }
+        }
+        const { error: settingsErr } = await supabase.from('user_settings').upsert({ user_id: userId, data: data.settings as any });
+        if (settingsErr) throw new Error(`settings: ${settingsErr.message}`);
+
+        for (const { table, rows } of tables) {
+          const keep = new Set(rows.map((r: any) => r.id));
+          const { data: existing, error: listErr } = await (supabase as any).from(table).select('id').eq('user_id', userId);
+          if (listErr) throw new Error(`${table}: ${listErr.message}`);
+          const stale: string[] = (existing || []).map((r: any) => r.id).filter((id: string) => !keep.has(id));
+          for (let n = 0; n < stale.length; n += 50) {
+            const { error } = await supabase.from(table).delete().eq('user_id', userId).in('id', stale.slice(n, n + 50));
+            if (error) throw new Error(`${table}: ${error.message}`);
+          }
+        }
+      } catch (err) {
+        console.error('[sync] restore failed — nothing was removed from the cloud:', err);
+        return { ok: false, error: err instanceof Error ? err.message : String(err) };
+      }
+    }
+
     setProjects(data.projects);
     setExpenses(data.expenses);
     setTemplates(data.templates);
     setFilamentPurchases(data.filamentPurchases);
     setSettings(data.settings);
-    // Always write localStorage immediately so the fallback reflects the new data
-    localStorage.setItem('pt_projects', JSON.stringify(data.projects));
-    localStorage.setItem('pt_expenses', JSON.stringify(data.expenses));
-    localStorage.setItem('pt_templates', JSON.stringify(data.templates));
-    localStorage.setItem('pt_filament_purchases', JSON.stringify(data.filamentPurchases));
-    localStorage.setItem('pt_settings', JSON.stringify(data.settings));
-    if (!userId) return;
-    await Promise.all([
-      supabase.from('projects').delete().eq('user_id', userId),
-      supabase.from('expenses').delete().eq('user_id', userId),
-      supabase.from('templates').delete().eq('user_id', userId),
-      supabase.from('filament_purchases').delete().eq('user_id', userId),
-    ]);
-    if (data.projects.length) await supabase.from('projects').upsert(data.projects.map(p => ({ id: p.id, user_id: userId, data: p as any })));
-    if (data.expenses.length) await supabase.from('expenses').upsert(data.expenses.map(e => ({ id: e.id, user_id: userId, data: e as any })));
-    if (data.templates.length) await supabase.from('templates').upsert(data.templates.map(t => ({ id: t.id, user_id: userId, data: t as any })));
-    if (data.filamentPurchases.length) await supabase.from('filament_purchases').upsert(data.filamentPurchases.map(f => ({ id: f.id, user_id: userId, data: f as any })));
-    await supabase.from('user_settings').upsert({ user_id: userId, data: data.settings as any });
+    const cached = cacheProjects(data.projects);
+    cacheJSON('pt_expenses', data.expenses);
+    cacheJSON('pt_templates', data.templates);
+    cacheJSON('pt_filament_purchases', data.filamentPurchases);
+    cacheJSON('pt_settings', data.settings);
+    if (userId) setCacheOwner(userId);
+    if (!userId && cached !== 'full') {
+      return { ok: false, error: 'This backup is too large for this browser\'s storage. Sign in first, then restore it to your account.' };
+    }
+    return { ok: true };
   }, [userId]);
 
   const snapshotToLocalStorage = useCallback(() => {
-    localStorage.setItem('pt_projects', JSON.stringify(projectsRef.current));
-    localStorage.setItem('pt_expenses', JSON.stringify(expensesRef.current));
-    localStorage.setItem('pt_templates', JSON.stringify(templatesRef.current));
-    localStorage.setItem('pt_filament_purchases', JSON.stringify(filamentRef.current));
+    cacheProjects(projectsRef.current);
+    cacheJSON('pt_expenses', expensesRef.current);
+    cacheJSON('pt_templates', templatesRef.current);
+    cacheJSON('pt_filament_purchases', filamentRef.current);
   }, []);
 
   const allPrintNames = React.useMemo(() => {

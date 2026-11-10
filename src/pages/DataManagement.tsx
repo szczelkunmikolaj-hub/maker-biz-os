@@ -118,15 +118,22 @@ export default function DataManagement() {
           toast.error(t('data.invalidBackup'));
           return;
         }
+        const restoring = toast.info(`Restoring ${data.projects.length} projects — keep this tab open…`, { duration: 120000 });
         replaceAllData({
           projects: (data.projects || []).map(normalizeProject),
           expenses: data.expenses || [],
           templates: data.templates || [],
           filamentPurchases: data.filamentPurchases || [],
           settings: { ...settings, ...(data.settings || {}) },
+        }).then(result => {
+          toast.dismiss(restoring);
+          if (!result.ok) {
+            toast.error('Restore failed — nothing was changed', { description: result.error, duration: 20000 });
+            return;
+          }
+          toast.success(t('data.restoreSuccess', { projects: data.projects.length }));
+          posthog.capture('data_imported', { format: 'json', project_count: data.projects.length });
         });
-        toast.success(t('data.restoreSuccess', { projects: data.projects.length }));
-        posthog.capture('data_imported', { format: 'json', project_count: data.projects.length });
       } catch {
         toast.error(t('data.invalidBackup'));
       }

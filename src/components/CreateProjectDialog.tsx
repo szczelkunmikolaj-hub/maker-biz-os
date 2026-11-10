@@ -1,10 +1,11 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -85,6 +86,8 @@ export function CreateProjectDialog({ open, onClose, triggerFile = false }: Prop
   const [customerEmail, setCustomerEmail] = useState("");
   const [notes, setNotes] = useState("");
   const [showOptional, setShowOptional] = useState(false);
+  // null = follow auto-detection from past orders; true/false = the user chose explicitly
+  const [recurringChoice, setRecurringChoice] = useState<boolean | null>(null);
   const [errors, setErrors] = useState<FormErrors>({});
 
   // File import
@@ -97,7 +100,7 @@ export function CreateProjectDialog({ open, onClose, triggerFile = false }: Prop
     setName(""); setCustomerName(""); setTotalPrice(""); setOrderDate(today);
     setDueDate(""); setCustomerSource("Other"); setPaymentMethod("Other");
     setPaymentStatus("unpaid"); setDepositAmount(""); setDepositType("fixed");
-    setCustomerEmail(""); setNotes(""); setShowOptional(false); setErrors({});
+    setCustomerEmail(""); setNotes(""); setShowOptional(false); setErrors({}); setRecurringChoice(null);
     setParsedImport(null); setImportPrints([]); setFileParseState("idle"); setFileParseError("");
   }, [today]);
 
@@ -168,6 +171,21 @@ export function CreateProjectDialog({ open, onClose, triggerFile = false }: Prop
     return Object.keys(errs).length === 0;
   };
 
+  // Past customers, most frequent first — used for name suggestions and returning-customer detection
+  const knownCustomers = useMemo(() => {
+    const counts = new Map<string, { name: string; count: number }>();
+    projects.forEach(p => {
+      const n = (p.customerName || "").trim();
+      if (!n) return;
+      const k = n.toLowerCase();
+      const cur = counts.get(k);
+      if (cur) cur.count += 1; else counts.set(k, { name: n, count: 1 });
+    });
+    return Array.from(counts.values()).sort((a, b) => b.count - a.count);
+  }, [projects]);
+  const pastOrderCount = knownCustomers.find(c => c.name.toLowerCase() === customerName.toLowerCase().trim())?.count ?? 0;
+  const isRecurring = recurringChoice ?? pastOrderCount > 0;
+
   const handleCreate = () => {
     if (!validate()) return;
 
@@ -177,9 +195,6 @@ export function CreateProjectDialog({ open, onClose, triggerFile = false }: Prop
     } else if (paymentStatus === "deposit" && resolvedDeposit > 0) {
       payments.push({ id: crypto.randomUUID(), amount: resolvedDeposit, date: orderDate, method: paymentMethod });
     }
-
-    const isRecurring = customerName.trim() !== "" &&
-      projects.some(p => p.customerName.toLowerCase().trim() === customerName.toLowerCase().trim());
 
     const newProject: Project = {
       id: crypto.randomUUID(),
@@ -297,7 +312,21 @@ export function CreateProjectDialog({ open, onClose, triggerFile = false }: Prop
               placeholder="e.g. Maria García"
               value={customerName}
               onChange={e => setCustomerName(e.target.value)}
+              list="create-project-customers"
+              autoComplete="off"
             />
+            <datalist id="create-project-customers">
+              {knownCustomers.map(c => <option key={c.name} value={c.name} />)}
+            </datalist>
+            <label className="mt-2 flex items-center gap-2 text-xs cursor-pointer select-none">
+              <Checkbox checked={isRecurring} onCheckedChange={v => setRecurringChoice(!!v)} />
+              <span>Recurring customer</span>
+              {pastOrderCount > 0 && recurringChoice === null && (
+                <span className="text-muted-foreground">
+                  · {pastOrderCount} previous {pastOrderCount === 1 ? "order" : "orders"} found
+                </span>
+              )}
+            </label>
           </div>
 
           {/* Price + Order date (2-col) */}

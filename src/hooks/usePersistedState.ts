@@ -25,11 +25,11 @@ export function usePersistedState<T>(
     if (debounceMs > 0) {
       clearTimeout(timeoutRef.current);
       timeoutRef.current = setTimeout(() => {
-        localStorage.setItem(key, JSON.stringify(value));
+        try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* storage full — UI preference only */ }
       }, debounceMs);
       return () => clearTimeout(timeoutRef.current);
     }
-    localStorage.setItem(key, JSON.stringify(value));
+    try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* storage full — UI preference only */ }
   }, [key, value, debounceMs]);
 
   return [value, setValue];

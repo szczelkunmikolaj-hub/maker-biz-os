@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useApp } from "@/context/AppContext";
 import { useMonth } from "@/context/MonthContext";
+import { normalizeStage } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChevronLeft, ChevronRight, LayoutGrid, AlignLeft } from "lucide-react";
@@ -35,7 +36,7 @@ export default function CalendarPage() {
   const initialDate = useMemo(() => parseISO(`${calendarMonth}-01`), [calendarMonth]);
   const [current, setCurrent] = useState(initialDate);
   const [view, setView] = useState<CalView>('month');
-  const [typeFilter, setTypeFilter] = useState<EventType | 'all'>('all');
+  const [typeFilter, setTypeFilter] = useState<EventType | 'all' | 'schedule'>('schedule');
 
   const openProject = (id: string) => navigate(`/projects?id=${id}`, { state: { from: '/calendar' } });
 
@@ -47,12 +48,15 @@ export default function CalendarPage() {
         const d = parseISO(p.orderDate);
         if (isValid(d)) out.push({ id: `${p.id}-order`, projectId: p.id, name: p.name, customer: p.customerName, date: d, type: 'order' });
       }
-      if (p.dueDate) {
+      // One delivery marker per project: open projects show their due date (red only while
+      // genuinely late), delivered projects show the day they were delivered instead.
+      const isDelivered = p.sent || normalizeStage(p) === 'delivered';
+      if (p.dueDate && !isDelivered) {
         const d = parseISO(p.dueDate);
         if (isValid(d)) out.push({ id: `${p.id}-due`, projectId: p.id, name: p.name, customer: p.customerName, date: d, type: 'due', overdue: isBefore(d, today) && !isSameDay(d, today) });
       }
-      const deliveredDate = p.shippingDate || (p.sent ? p.orderDate : null);
-      if (deliveredDate && (p.sent || p.paid)) {
+      const deliveredDate = isDelivered ? (p.shippingDate || p.dueDate || p.orderDate) : null;
+      if (deliveredDate) {
         const d = parseISO(deliveredDate);
         if (isValid(d)) out.push({ id: `${p.id}-delivered`, projectId: p.id, name: p.name, customer: p.customerName, date: d, type: 'delivered' });
       }
@@ -60,7 +64,9 @@ export default function CalendarPage() {
     return out;
   }, [projects]);
 
-  const visibleEvents = typeFilter === 'all' ? events : events.filter(e => e.type === typeFilter);
+  const visibleEvents = typeFilter === 'all' ? events
+    : typeFilter === 'schedule' ? events.filter(e => e.type !== 'order')
+    : events.filter(e => e.type === typeFilter);
 
   const today = new Date();
 
@@ -160,14 +166,19 @@ export default function CalendarPage() {
       {/* Legend + type filter */}
       <div className="flex flex-wrap gap-1.5">
         <button
+          className={`flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full border transition-colors ${typeFilter === 'schedule' ? 'bg-primary text-primary-foreground border-primary' : 'border-border hover:bg-muted text-muted-foreground'}`}
+          onClick={() => setTypeFilter('schedule')}
+          title="Due dates of open projects and delivery dates of finished ones"
+        >Deliveries</button>
+        <button
           className={`flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full border transition-colors ${typeFilter === 'all' ? 'bg-primary text-primary-foreground border-primary' : 'border-border hover:bg-muted text-muted-foreground'}`}
           onClick={() => setTypeFilter('all')}
-        >All</button>
+        >All dates</button>
         {(Object.entries(TYPE_META) as [EventType, typeof TYPE_META[EventType]][]).map(([type, meta]) => (
           <button
             key={type}
             className={`flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full border transition-colors ${typeFilter === type ? `${meta.bg} ${meta.text} ${meta.border}` : 'border-border hover:bg-muted text-muted-foreground'}`}
-            onClick={() => setTypeFilter(typeFilter === type ? 'all' : type)}
+            onClick={() => setTypeFilter(typeFilter === type ? 'schedule' : type)}
           >
             <div className={`w-2 h-2 rounded-full ${meta.dot}`} />
             {meta.label}

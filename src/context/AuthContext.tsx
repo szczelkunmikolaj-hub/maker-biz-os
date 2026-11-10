@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase, supabaseConfigured } from '@/integrations/supabase/client';
 import type { Session, User } from '@supabase/supabase-js';
 import posthog from 'posthog-js';
+import { clearDataCache } from '@/lib/localCache';
 
 interface AuthContextType {
   session: Session | null;
@@ -26,6 +27,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (event === 'SIGNED_IN') {
         localStorage.removeItem('pt_guest_mode');
       }
+      if (event === 'SIGNED_OUT') {
+        clearDataCache();
+      }
       if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') {
         setSession(s);
         setLoading(false);
@@ -43,6 +47,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = async () => {
     if (supabaseConfigured) await supabase.auth.signOut();
+    // Never leave one account's data on the device for the next account to pick up
+    clearDataCache();
     posthog.reset();
   };
 
