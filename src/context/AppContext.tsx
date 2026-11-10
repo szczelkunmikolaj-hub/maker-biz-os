@@ -21,6 +21,38 @@ function notifySaveFailed(what: string) {
   });
 }
 
+/** Run a Supabase request, retrying twice on failure (timeouts and dropped connections happen). */
+async function withRetry<T extends { error: any }>(run: () => PromiseLike<T>): Promise<T> {
+  let last: T | undefined;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      last = await run();
+      if (!last.error) return last;
+    } catch (err) {
+      last = { error: { message: err instanceof Error ? err.message : String(err) } } as T;
+    }
+    await new Promise(r => setTimeout(r, 400 * (attempt + 1)));
+  }
+  return last as T;
+}
+
+/**
+ * Load all of a user's rows from one table in small pages. Projects carry embedded preview
+ * images, so one big "select everything" request can be several MB and time out.
+ */
+async function loadRowsPaged(table: 'projects' | 'expenses' | 'templates' | 'filament_purchases', userId: string, pageSize = 8): Promise<{ data: { data: any }[] | null; error: any }> {
+  const ids = await withRetry(() => (supabase as any).from(table).select('id').eq('user_id', userId));
+  if (ids.error) return { data: null, error: ids.error };
+  const allIds: string[] = (ids.data || []).map((r: any) => r.id);
+  const rows: { data: any }[] = [];
+  for (let i = 0; i < allIds.length; i += pageSize) {
+    const page = await withRetry(() => (supabase as any).from(table).select('data').eq('user_id', userId).in('id', allIds.slice(i, i + pageSize)));
+    if (page.error) return { data: null, error: page.error };
+    rows.push(...(page.data || []));
+  }
+  return { data: rows, error: null };
+}
+
 /** Split rows into small batches so one big request cannot fail the whole upload. */
 function chunkRows<T>(rows: T[], maxChars = 900_000, maxRows = 20): T[][] {
   const out: T[][] = [];
@@ -138,10 +170,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setLoading(true);
       try {
         const [pjs, exs, tps, fps, st, cn] = await Promise.all([
-          supabase.from('projects').select('data').eq('user_id', userId),
-          supabase.from('expenses').select('data').eq('user_id', userId),
-          supabase.from('templates').select('data').eq('user_id', userId),
-          supabase.from('filament_purchases').select('data').eq('user_id', userId),
+          loadRowsPaged('projects', userId),
+          loadRowsPaged('expenses', userId, 200),
+          loadRowsPaged('templates', userId, 50),
+          loadRowsPaged('filament_purchases', userId, 200),
           supabase.from('user_settings').select('data').eq('user_id', userId).maybeSingle(),
           supabase.from('customer_notes').select('data').eq('user_id', userId).maybeSingle(),
         ]);
@@ -154,8 +186,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         if (fps.error) console.error('[sync] filament query:', fps.error);
         // A failed query is NOT "no data". Treating it as empty would show an empty app,
         // overwrite the device copy with nothing and could re-upload stale data.
-        const loadError = pjs.error || exs.error || tps.error || fps.error;
-        if (loadError) throw new Error(`cloud load failed: ${loadError.message}`);
+        const failed = pjs.error ? ['projects', pjs.error] : exs.error ? ['expenses', exs.error] : tps.error ? ['templates', tps.error] : fps.error ? ['filament', fps.error] : null;
+        if (failed) throw new Error(`${failed[0]}: ${failed[1]?.message || failed[1]?.code || 'unknown error'}`);
 
         // Cached data on this device that belongs to a different account must never be
         // shown to, or uploaded into, this one.
@@ -289,8 +321,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           toast.error('Could not load your data from the cloud', {
             id: 'sync-load-failed',
             description: cacheUsable
-              ? 'Showing the last copy saved on this device, which may be out of date. Reload once you are back online.'
-              : 'Check your connection and reload the page.',
+              ? `Showing the last copy saved on this device, which may be out of date. Reload once you are back online. (${err instanceof Error ? err.message : String(err)})`
+              : `Check your connection and reload the page. (${err instanceof Error ? err.message : String(err)})`,
             duration: Infinity,
           });
         }
