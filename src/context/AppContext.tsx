@@ -21,13 +21,16 @@ function notifySaveFailed(what: string) {
   });
 }
 
+/** PostgREST error code for "this table does not exist in the database". */
+const isMissingTable = (error: any) => error?.code === 'PGRST205' || /schema cache/i.test(error?.message || '');
+
 /** Run a Supabase request, retrying twice on failure (timeouts and dropped connections happen). */
 async function withRetry<T extends { error: any }>(run: () => PromiseLike<T>): Promise<T> {
   let last: T | undefined;
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
       last = await run();
-      if (!last.error) return last;
+      if (!last.error || isMissingTable(last.error)) return last;
     } catch (err) {
       last = { error: { message: err instanceof Error ? err.message : String(err) } } as T;
     }
@@ -186,7 +189,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         if (fps.error) console.error('[sync] filament query:', fps.error);
         // A failed query is NOT "no data". Treating it as empty would show an empty app,
         // overwrite the device copy with nothing and could re-upload stale data.
-        const failed = pjs.error ? ['projects', pjs.error] : exs.error ? ['expenses', exs.error] : tps.error ? ['templates', tps.error] : fps.error ? ['filament', fps.error] : null;
+        // Projects are essential: if they can't be loaded, stop and fall back. For the other tables a
+        // MISSING table just means "nothing stored there" (some databases don't have every table);
+        // any other error on them is still treated as a failed load.
+        const optionalError = (e: any) => (e && !isMissingTable(e) ? e : null);
+        if (exs.error && isMissingTable(exs.error)) console.warn('[sync] expenses table missing — treating as empty');
+        if (tps.error && isMissingTable(tps.error)) console.warn('[sync] templates table missing — treating as empty');
+        if (fps.error && isMissingTable(fps.error)) console.warn('[sync] filament_purchases table missing — treating as empty');
+        const failed = pjs.error ? ['projects', pjs.error]
+          : optionalError(exs.error) ? ['expenses', exs.error]
+          : optionalError(tps.error) ? ['templates', tps.error]
+          : optionalError(fps.error) ? ['filament', fps.error] : null;
         if (failed) throw new Error(`${failed[0]}: ${failed[1]?.message || failed[1]?.code || 'unknown error'}`);
 
         // Cached data on this device that belongs to a different account must never be
@@ -589,6 +602,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           const payload = rows.map((r: any) => ({ id: r.id, user_id: userId, data: r as any }));
           for (const batch of chunkRows(payload)) {
             const { error } = await supabase.from(table).upsert(batch);
+            if (error && table !== 'projects' && isMissingTable(error)) {
+              console.warn(`[sync] restore: ${table} table missing in the database — skipped`);
+              break;
+            }
             if (error) throw new Error(`${table}: ${error.message}`);
           }
         }
