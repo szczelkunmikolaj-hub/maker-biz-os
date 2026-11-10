@@ -510,7 +510,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     cacheJSON('pt_settings', s);
     if (!userId) return;
     supabase.from('user_settings').upsert({ user_id: userId, data: s as any }).then(({ error }) => {
-      if (error) { console.error('[sync] user_settings upsert:', error); notifySaveFailed('your settings'); }
+      if (error) { console.error('[sync] user_settings upsert:', error); if (error.code !== 'PGRST205') notifySaveFailed('your settings'); }
     });
   }, [userId]);
 
@@ -540,12 +540,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     [filamentPurchases]
   );
 
+  // Restore from a backup file. MERGES into what is already there: every item in the backup is
+  // added or updated, and nothing that exists only in the app is ever deleted.
   const replaceAllData = useCallback(async (data: { projects: Project[]; expenses: Expense[]; templates: PrintTemplate[]; filamentPurchases: FilamentPurchase[]; settings: AppSettings }): Promise<{ ok: boolean; error?: string }> => {
     if (isDemoRef.current) return { ok: false, error: 'Demo mode is on' };
 
     if (userId) {
-      // Cloud first, and never destructively: upload everything in small batches, check every
-      // result, and only after ALL of it is safely stored remove rows that are not in the backup.
       const tables = [
         { table: 'projects' as const, rows: data.projects },
         { table: 'expenses' as const, rows: data.expenses },
@@ -560,34 +560,32 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             if (error) throw new Error(`${table}: ${error.message}`);
           }
         }
-        const { error: settingsErr } = await supabase.from('user_settings').upsert({ user_id: userId, data: data.settings as any });
-        if (settingsErr) throw new Error(`settings: ${settingsErr.message}`);
-
-        for (const { table, rows } of tables) {
-          const keep = new Set(rows.map((r: any) => r.id));
-          const { data: existing, error: listErr } = await (supabase as any).from(table).select('id').eq('user_id', userId);
-          if (listErr) throw new Error(`${table}: ${listErr.message}`);
-          const stale: string[] = (existing || []).map((r: any) => r.id).filter((id: string) => !keep.has(id));
-          for (let n = 0; n < stale.length; n += 50) {
-            const { error } = await supabase.from(table).delete().eq('user_id', userId).in('id', stale.slice(n, n + 50));
-            if (error) throw new Error(`${table}: ${error.message}`);
-          }
-        }
       } catch (err) {
-        console.error('[sync] restore failed — nothing was removed from the cloud:', err);
+        console.error('[sync] restore failed — nothing was deleted:', err);
         return { ok: false, error: err instanceof Error ? err.message : String(err) };
       }
+      // Settings are optional: some databases have no user_settings table. Never fail the restore on it.
+      const { error: settingsErr } = await supabase.from('user_settings').upsert({ user_id: userId, data: data.settings as any });
+      if (settingsErr) console.warn('[sync] restore: settings not saved to cloud (kept on this device):', settingsErr.message);
     }
 
-    setProjects(data.projects);
-    setExpenses(data.expenses);
-    setTemplates(data.templates);
-    setFilamentPurchases(data.filamentPurchases);
+    const mergeById = <T extends { id: string }>(current: T[], incoming: T[]): T[] => {
+      const incomingIds = new Set(incoming.map(x => x.id));
+      return [...incoming, ...current.filter(x => !incomingIds.has(x.id))];
+    };
+    const nextProjects = mergeById(projectsRef.current, data.projects);
+    const nextExpenses = mergeById(expensesRef.current, data.expenses);
+    const nextTemplates = mergeById(templatesRef.current, data.templates);
+    const nextFilament = mergeById(filamentRef.current, data.filamentPurchases);
+    setProjects(nextProjects);
+    setExpenses(nextExpenses);
+    setTemplates(nextTemplates);
+    setFilamentPurchases(nextFilament);
     setSettings(data.settings);
-    const cached = cacheProjects(data.projects);
-    cacheJSON('pt_expenses', data.expenses);
-    cacheJSON('pt_templates', data.templates);
-    cacheJSON('pt_filament_purchases', data.filamentPurchases);
+    const cached = cacheProjects(nextProjects);
+    cacheJSON('pt_expenses', nextExpenses);
+    cacheJSON('pt_templates', nextTemplates);
+    cacheJSON('pt_filament_purchases', nextFilament);
     cacheJSON('pt_settings', data.settings);
     if (userId) setCacheOwner(userId);
     if (!userId && cached !== 'full') {

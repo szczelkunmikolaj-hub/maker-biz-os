@@ -128,7 +128,7 @@ export default function DataManagement() {
         }).then(result => {
           toast.dismiss(restoring);
           if (!result.ok) {
-            toast.error('Restore failed — nothing was changed', { description: result.error, duration: 20000 });
+            toast.error('Restore failed — nothing was deleted', { description: result.error, duration: 20000 });
             return;
           }
           toast.success(t('data.restoreSuccess', { projects: data.projects.length }));

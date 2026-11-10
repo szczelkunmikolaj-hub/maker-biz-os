@@ -371,7 +371,7 @@ const en = {
     restoreBackupDesc: "Restore all your data from a full JSON backup file. This will replace all current data.",
     restoreFromBackup: "Restore from Backup",
     invalidBackup: "Invalid or corrupted backup file.",
-    restoreSuccess: "Restored {{projects}} projects successfully.",
+    restoreSuccess: "Merged {{projects}} projects from the backup. Projects not in the backup were kept.",
   },
   status: {
     active: "Active",
